@@ -3,7 +3,8 @@
 // ตอนนี้ยังไม่มีข้อมูลขอบเขตแคมปัสจริง จึงใช้ "ระยะทางจากจุดศูนย์กลางแคมปัส" เป็นค่าประมาณไปก่อน
 // ค่อยเปลี่ยนเป็น ST_Contains กับ polygon จริงทีหลังโดยไม่ต้องแก้ signature ของฟังก์ชันนี้
 
-const CAMPUS_CENTER = { lat: 14.0206, lng: 99.9679 };
+// พิกัดจริงของ มก. กำแพงแสนจาก OpenStreetMap (way 259034448) — ค่าเดิม 14.0206, 99.9679 คลาดจากของจริงราว 650 ม.
+const CAMPUS_CENTER = { lat: 14.023, lng: 99.9739 };
 const CAMPUS_RADIUS_KM = 2; // รัศมีโดยประมาณของพื้นที่ มก. กำแพงแสน
 
 const FLAT_CAMPUS_FARE = 20; // บาท เหมาจ่ายในมหาวิทยาลัย ตาม proposal 3.1.1.1 ข้อ 6
@@ -31,9 +32,10 @@ function isWithinCampus(point) {
   return distanceKm(CAMPUS_CENTER, point) <= CAMPUS_RADIUS_KM;
 }
 
-function calculateFare({ pickup, destination }) {
+// routeDistanceKm = ระยะทางตามถนนจริงจาก OSRM (ดู routing.js) ถ้าไม่ส่งมาจะใช้ระยะเส้นตรง
+function calculateFare({ pickup, destination, routeDistanceKm }) {
   const withinCampus = isWithinCampus(pickup) && isWithinCampus(destination);
-  const distance = distanceKm(pickup, destination);
+  const distance = routeDistanceKm ?? distanceKm(pickup, destination);
 
   if (withinCampus) {
     return { isWithinCampus: true, distanceKm: distance, fare: FLAT_CAMPUS_FARE };

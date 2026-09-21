@@ -5,6 +5,7 @@ const router = Router();
 router.use("/auth", require("./auth.routes"));
 router.use("/users", require("./user.routes"));
 router.use("/landmarks", require("./landmark.routes"));
+router.use("/routes", require("./route.routes"));
 router.use("/drivers", require("./driver.routes"));
 router.use("/service-requests", require("./serviceRequest.routes"));
 router.use("/notifications", require("./notification.routes"));

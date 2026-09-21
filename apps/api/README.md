@@ -90,6 +90,7 @@ docker exec docker-db-1 psql -U postgres -d kuvin -c "\dt"
 - `GET /mine` (user) / `GET /driver/mine` (driver) — ประวัติของตัวเอง
 - `GET /pending` (driver) — งานที่ยังเป็น PENDING ทั้งหมด (ดูภาพรวมคิว) แต่ละรายการมี `isMyTurn: boolean` บอกว่า
   ถึงตาคิวของคนขับที่เรียกจริงหรือยัง — กด accept/decline ได้จริงเฉพาะอันที่ `isMyTurn: true` เท่านั้น
+- `POST /estimate` (user) — คืนค่าโดยสาร/ระยะทางบนถนนจริง + `pickup`/`destination` ที่ resolve แล้ว + `route` (เส้นทางสำหรับวาดแผนที่)
 - `GET /queue` (driver) — ภาพรวมคิวคนขับที่ออนไลน์ทั้งหมดตอนนี้ เรียงลำดับเดียวกับที่ระบบจะเสนองานจริง (ดูหัวข้อ
   คิวรับงานแบบวินหมุนเวียนด้านล่าง) คืน `{ queue: [{position, driverId, fullName, vinNumber, isMe, isActiveOffer}],
   activeOffer: {requestId, driverId, offerExpiresAt} | null, myPosition, aheadOfMe }` — `isActiveOffer`/`activeOffer`
@@ -204,6 +205,12 @@ Sweeper (`sweepExpiredOffers`, ทุก 1 วิใน `index.js`) เรีย
 
 `GET /service-requests/pending` (endpoint สำรองแบบ polling) คืนคำขอ `PENDING` พร้อม `isMyTurn`
 
+## เส้นทาง (`GET /api/routes`)
+`GET /routes?fromLat&fromLng&toLat&toLng` (user/driver) → `{ source, distanceKm, durationMin, coordinates: [[lat, lng], ...] }`
+เส้นทางถนนจริงจาก OSRM (`src/utils/routing.js`, cache 10 นาที) ใช้ทั้งคำนวณค่าโดยสารนอกมหาวิทยาลัยและวาดแผนที่/ETA ฝั่งแอป
+ถ้า OSRM ไม่ตอบใน 4 วิ จะ fallback เป็นเส้นตรงพร้อม `source: "straight"` (เรียกวินยังใช้ได้) ตั้ง `OSRM_BASE_URL` ให้ชี้เซิร์ฟเวอร์ของตัวเอง
+(ค่าเริ่มต้นคือ demo server สาธารณะ ใช้พัฒนา/ทดสอบเท่านั้น)
+
 ## Socket.io events
 
 **ต้อง auth ก่อน connect** — ส่ง JWT เดียวกับที่ใช้ใน REST API ผ่าน `io(url, { auth: { token } })`
@@ -213,7 +220,7 @@ Sweeper (`sweepExpiredOffers`, ทุก 1 วิใน `index.js`) เรีย
 
 - Client emit: `driver:online` / `driver:offline` / `user:join` / `service-request:watch` / `driver:location`
   - `driver:online`/`user:join` ไม่ต้องส่ง id แล้ว — server join room ตาม id ใน token ให้เอง
-  - `service-request:watch` / `driver:location` เช็คสิทธิ์ว่า socket ที่ auth แล้วเป็นผู้เกี่ยวข้องกับ request นั้นจริง (user/driver/admin) ก่อน join/emit ทุกครั้ง
+  - `driver:location` ส่งได้เฉพาะคนขับของทริปที่ ACCEPTED/IN_PROGRESS และพิกัดต้องเป็นตัวเลขที่ถูกต้อง (server บันทึก `currentLat/Lng` ล่าสุดทุก ≥10 วิ) — `service-request:watch` / `driver:location` เช็คสิทธิ์ว่า socket ที่ auth แล้วเป็นผู้เกี่ยวข้องกับ request นั้นจริง (user/driver/admin) ก่อน join/emit ทุกครั้ง
 - Server emit: `service-request:new` (ส่งไปที่ private room `driver:<id>` ของคนขับที่ถึงตาคิวคนเดียวเท่านั้น
   ดูหัวข้อคิวรับงานด้านบน), `service-request:status`, `notification:new`, `driver:location`, `sos:new`
   (ไปยัง room `admin` เท่านั้น — admin ทุกคน join room นี้อัตโนมัติตอน connect)

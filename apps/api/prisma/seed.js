@@ -3,18 +3,20 @@ const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
-// พิกัดโดยประมาณ (ศูนย์กลาง มก. กำแพงแสน ~14.0206, 99.9679) — เป็นค่าตั้งต้นสำหรับพัฒนา/ทดสอบเท่านั้น
-// ต้องสำรวจพิกัดจริงของแต่ละอาคารก่อนใช้งานจริง (ตรวจสอบขอบเขตด้วย PostGIS ตามที่ proposal ระบุ)
-const BASE_LAT = 14.0206;
-const BASE_LNG = 99.9679;
+// พิกัดสถานที่:
+//  - `pos: [lat, lng]` = พิกัดจริงจาก OpenStreetMap (ตรวจกับแผนที่แล้ว)
+//  - `offset: [dLat, dLng]` = ค่า "โดยประมาณ" วัดจากจุดศูนย์กลางแคมปัสจริง (14.0230, 99.9739) เพราะ OSM ยังไม่มีข้อมูล
+//    อาคารเหล่านี้ — ต้องสำรวจ/ลากหมุดแก้ให้ตรงอาคารจริงก่อนใช้งานจริง (ขอบเขตแคมปัสควรใช้ PostGIS ตาม proposal)
+const BASE_LAT = 14.023;
+const BASE_LNG = 99.9739;
 
 const landmarks = [
-  { name: "สำนักหอสมุด", detail: "อาคารสำนักหอสมุด", offset: [0.0015, -0.001], isPopular: true },
+  { name: "สำนักหอสมุด", detail: "อาคารสำนักหอสมุด", pos: [14.02543, 99.97459], isPopular: true },
   { name: "โรงอาหารกลาง", detail: "โรงอาหารกลาง", offset: [-0.001, 0.0012], isPopular: true },
   { name: "โรงอาหารใหม่", detail: "โรงอาหารใหม่", offset: [-0.0016, 0.0018] },
-  { name: "หอพักนิสิต", detail: "หมู่บ้านนิสิต", offset: [0.0025, 0.002], isPopular: true },
+  { name: "หอพักนิสิต", detail: "หมู่บ้านนิสิต", pos: [14.03039, 99.97892], isPopular: true },
   { name: "สนามฟุตบอล", detail: "สนามกีฬากลาง", offset: [0.0008, 0.0025] },
-  { name: "โรงพยาบาลสัตว์", detail: "คณะสัตวแพทยศาสตร์", offset: [-0.0022, -0.0018] },
+  { name: "โรงพยาบาลสัตว์", detail: "คณะสัตวแพทยศาสตร์", pos: [14.02055, 99.97328] },
   { name: "คณะวิศวกรรมศาสตร์", detail: "อาคาร 3 ชั้น", offset: [0.0005, -0.0022] },
   { name: "คณะศิลปศาสตร์ฯ", detail: "คณะศิลปศาสตร์และวิทยาศาสตร์", offset: [-0.0009, -0.0009] },
   { name: "คณะเกษตร", detail: "คณะเกษตร กำแพงแสน", offset: [-0.0028, 0.0006] },
@@ -26,7 +28,7 @@ const landmarks = [
   { name: "ประตู 2", detail: "ประตูที่ 2", offset: [-0.004, 0.003] },
   { name: "ประตู 3", detail: "ประตูที่ 3", offset: [-0.003, -0.004] },
   { name: "สถานีรถไฟกำแพงแสน", detail: "สถานีรถไฟ", offset: [0.006, -0.003] },
-  { name: "ตลาดกำแพงแสน", detail: "ตลาดกำแพงแสน", offset: [0.005, 0.004] },
+  { name: "ตลาดกำแพงแสน", detail: "ตลาดกำแพงแสน", pos: [13.99584, 99.99647] },
   { name: "คอนแวนชั่น", detail: "อาคารคอนเวนชัน", offset: [0.0007, 0.0016], isPopular: true },
   { name: "ศร 4", detail: "อาคารศูนย์เรียนรวม 4", offset: [-0.0006, -0.0004], isPopular: true },
   { name: "หน้ามอ", detail: "ทางเข้าหน้ามหาวิทยาลัย", offset: [0.0035, -0.0009], isPopular: true },
@@ -34,18 +36,17 @@ const landmarks = [
 
 async function main() {
   for (const l of landmarks) {
-    const [dLat, dLng] = l.offset;
+    const [lat, lng] = l.pos ?? [BASE_LAT + l.offset[0], BASE_LNG + l.offset[1]];
     const exists = await prisma.landmark.findFirst({ where: { name: l.name } });
-    if (exists) continue;
+
+    // รัน seed ซ้ำแล้วอัปเดตพิกัดของสถานที่เดิมให้ตรงกับค่าล่าสุดด้วย (เดิมข้ามไปเลยจึงค้างพิกัดสมมติ)
+    if (exists) {
+      await prisma.landmark.update({ where: { id: exists.id }, data: { lat, lng } });
+      continue;
+    }
 
     await prisma.landmark.create({
-      data: {
-        name: l.name,
-        detail: l.detail,
-        lat: BASE_LAT + dLat,
-        lng: BASE_LNG + dLng,
-        isPopular: Boolean(l.isPopular),
-      },
+      data: { name: l.name, detail: l.detail, lat, lng, isPopular: Boolean(l.isPopular) },
     });
   }
   console.log(`Seeded ${landmarks.length} landmarks.`);

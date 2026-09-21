@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { calculateFare } = require("../utils/geo");
+const { getRoute } = require("../utils/routing");
 const { notify } = require("./notification.service");
 const { generatePaymentQr } = require("../utils/promptpay");
 
@@ -35,11 +36,15 @@ async function estimateFare(payload) {
     lng: payload.destinationLng,
   });
 
-  const fareInfo = calculateFare({ pickup, destination });
+  const route = await getRoute(pickup, destination);
+  const fareInfo = calculateFare({ pickup, destination, routeDistanceKm: route.distanceKm });
   return {
     isWithinCampus: fareInfo.isWithinCampus,
     distanceKm: Number(fareInfo.distanceKm.toFixed(2)),
     fare: fareInfo.fare,
+    pickup: { lat: pickup.lat, lng: pickup.lng },
+    destination: { lat: destination.lat, lng: destination.lng },
+    route: { source: route.source, durationMin: Math.round(route.durationMin), coordinates: route.coordinates },
   };
 }
 
@@ -64,7 +69,9 @@ async function createRequest(userId, payload, io) {
     address: payload.destinationAddress,
   });
 
-  const fareInfo = calculateFare({ pickup, destination });
+  // ค่าโดยสารนอกมหาวิทยาลัยคิดจากระยะทางตามถนนจริง (fallback เป็นเส้นตรงถ้าบริการแผนที่ไม่ตอบ)
+  const route = await getRoute(pickup, destination);
+  const fareInfo = calculateFare({ pickup, destination, routeDistanceKm: route.distanceKm });
 
   const request = await prisma.serviceRequest.create({
     data: {

@@ -25,7 +25,7 @@ const TX_OPTIONS = { maxWait: 5000, timeout: 10000 };
 
 const includeParties = {
   user: { select: { id: true, fullName: true, phone: true } },
-  driver: { select: { id: true, fullName: true, phone: true, vinNumber: true, vehicleModel: true, licensePlate: true } },
+  driver: { select: { id: true, fullName: true, phone: true, vinNumber: true, vehicleModel: true, licensePlate: true, currentLat: true, currentLng: true } },
 };
 
 // ---------------------------------------------------------------------------
