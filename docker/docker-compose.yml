@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kuvin
+    ports:
+      # host 5433 -> container 5432: host already has a native PostgreSQL service on 5432
+      - "5433:5432"
+    volumes:
+      - kuvin_db_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ../apps/api
+    restart: unless-stopped
+    env_file:
+      - ../apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/kuvin?schema=public
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+
+volumes:
+  kuvin_db_data:

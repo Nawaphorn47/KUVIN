@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-stone-100 text-stone-900 antialiased;
+  font-family: "Prompt", system-ui, sans-serif;
+}

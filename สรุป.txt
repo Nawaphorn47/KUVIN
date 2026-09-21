@@ -1,0 +1,170 @@
+สรุปงานที่ทำไปทั้งหมด — โปรเจกต์ KU VIN (อัปเดต 27 ส.ค. 2569)
+====================================================================
+
+หมายเหตุ: ไฟล์นี้สรุปเฉพาะงานที่ทำใน apps/api (backend) รวมทุก session
+ที่ผ่านมา ตั้งแต่ตรวจช่องโหว่ความปลอดภัย จนถึงเพิ่มฟีเจอร์ใหม่ล่าสุด
+
+
+1) แก้ช่องโหว่ความปลอดภัย (เจอจากการ audit เอง ไม่ใช่ user รายงาน)
+--------------------------------------------------------------------
+
+1.1 Socket.io ไม่มีการตรวจสอบตัวตนก่อน connect
+    ปัญหา: เดิม client คนไหนก็ได้เชื่อมต่อ Socket.io แล้วปลอมตัวส่ง
+    driverId/userId เอง เพื่อ join room ของคนอื่น ดักดูตำแหน่ง/สถานะ
+    ทริปของคนอื่นได้
+    แก้: เพิ่ม auth middleware ที่ต้องส่ง JWT ตอน connect
+    (io(url, { auth: { token } })) ใช้ id/role จาก token เป็นหลัก
+    ไม่เชื่อค่าที่ client ส่งมาเอง
+    ไฟล์ที่แก้: src/sockets/index.js
+
+1.2 GET /api/drivers/:id เป็น public route คืนข้อมูลดิบเกือบทั้งหมด
+    ปัญหา: เดิมไม่ต้อง login ก็เรียกได้ และคืนข้อมูล driver แบบเต็ม
+    รวมเบอร์โทร, รูปบัตรประชาชน/เอกสารรถ, พิกัด GPS สด (currentLat/Lng),
+    fcmToken — ใครก็ตามที่รู้/เดา driver id ได้ก็ตามรอยตำแหน่งคนขับ
+    แบบเรียลไทม์ได้เลย (สแตล์กเกอร์ risk)
+    แก้:
+      - เพิ่ม requireAuth() ให้ route ต้อง login ก่อน (role ใดก็ได้)
+      - แยกฟังก์ชัน getPublicDriver() ที่ select เฉพาะ
+        id/fullName/photoUrl/vehicleModel/licensePlate/ratingAvg/ratingCount
+        ออกจาก getDriver() แบบเต็มที่ใช้เฉพาะ /me (เจ้าของข้อมูลเอง) เท่านั้น
+    ไฟล์ที่แก้: src/services/driver.service.js, src/controllers/driver.controller.js,
+    src/routes/driver.routes.js
+
+    ทั้งสองจุดทดสอบผ่านแบบ end-to-end จริง (login → เรียก API → เช็ค
+    response fields) ก่อนปิดงาน ไม่ใช่แค่ตรวจโค้ดอย่างเดียว
+
+
+2) แก้บั๊ก package.json (root)
+--------------------------------------------------------------------
+    ปัญหา: script "dev:mobile" สั่ง `npm run start --workspace=apps/mobile`
+    แต่ apps/mobile มีแค่ script "dev"/"build"/"preview" ไม่มี "start"
+    รันแล้วจะ error "missing script: start" ทันที
+    แก้: เปลี่ยนเป็น `npm run dev --workspace=apps/mobile`
+    ไฟล์ที่แก้: package.json (root)
+
+
+3) เพิ่มระบบอัปโหลดรูปภาพจริง — POST /api/uploads
+--------------------------------------------------------------------
+    เหตุผล: ก่อนหน้านี้ endpoint ยืนยันตัวตนคนขับ (POST /drivers/me/verify)
+    รับแค่ string URL ของรูป (photoUrl, idCardPhotoUrl, vehiclePhotoUrl,
+    platePhotoUrl) ตรงๆ โดยไม่มี endpoint ให้อัปโหลดไฟล์รูปจริงเลย —
+    เป็นช่องว่างที่ block flow ยืนยันตัวตนคนขับจริงในแอป
+
+    สิ่งที่ทำ:
+    - ติดตั้ง multer สำหรับรับไฟล์แบบ multipart/form-data
+    - POST /api/uploads (ต้อง login role ใดก็ได้) รับ field ชื่อ "file"
+      จำกัดเฉพาะรูป JPEG/PNG/WEBP ขนาดไม่เกิน 5MB คืน { url } กลับมา
+    - ไฟล์เก็บที่ apps/api/uploads/ (local disk) เสิร์ฟกลับผ่าน
+      static path /uploads/<filename>
+    - เพิ่ม error handling เฉพาะของ multer (ไฟล์ใหญ่เกิน/ไฟล์ผิดชนิด
+      ตอบ 400 เป็นข้อความไทยที่อ่านรู้เรื่อง)
+    - เพิ่ม apps/api/uploads/ ใน .gitignore (ไฟล์ที่อัปโหลดไม่ควร commit)
+
+    ไฟล์ใหม่: src/middlewares/upload.js, src/controllers/upload.controller.js,
+    src/routes/upload.routes.js
+    ไฟล์ที่แก้: src/routes/index.js, src/index.js, src/middlewares/errorHandler.js,
+    .gitignore, package.json (เพิ่ม dependency multer)
+
+    ทดสอบผ่าน: อัปโหลดรูปจริงสำเร็จและดึงกลับมาดูได้, ไฟล์ที่ไม่ใช่รูป
+    โดนปฏิเสธ (400), ไม่ login โดนปฏิเสธ (401)
+
+
+4) เพิ่มระบบ SOS ฉุกเฉินฝั่ง backend — POST /api/sos
+--------------------------------------------------------------------
+    เหตุผล: หน้า SOS ใน mobile app (Sos.jsx) เดิมเป็นแค่ mock ปุ่มโทร
+    (tel:) กับ mock ผู้ติดต่อฉุกเฉิน ไม่มีการแจ้งอะไรไปหลังบ้านเลย
+    แอปวินมอเตอร์ไซค์จริงควรมีระบบบันทึกเหตุการณ์ + แจ้งเตือนแอดมิน
+    แบบเรียลไทม์ด้วย
+
+    สิ่งที่ทำ:
+    - เพิ่ม model ใหม่ SosAlert ใน prisma/schema.prisma (สร้างและรัน
+      migration "add_sos_alerts" ลงฐานข้อมูลจริงแล้ว)
+      เก็บ: actorType (USER/DRIVER), actorId, lat, lng, note,
+      serviceRequestId (ถ้ามีทริปที่กำลังทำอยู่ตอนกด SOS), status
+      (OPEN/RESOLVED), resolvedNote, resolvedAt, createdAt
+    - POST /api/sos (user หรือ driver ที่ login แล้ว) — ส่งพิกัด/หมายเหตุ
+      เข้ามา ระบบบันทึกลง DB ทันที แล้วยิง event "sos:new" ผ่าน Socket.io
+      ไปหา admin ทุกคนที่ online อยู่ ณ ขณะนั้นแบบเรียลไทม์ (แนบชื่อ+
+      เบอร์โทรผู้แจ้งไปด้วยอัตโนมัติ ไม่ต้องให้ admin ไปค้นเอง)
+    - Admin dashboard เข้า socket room "admin" อัตโนมัติตอน connect
+    - GET /api/admin/sos?status=OPEN — ดูรายการแจ้งเหตุ (ไม่ใส่ status
+      พารามิเตอร์ = ดูทั้งหมด)
+    - POST /api/admin/sos/:id/resolve { resolvedNote? } — ปิดเคส
+      (ปิดซ้ำจะโดน error 409)
+
+    ไฟล์ใหม่: src/services/sos.service.js, src/controllers/sos.controller.js,
+    src/routes/sos.routes.js, prisma/migrations/20260827075230_add_sos_alerts/
+    ไฟล์ที่แก้: prisma/schema.prisma, src/routes/index.js,
+    src/routes/admin.routes.js, src/controllers/admin.controller.js,
+    src/sockets/index.js
+
+    ทดสอบผ่านครบ: ยิง SOS แล้ว admin socket ได้รับ event จริงแบบเรียลไทม์,
+    ขึ้นในรายการ OPEN ของ admin, user ธรรมดาเข้าดูรายการ admin ไม่ได้ (403),
+    ปิดเคสสำเร็จ, ปิดเคสซ้ำโดนบล็อก (409)
+
+
+5) อัปเดต README
+--------------------------------------------------------------------
+    - README.md (root) — อัปเดตหัวข้อ "สถานะปัจจุบัน" ย้าย 2 ฟีเจอร์นี้
+      (อัปโหลดรูป, SOS) จากหัวข้อ "งานที่ยังไม่ทำ" มาเป็น "ทำแล้ว"
+      และเพิ่มรายการ hardening ที่ยังไม่ทำ (helmet, logout/revoke token,
+      automated test, pagination)
+    - apps/api/README.md — เพิ่มเอกสาร endpoint ใหม่ทั้งหมด
+      (Uploads, SOS, Admin SOS) และ socket event "sos:new"
+
+
+====================================================================
+สถานะรวมของแต่ละส่วน ณ ตอนนี้
+====================================================================
+
+Backend (apps/api) — ครบ core flow ของปัญหาพิเศษแล้ว แต่ยังไม่ใช่
+"โปรดักชันจริง 100%" ยังมีช่องว่างถ้าจะทำเป็นแอปใช้งานจริง:
+
+  ทำแล้ว:
+  - Auth ครบ 3 role (user/driver/admin)
+  - Booking flow เต็มวงจร (estimate → สร้างคำขอ → auto-cancel →
+    รับงาน → เริ่ม/จบทริป → ชำระเงิน/ข้อพิพาท → ให้คะแนนได้ทั้งสองฝ่าย)
+  - Nearest-driver dispatch แบบ real-time ผ่าน Socket.io
+  - Admin: สถิติ, อนุมัติ/ปฏิเสธคนขับ, จัดการข้อพิพาท, ดูรายการ SOS
+  - Push notification (FCM) ต่อ SDK จริงแล้ว (log-only รอ credentials)
+  - อัปโหลดรูปภาพจริง (multer)
+  - ระบบ SOS ฉุกเฉินแจ้ง admin แบบ real-time
+  - แก้ช่องโหว่ความปลอดภัย 2 จุด (Socket.io auth, driver profile leak)
+
+  ยังไม่ทำ (hardening / scale — ไม่ block การใช้งานหลัก):
+  - Firebase credentials จริง (ผู้ใช้ต้องสร้างเองจาก Firebase Console)
+  - แผนที่ Leaflet + OSRM จริง (ตอนนี้เป็น placeholder)
+  - helmet (security headers) — ตอนนี้มีแค่ cors()
+  - logout / revoke JWT token — ใช้ expire 7 วันอย่างเดียว
+  - automated test suite (unit/integration) — ตอนนี้ตรวจด้วย probe
+    script มือทุกครั้งที่แก้โค้ด
+  - pagination บน list endpoint (เช่น /admin/trips, /notifications)
+  - payment gateway จริง (ตอนนี้เป็นแค่ status PAID/DISPUTED ที่
+    คนขับกดยืนยันเอง ไม่ได้เชื่อม PromptPay/บัตรเครดิตจริง)
+
+Mobile (apps/mobile) — UI ครบ 33 หน้าจอตาม wireframe แล้ว แต่ยังเป็น
+mock data ทั้งหมด ยังไม่เรียก backend จริงสักหน้า (จงใจเว้นไว้ รอผู้ใช้
+รื้อ/ปรับหน้าบ้านเองก่อนค่อยต่อสาย) — รวมถึงหน้า SOS และหน้ายืนยันตัวตน
+คนขับ (verify step 1/2) ที่ backend พร้อมรองรับ POST /api/sos และ
+POST /api/uploads แล้ว แต่หน้า UI ยังไม่ได้เปลี่ยนจาก mock มาเรียกจริง
+
+Web Dashboard (apps/web-dashboard) — เพิ่งเริ่ม มีแค่ 2 หน้า
+(AdminLogin, AdminDashboard) ยังไม่มีหน้าจัดการ user/driver แบบละเอียด,
+หน้าตรวจเอกสารยืนยันตัวตนคนขับ, หรือหน้าดูรายการ SOS (แม้ backend
+จะพร้อม endpoint ให้แล้วก็ตาม)
+
+
+====================================================================
+งานที่เหลือ (เรียงตามความสำคัญที่แนะนำ)
+====================================================================
+1. ต่อ apps/mobile และ apps/web-dashboard เข้ากับ backend จริงทั้งหมด
+   (รอผู้ใช้รื้อ/ออกแบบ UI ใหม่ก่อนตามที่ตกลงกันไว้)
+2. หน้า admin สำหรับดูเอกสารยืนยันตัวตนคนขับแบบละเอียด และหน้าดู/จัดการ
+   รายการแจ้งเหตุ SOS ใน web-dashboard
+3. แผนที่ Leaflet + OSRM จริงแทน placeholder ใน mobile app
+4. Firebase credentials จริงสำหรับเปิดใช้งาน FCM push notification
+5. Hardening: helmet, logout/revoke token, automated test suite,
+   pagination บน list endpoint
+6. (ถ้าต้องการ) เปลี่ยนโมเดล dispatch จาก broadcast กลุ่มใกล้เคียง
+   เป็นแบบเสนองานทีละคนมี timeout (sequential offer แบบ Uber)
+7. (ถ้าต้องการ) เชื่อม payment gateway จริงแทนการกดยืนยันสถานะเอง

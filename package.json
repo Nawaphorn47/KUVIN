@@ -1,0 +1,16 @@
+{
+  "name": "ku-vin",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ระบบเรียกวินมอเตอร์ไซค์ภายในมหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน ผ่าน KU VIN",
+  "workspaces": [
+    "apps/api",
+    "apps/web-dashboard",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web-dashboard",
+    "dev:mobile": "npm run dev --workspace=apps/mobile"
+  }
+}

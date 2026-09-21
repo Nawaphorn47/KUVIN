@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceStatus {
+  PENDING // รอการตอบรับ
+  ACCEPTED // วินรับงานแล้ว กำลังไปจุดรับ
+  IN_PROGRESS // กำลังให้บริการ (รับผู้โดยสารแล้ว)
+  COMPLETED // ให้บริการเสร็จสิ้น
+  CANCELLED // ยกเลิก
+}
+
+enum DriverVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING // ยังไม่ถึงขั้นตอนชำระเงิน
+  PAID // คนขับยืนยันว่าได้รับเงินแล้ว
+  DISPUTED // คนขับแจ้งว่ายังไม่ได้รับเงิน / มีข้อพิพาท
+}
+
+enum NotificationRecipient {
+  USER
+  DRIVER
+}
+
+enum SosStatus {
+  OPEN
+  RESOLVED
+}
+
+model User {
+  id           String  @id @default(uuid())
+  fullName     String
+  phone        String  @unique
+  email        String  @unique // ล็อกอินด้วยอีเมลนี้ — ต้องเป็น @ku.th ตาม proposal (สมัครด้วยอีเมลมหาวิทยาลัยเท่านั้น)
+  passwordHash String
+  studentId    String?
+  fcmToken     String?
+
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requests     ServiceRequest[]
+  ratingsGiven Rating[]
+
+  @@map("users")
+}
+
+model Driver {
+  id                 String                   @id @default(uuid())
+  fullName           String
+  phone              String                   @unique
+  passwordHash       String
+  vinNumber          String                   @unique // หมายเลขวิน
+  licensePlate       String
+  vehicleModel       String?
+  promptPayId        String? // เบอร์โทร (10 หลัก) หรือเลขบัตร ปชช. (13 หลัก) ที่ผูกกับพร้อมเพย์ — ใช้สร้าง QR รับเงิน
+  verificationStatus DriverVerificationStatus @default(PENDING)
+  rejectionReason    String? // เหตุผลเมื่อ verificationStatus = REJECTED
+
+  // เอกสารยืนยันตัวตน (เก็บเป็น URL ไปยังไฟล์ที่อัปโหลด)
+  photoUrl             String? // รูปถ่ายหน้าตรง
+  idCardPhotoUrl       String? // รูปบัตรประชาชน
+  driverLicensePhotoUrl String? // รูปใบขับขี่ (คนละใบกับบัตรประชาชน)
+  vehiclePhotoUrl      String? // รูปรถเต็มคัน
+  platePhotoUrl        String? // รูปป้ายทะเบียน
+
+  // ---- สถานะคิวรับงาน (FIFO) ----
+  // isOnline      : คนขับกดออนไลน์อยู่ (คิวประกอบด้วยเฉพาะคนที่ isOnline = true)
+  // isAvailable   : ว่างรับงาน — false เมื่อกำลังอยู่ระหว่างทริป (ออนไลน์อยู่แต่ไม่ถูกเสนองาน)
+  // queueJoinedAt : เวลาเข้าคิว ใช้ ORDER BY หาหัวคิว (null = ไม่อยู่ในคิว) — Timestamptz(6) ละเอียดระดับ microsecond
+  //                 เพื่อแทรกคิวระหว่างสองคนได้ (light penalty ตอน timeout) โดยไม่ต้องขยับคนอื่น
+  // timeoutCount  : จำนวนครั้งที่ปล่อยงานให้หมดเวลาติดต่อกัน (รีเซ็ตเมื่อรับงาน/จบทริป/ออนไลน์ใหม่)
+  isOnline      Boolean   @default(false)
+  isAvailable   Boolean   @default(true)
+  queueJoinedAt DateTime? @db.Timestamptz(6)
+  timeoutCount  Int       @default(0)
+
+  currentLat  Float?
+  currentLng  Float?
+  fcmToken    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  requests              ServiceRequest[]
+  passengerRatingsGiven DriverRating[]
+
+  @@index([isOnline, isAvailable, queueJoinedAt])
+  @@map("drivers")
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  fullName     String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("admins")
+}
+
+model ServiceRequest {
+  id     String        @id @default(uuid())
+  status ServiceStatus @default(PENDING)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id])
+
+  pickupLat     Float
+  pickupLng     Float
+  pickupAddress String?
+
+  destinationLat     Float
+  destinationLng     Float
+  destinationAddress String?
+
+  isWithinCampus Boolean @default(true)
+  distanceKm     Float? // ใช้คำนวณค่าโดยสารกรณีออกนอกมหาวิทยาลัย
+  fare           Float? // ในมหาวิทยาลัยเหมาจ่าย 20 บาท
+
+  paymentMethod PaymentMethod @default(CASH)
+  paymentStatus PaymentStatus @default(PENDING)
+  disputeNote   String? // เหตุผลเมื่อ paymentStatus = DISPUTED
+
+  requestedAt  DateTime  @default(now())
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String? // เช่น "ไม่พบคนขับว่างในขณะนี้" (ระบบยกเลิกอัตโนมัติ), หรือเหตุผลที่ user/driver ยกเลิกเอง
+
+  // สถานะคิวรับงานแบบเสนอทีละคน (sequential offer): ตอนนี้กำลังเสนองานให้คนขับคนไหนอยู่ และหมดเวลาเมื่อไหร่
+  // (60 วิ/คน) ถ้าไม่ตอบสนองภายในเวลา background sweep job จะเลื่อนไปเสนอคนถัดไปในคิวอัตโนมัติ
+  offeredDriverId String?
+  offerExpiresAt  DateTime?
+  // เบอร์คนขับที่ถูกเสนองานนี้ไปแล้ว (ปฏิเสธ/หมดเวลา) กันไม่ให้วนกลับมาเสนอซ้ำในคำขอเดียวกัน
+  triedDriverIds  String[]  @default([])
+  // คนขับที่ปล่อยงานนี้ให้หมดเวลา (timeout ครั้งที่ 1-2 = light penalty) — รอจนรู้ว่าใครได้งานรอบนี้ ค่อยย้ายไป
+  // "ต่อจากคนที่ได้งาน" ตอนมีคนกดรับ (ดู queue.service.js) เพราะตอน timeout ยังไม่รู้ว่าใครจะได้งาน
+  timedOutDriverIds String[] @default([])
+
+  rating       Rating?
+  driverRating DriverRating?
+
+  @@map("service_requests")
+}
+
+model Rating {
+  id               String         @id @default(uuid())
+  serviceRequestId String         @unique
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+
+  ratedByUserId String
+  ratedByUser   User   @relation(fields: [ratedByUserId], references: [id])
+
+  score     Int // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@map("ratings")
+}
+
+// คนขับให้คะแนนผู้โดยสาร — ฝั่งตรงข้ามของ Rating (เพื่อความรับผิดชอบร่วมกันทั้งสองฝ่าย)
+model DriverRating {
+  id               String         @id @default(uuid())
+  serviceRequestId String         @unique
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+
+  ratedByDriverId String
+  ratedByDriver   Driver @relation(fields: [ratedByDriverId], references: [id])
+
+  score     Int // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@map("driver_ratings")
+}
+
+// สถานที่ในมหาวิทยาลัยสำหรับหน้าค้นหาจุดหมาย / จุดหมายยอดนิยม
+model Landmark {
+  id        String   @id @default(uuid())
+  name      String
+  detail    String?
+  lat       Float
+  lng       Float
+  isPopular Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("landmarks")
+}
+
+model Notification {
+  id            String                @id @default(uuid())
+  recipientType NotificationRecipient
+  recipientId   String // userId หรือ driverId ตาม recipientType (ไม่ผูก FK ตรง เพราะอ้างได้ 2 ตาราง)
+  title         String
+  body          String
+  isRead        Boolean               @default(false)
+  createdAt     DateTime              @default(now())
+
+  @@index([recipientType, recipientId])
+  @@map("notifications")
+}
+
+// การแจ้งเหตุฉุกเฉิน (กดปุ่ม SOS) จาก user หรือ driver — admin เห็นแบบ real-time ผ่าน socket room "admin"
+model SosAlert {
+  id        String                @id @default(uuid())
+  actorType NotificationRecipient // USER หรือ DRIVER ที่กดปุ่ม SOS
+  actorId   String                // userId หรือ driverId ตาม actorType (ไม่ผูก FK ตรง เพราะอ้างได้ 2 ตาราง เหมือน Notification)
+
+  lat  Float?
+  lng  Float?
+  note String?
+
+  serviceRequestId String? // ทริปที่กำลังดำเนินอยู่ตอนกด SOS ถ้ามี (ไม่ผูก FK เพื่อความง่าย)
+
+  // เบอร์ฉุกเฉินที่ผู้แจ้งกดโทรออกจากหน้า SOS (เช่น "1669" หน่วยแพทย์ฉุกเฉิน, "191" ตำรวจ) — เก็บไว้เพื่อให้ admin
+  // เห็นว่ามีการประสานงานหน่วยงานภายนอกไปแล้วหรือยัง ไม่ใช่การโทรออกอัตโนมัติจากระบบ (ทำไม่ได้ในเว็บแอป/เพื่อความปลอดภัย)
+  contactedEmergencyNumber String?
+
+  status       SosStatus @default(OPEN)
+  resolvedNote String?
+  resolvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorType, actorId])
+  @@map("sos_alerts")
+}

@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-200 text-slate-900 antialiased;
+  font-family: "Prompt", system-ui, sans-serif;
+}
+
+/* mobile device frame for desktop viewing; collapses to full width on real phones */
+.device-frame {
+  @apply mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-white sm:my-6 sm:min-h-[900px] sm:rounded-[2.5rem] sm:shadow-2xl sm:ring-8 sm:ring-slate-900/5;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

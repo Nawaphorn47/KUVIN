@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+.expo/
+.env
+.env.local
+*.log
+.DS_Store
+
+# Prisma
+apps/api/prisma/dev.db
+
+# ไฟล์ที่อัปโหลดผ่าน POST /api/uploads (รูปยืนยันตัวตนคนขับ ฯลฯ)
+apps/api/uploads/
+
+# IDE
+.vscode/
+.idea/
