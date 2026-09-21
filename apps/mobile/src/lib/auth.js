@@ -23,3 +23,16 @@ export function clearToken() {
     // ดู setToken
   }
 }
+
+// role ("user" | "driver" | "admin") จาก payload ของ JWT — อ่านฝั่ง client เพื่อตัดสินใจว่าจะเรียก API ฝั่งไหน
+// เท่านั้น (ไม่ใช่การตรวจสิทธิ์ ฝั่ง server ตรวจ token เองทุก request)
+export function getTokenRole() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)).role ?? null;
+  } catch {
+    return null;
+  }
+}

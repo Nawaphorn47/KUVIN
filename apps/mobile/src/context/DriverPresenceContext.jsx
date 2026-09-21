@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { getToken } from "../lib/auth";
+import { getTokenRole } from "../lib/auth";
 import { socket, connectWithAuth } from "../lib/socket";
 
 const DriverPresenceContext = createContext(null);
@@ -24,7 +24,7 @@ export function DriverPresenceProvider({ children }) {
   const location = useLocation();
   const [online, setOnline] = useState(null); // null = ยังไม่รู้สถานะจริง (กำลังโหลดจาก backend)
   const [notice, setNotice] = useState(""); // เหตุผลที่ระบบปรับเป็นออฟไลน์ให้ (timeout ครบ 3 ครั้ง)
-  const hasSession = Boolean(getToken());
+  const hasSession = getTokenRole() === "driver"; // ผู้โดยสาร/แอดมินไม่ต้องเรียก API ฝั่งคนขับ (ได้ 403)
   const locationRef = useRef(location);
   locationRef.current = location;
 
