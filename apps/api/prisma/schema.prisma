@@ -203,6 +203,8 @@ model Landmark {
   lat       Float
   lng       Float
   isPopular Boolean  @default(false)
+  // true = admin ตรวจ/ปักหมุดพิกัดให้ตรงกับสถานที่จริงแล้ว, false = ยังเป็นค่าประมาณ (ดูหน้า "จัดการสถานที่" ใน admin)
+  coordsVerified Boolean @default(false)
   createdAt DateTime @default(now())
 
   @@map("landmarks")

@@ -39,14 +39,11 @@ async function main() {
     const [lat, lng] = l.pos ?? [BASE_LAT + l.offset[0], BASE_LNG + l.offset[1]];
     const exists = await prisma.landmark.findFirst({ where: { name: l.name } });
 
-    // รัน seed ซ้ำแล้วอัปเดตพิกัดของสถานที่เดิมให้ตรงกับค่าล่าสุดด้วย (เดิมข้ามไปเลยจึงค้างพิกัดสมมติ)
-    if (exists) {
-      await prisma.landmark.update({ where: { id: exists.id }, data: { lat, lng } });
-      continue;
-    }
+    // สถานที่ที่มีอยู่แล้วไม่แตะ — พิกัดอาจถูก admin ปักหมุดแก้ไว้ (หน้า "จัดการสถานที่") ห้าม seed เขียนทับ
+    if (exists) continue;
 
     await prisma.landmark.create({
-      data: { name: l.name, detail: l.detail, lat, lng, isPopular: Boolean(l.isPopular) },
+      data: { name: l.name, detail: l.detail, lat, lng, isPopular: Boolean(l.isPopular), coordsVerified: Boolean(l.pos) },
     });
   }
   console.log(`Seeded ${landmarks.length} landmarks.`);

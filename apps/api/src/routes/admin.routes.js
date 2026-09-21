@@ -13,6 +13,11 @@ router.post("/drivers/:id/reject", ctrl.rejectDriver);
 router.get("/trips", ctrl.trips);
 router.post("/trips/:id/resolve-dispute", ctrl.resolveDispute);
 
+router.get("/landmarks", ctrl.landmarks);
+router.post("/landmarks", ctrl.createLandmark);
+router.patch("/landmarks/:id", ctrl.updateLandmark);
+router.delete("/landmarks/:id", ctrl.deleteLandmark);
+
 router.get("/sos", ctrl.sosList);
 router.post("/sos/:id/resolve", ctrl.resolveSos);
 

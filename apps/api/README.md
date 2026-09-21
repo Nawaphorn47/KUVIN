@@ -205,6 +205,12 @@ Sweeper (`sweepExpiredOffers`, ทุก 1 วิใน `index.js`) เรีย
 
 `GET /service-requests/pending` (endpoint สำรองแบบ polling) คืนคำขอ `PENDING` พร้อม `isMyTurn`
 
+## จัดการสถานที่ (admin)
+`GET /admin/landmarks` (ทั้งหมด) · `POST /admin/landmarks` · `PATCH /admin/landmarks/:id` (ส่งเฉพาะฟิลด์ที่แก้) ·
+`DELETE /admin/landmarks/:id` — ฟิลด์ `name`, `detail`, `lat`, `lng`, `isPopular`, `coordsVerified` (true = ตรวจพิกัดกับสถานที่จริงแล้ว)
+พิกัดต้องเป็นตัวเลขในช่วงประเทศไทย (lat 5–21, lng 97–106) กัน typo/สลับค่าที่ทำให้ค่าโดยสารเพี้ยน; ลบสถานที่ได้โดยประวัติทริปไม่กระทบ
+เพราะทริปเก็บพิกัดของตัวเองไว้ seed จะไม่เขียนทับสถานที่ที่มีอยู่แล้ว (กันทับพิกัดที่ admin แก้)
+
 ## เส้นทาง (`GET /api/routes`)
 `GET /routes?fromLat&fromLng&toLat&toLng` (user/driver) → `{ source, distanceKm, durationMin, coordinates: [[lat, lng], ...] }`
 เส้นทางถนนจริงจาก OSRM (`src/utils/routing.js`, cache 10 นาที) ใช้ทั้งคำนวณค่าโดยสารนอกมหาวิทยาลัยและวาดแผนที่/ETA ฝั่งแอป

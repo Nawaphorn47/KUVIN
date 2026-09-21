@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const adminService = require("../services/admin.service");
 const sosService = require("../services/sos.service");
+const landmarkService = require("../services/landmark.service");
 
 const io = (req) => req.app.get("io");
 
@@ -34,4 +35,21 @@ exports.sosList = asyncHandler(async (req, res) => {
 
 exports.resolveSos = asyncHandler(async (req, res) => {
   res.json(await sosService.resolveAlert(req.params.id, req.body.resolvedNote));
+});
+
+exports.landmarks = asyncHandler(async (req, res) => {
+  res.json(await landmarkService.listLandmarks());
+});
+
+exports.createLandmark = asyncHandler(async (req, res) => {
+  res.status(201).json(await landmarkService.createLandmark(req.body));
+});
+
+exports.updateLandmark = asyncHandler(async (req, res) => {
+  res.json(await landmarkService.updateLandmark(req.params.id, req.body));
+});
+
+exports.deleteLandmark = asyncHandler(async (req, res) => {
+  await landmarkService.deleteLandmark(req.params.id);
+  res.status(204).end();
 });

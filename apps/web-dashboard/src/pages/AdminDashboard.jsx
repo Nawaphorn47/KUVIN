@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut,
   UserCheck,
@@ -13,6 +13,7 @@ import {
   Check,
   Loader2,
   RefreshCw,
+  Map as MapIcon,
 } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
@@ -102,6 +103,9 @@ export default function AdminDashboard() {
           <Bike className="h-6 w-6" /> KU VIN Admin
         </h1>
         <div className="flex items-center gap-4">
+          <Link to="/landmarks" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
+            <MapIcon className="h-4 w-4" /> จัดการสถานที่
+          </Link>
           <button onClick={loadAll} className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
             <RefreshCw className="h-4 w-4" /> รีเฟรช
           </button>
