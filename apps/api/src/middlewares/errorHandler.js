@@ -6,7 +6,7 @@ function notFound(req, res) {
 
 function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-vars
   if (err instanceof ApiError) {
-    return res.status(err.statusCode).json({ error: err.message });
+    return res.status(err.statusCode).json({ error: err.message, ...(err.code && { code: err.code }) });
   }
 
   if (err?.name === "MulterError") {

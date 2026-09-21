@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Bike, Mail, Lock, Phone, AlertTriangle, Zap } from "lucide-react";
 import clsx from "clsx";
@@ -6,7 +6,7 @@ import Screen from "../../components/layout/Screen";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { api } from "../../lib/api";
-import { setToken } from "../../lib/auth";
+import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
 
 // บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server (import.meta.env.DEV) เพื่อกดเข้าระบบ
@@ -27,7 +27,8 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(peekSessionNotice); // เช่น "บัญชีถูกระงับ" หลังถูกตัดออกจากระบบ
+  useEffect(clearSessionNotice, []); // แสดงครั้งเดียว
 
   async function performLogin({ role: loginRole, email: loginEmail, phone: loginPhone, password: loginPassword }) {
     setError("");

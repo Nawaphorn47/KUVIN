@@ -14,3 +14,14 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// backend ตอบ error เป็น { error: "..." } แต่หน้าจอทั้งหมดอ่าน err.response.data.message — แปลงให้ครั้งเดียวที่นี่
+// ไม่งั้นข้อความจริงจาก server (เช่น "ต้องระบุเหตุผล") จะไม่เคยถูกแสดง เห็นแค่ข้อความสำรอง
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const data = error.response?.data;
+    if (data && typeof data === "object" && data.error && !data.message) data.message = data.error;
+    return Promise.reject(error);
+  }
+);

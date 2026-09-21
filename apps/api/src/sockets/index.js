@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const { verifyToken } = require("../utils/jwt");
+const { assertNotSuspended } = require("../utils/accountStatus");
 
 // Socket room conventions:
 // - "drivers:available"        — คนขับที่ออนไลน์ทุกคน รับ event "service-request:new"
@@ -14,16 +15,22 @@ const { verifyToken } = require("../utils/jwt");
 const LOCATION_PERSIST_MS = 10 * 1000;
 const lastLocationWrite = new Map(); // driverId -> เวลาที่เขียน currentLat/Lng ล่าสุด
 
-function authMiddleware(socket, next) {
+async function authMiddleware(socket, next) {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("unauthorized"));
 
   try {
     socket.auth = verifyToken(token); // { id, role }
-    next();
   } catch {
-    next(new Error("unauthorized"));
+    return next(new Error("unauthorized"));
   }
+
+  try {
+    await assertNotSuspended(socket.auth.role, socket.auth.id);
+  } catch {
+    return next(new Error("suspended"));
+  }
+  next();
 }
 
 function registerSockets(io) {

@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js",
-    "test:queue": "node scripts/test-queue.js"
+    "test:queue": "node scripts/test-queue.js",
+    "test:suspension": "node scripts/test-suspension.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

@@ -205,6 +205,20 @@ Sweeper (`sweepExpiredOffers`, ทุก 1 วิใน `index.js`) เรีย
 
 `GET /service-requests/pending` (endpoint สำรองแบบ polling) คืนคำขอ `PENDING` พร้อม `isMyTurn`
 
+## จัดการผู้ใช้/คนขับและระงับบัญชี (admin)
+`GET /admin/users` · `GET /admin/drivers` (query `q` ค้นหา, `status`: ผู้ใช้ = `active|suspended`, คนขับ =
+`online|APPROVED|PENDING|REJECTED|suspended`, สูงสุด 200 รายการ) · `GET /admin/users/:id` · `GET /admin/drivers/:id`
+(โปรไฟล์ + สถิติ + ทริปล่าสุด 20 รายการ) · `POST /admin/{users|drivers}/:id/suspend` `{ reason }` (บังคับ) ·
+`POST /admin/{users|drivers}/:id/unsuspend`
+
+การระงับ (`isSuspended`, `suspendedReason`, `suspendedAt` บน `users`/`drivers`): `middlewares/auth.js` ตรวจทุก request (cache 10 วิ
+และล้างทันทีเมื่อ admin ระงับ/ปลด — `utils/accountStatus.js`) จึงใช้ token เดิมต่อไม่ได้ทันที ตอบ `403` พร้อม `code: "ACCOUNT_SUSPENDED"`;
+login ตอบแบบเดียวกัน (บอกเหตุผลเฉพาะหลังรหัสผ่านถูก); socket ต่อไม่ได้ (`suspended`) และ socket ที่ต่ออยู่ถูกตัดหลังส่ง event
+`account:suspended`; คนขับที่ถูกระงับออกจากคิวและข้อเสนองานที่ค้างถูกส่งต่อ (`queue.goOffline`); ระงับไม่ได้ (409) ถ้ามีทริป
+ACCEPTED/IN_PROGRESS อยู่ — คำขอ PENDING ของผู้ใช้ที่ถูกระงับจะถูกยกเลิกอัตโนมัติ ทดสอบด้วย `npm run test:suspension` (12 เคส)
+
+Error ทุกตัวตอบเป็น `{ error, code? }` (แอปมือถือ/dashboard แปลงเป็น `message` ที่ interceptor เดียว)
+
 ## จัดการสถานที่ (admin)
 `GET /admin/landmarks` (ทั้งหมด) · `POST /admin/landmarks` · `PATCH /admin/landmarks/:id` (ส่งเฉพาะฟิลด์ที่แก้) ·
 `DELETE /admin/landmarks/:id` — ฟิลด์ `name`, `detail`, `lat`, `lng`, `isPopular`, `coordsVerified` (true = ตรวจพิกัดกับสถานที่จริงแล้ว)

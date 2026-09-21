@@ -36,3 +36,32 @@ export function getTokenRole() {
     return null;
   }
 }
+
+// ข้อความที่ต้องแจ้งผู้ใช้หลังถูกพากลับหน้า login (เช่น บัญชีถูกระงับ) — แสดงครั้งเดียวแล้วลบ
+const NOTICE_KEY = "kuvin_notice";
+
+export function setSessionNotice(message) {
+  try {
+    sessionStorage.setItem(NOTICE_KEY, message);
+  } catch {
+    // ไม่มี sessionStorage — ข้ามไป
+  }
+}
+
+// อ่านโดยไม่ลบ + ลบแยก: ถ้าอ่านแล้วลบในขั้นตอนเดียว React StrictMode (เรียก initializer ของ useState 2 ครั้งตอน dev)
+// จะทำให้ครั้งที่สองอ่านได้ค่าว่าง ข้อความหาย — ให้ลบใน useEffect หลัง mount แทน
+export function peekSessionNotice() {
+  try {
+    return sessionStorage.getItem(NOTICE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearSessionNotice() {
+  try {
+    sessionStorage.removeItem(NOTICE_KEY);
+  } catch {
+    // ไม่มี sessionStorage — ข้ามไป
+  }
+}

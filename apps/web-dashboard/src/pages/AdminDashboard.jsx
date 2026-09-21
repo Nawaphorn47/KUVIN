@@ -14,6 +14,7 @@ import {
   Loader2,
   RefreshCw,
   Map as MapIcon,
+  Users,
 } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
@@ -103,6 +104,9 @@ export default function AdminDashboard() {
           <Bike className="h-6 w-6" /> KU VIN Admin
         </h1>
         <div className="flex items-center gap-4">
+          <Link to="/people" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
+            <Users className="h-4 w-4" /> ผู้ใช้และคนขับ
+          </Link>
           <Link to="/landmarks" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
             <MapIcon className="h-4 w-4" /> จัดการสถานที่
           </Link>

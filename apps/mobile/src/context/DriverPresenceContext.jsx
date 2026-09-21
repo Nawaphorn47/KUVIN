@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { getTokenRole } from "../lib/auth";
+import { getTokenRole, clearToken, setSessionNotice } from "../lib/auth";
 import { socket, connectWithAuth } from "../lib/socket";
 
 const DriverPresenceContext = createContext(null);
@@ -67,6 +67,14 @@ export function DriverPresenceProvider({ children }) {
     }
     socket.on("driver:forced-offline", handleForcedOffline);
 
+    // admin ระงับบัญชีระหว่างใช้งาน: server ตัด socket ให้แล้ว — ล้าง session และพากลับหน้า login พร้อมเหตุผล
+    function handleSuspended({ reason }) {
+      clearToken();
+      setSessionNotice(`บัญชีของคุณถูกระงับการใช้งาน${reason ? `: ${reason}` : ""} กรุณาติดต่อผู้ดูแลระบบ`);
+      window.location.assign("/login");
+    }
+    socket.on("account:suspended", handleSuspended);
+
     // ตาข่ายนิรภัย — poll ตรงเช็คว่าถึงคิวเราหรือยัง เผื่อ socket พลาดไปด้วยเหตุผลอะไรก็ตาม
     const poll = online
       ? setInterval(() => {
@@ -85,6 +93,7 @@ export function DriverPresenceProvider({ children }) {
       socket.off("connect", announcePresence);
       socket.off("service-request:new", goToIncomingJob);
       socket.off("driver:forced-offline", handleForcedOffline);
+      socket.off("account:suspended", handleSuspended);
       if (poll) clearInterval(poll);
     };
   }, [online, hasSession, navigate]);

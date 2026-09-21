@@ -53,6 +53,11 @@ model User {
   resetToken          String?   @unique
   resetTokenExpiresAt DateTime?
 
+  // ระงับบัญชีโดย admin: login/เรียก API/ต่อ socket ไม่ได้จนกว่าจะปลดระงับ (ดู middlewares/auth.js)
+  isSuspended     Boolean   @default(false)
+  suspendedReason String?
+  suspendedAt     DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -80,6 +85,11 @@ model Driver {
   driverLicensePhotoUrl String? // รูปใบขับขี่ (คนละใบกับบัตรประชาชน)
   vehiclePhotoUrl      String? // รูปรถเต็มคัน
   platePhotoUrl        String? // รูปป้ายทะเบียน
+
+  // ระงับบัญชีโดย admin: login/เรียก API/ต่อ socket ไม่ได้จนกว่าจะปลดระงับ (ดู middlewares/auth.js)
+  isSuspended     Boolean   @default(false)
+  suspendedReason String?
+  suspendedAt     DateTime?
 
   // ---- สถานะคิวรับงาน (FIFO) ----
   // isOnline      : คนขับกดออนไลน์อยู่ (คิวประกอบด้วยเฉพาะคนที่ isOnline = true)

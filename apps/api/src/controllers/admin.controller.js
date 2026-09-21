@@ -53,3 +53,35 @@ exports.deleteLandmark = asyncHandler(async (req, res) => {
   await landmarkService.deleteLandmark(req.params.id);
   res.status(204).end();
 });
+
+exports.users = asyncHandler(async (req, res) => {
+  res.json(await adminService.listUsers({ q: req.query.q, status: req.query.status }));
+});
+
+exports.userDetail = asyncHandler(async (req, res) => {
+  res.json(await adminService.getUserDetail(req.params.id));
+});
+
+exports.suspendUser = asyncHandler(async (req, res) => {
+  res.json(await adminService.suspendAccount("user", req.params.id, req.body.reason, io(req)));
+});
+
+exports.unsuspendUser = asyncHandler(async (req, res) => {
+  res.json(await adminService.unsuspendAccount("user", req.params.id));
+});
+
+exports.drivers = asyncHandler(async (req, res) => {
+  res.json(await adminService.listDrivers({ q: req.query.q, status: req.query.status }));
+});
+
+exports.driverDetail = asyncHandler(async (req, res) => {
+  res.json(await adminService.getDriverDetail(req.params.id));
+});
+
+exports.suspendDriver = asyncHandler(async (req, res) => {
+  res.json(await adminService.suspendAccount("driver", req.params.id, req.body.reason, io(req)));
+});
+
+exports.unsuspendDriver = asyncHandler(async (req, res) => {
+  res.json(await adminService.unsuspendAccount("driver", req.params.id));
+});

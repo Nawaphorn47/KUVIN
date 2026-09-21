@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
+const { suspendedMessage } = require("../utils/accountStatus");
 const { signToken } = require("../utils/jwt");
 const { isValidPromptPayId } = require("../utils/promptpay");
 
@@ -51,11 +52,19 @@ async function registerUser({ fullName, phone, email, password, studentId }) {
   return { user: sanitizeUser(user), token: issueToken(user.id, "user") };
 }
 
+// บอกเหตุผลที่ถูกระงับเฉพาะหลังยืนยันรหัสผ่านถูกแล้ว (ไม่เปิดเผยสถานะบัญชีให้คนที่ไม่รู้รหัสผ่าน)
+function assertLoginAllowed(account) {
+  if (account.isSuspended) {
+    throw ApiError.forbidden(suspendedMessage(account.suspendedReason), "ACCOUNT_SUSPENDED");
+  }
+}
+
 async function loginUser({ email, password }) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     throw ApiError.unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
+  assertLoginAllowed(user);
   return { user: sanitizeUser(user), token: issueToken(user.id, "user") };
 }
 
@@ -120,6 +129,7 @@ async function loginDriver({ phone, password }) {
   if (!driver || !(await bcrypt.compare(password, driver.passwordHash))) {
     throw ApiError.unauthorized("เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง");
   }
+  assertLoginAllowed(driver);
   return { driver: sanitizeDriver(driver), token: issueToken(driver.id, "driver") };
 }
 
