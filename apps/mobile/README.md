@@ -24,7 +24,7 @@ src/
 ├── components/
 │   ├── ui/       Button, Card, Input, Badge, Avatar, RatingStars
 │   ├── layout/   Screen, TopBar, BottomNav
-│   └── shared/   MapPlaceholder, RouteSummary, DriverInfoCard
+│   └── shared/   MapView (Leaflet), RouteSummary, DriverInfoCard, SosPanel, PaymentQr, ...
 ├── context/      AppContext — role mode (user/driver) + booking state (mock, ยังไม่ต่อ API จริง)
 └── lib/
     ├── mockData.js  ข้อมูลจำลอง (สถานที่ในมก.กำแพงแสน, ประวัติการเดินทาง, รายได้ ฯลฯ)

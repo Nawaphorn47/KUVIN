@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, Crosshair } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
 import { kuLandmarks } from "../../lib/mockData";
@@ -53,6 +53,18 @@ export default function SearchDestination() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5">
+          <button
+            onClick={() => navigate("/pick-on-map")}
+            className="mb-3 flex w-full items-center gap-3 rounded-xl bg-emerald-50 px-3 py-3 text-left"
+          >
+            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-emerald-600 text-white">
+              <Crosshair className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-emerald-800">ปักหมุดบนแผนที่</p>
+              <p className="text-xs text-emerald-700/70">เลือกจุดที่ไม่มีในรายการ</p>
+            </div>
+          </button>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             เลือกจุดหมาย
           </p>

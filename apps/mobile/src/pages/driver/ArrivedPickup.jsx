@@ -7,6 +7,7 @@ import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import RouteSummary from "../../components/shared/RouteSummary";
 import { api } from "../../lib/api";
+import { useDriverTracking } from "../../lib/useTripTracking";
 
 export default function ArrivedPickup() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function ArrivedPickup() {
   const request = location.state?.request;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useDriverTracking(request?.id); // ส่งตำแหน่งสดต่อเนื่องระหว่างรอผู้โดยสารขึ้นรถ
 
   if (!request) {
     navigate("/driver/home");

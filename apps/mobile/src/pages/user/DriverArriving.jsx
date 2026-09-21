@@ -2,19 +2,26 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ShieldAlert, Phone, MessageCircle } from "lucide-react";
-import MapPlaceholder from "../../components/shared/MapPlaceholder";
+import MapView from "../../components/shared/MapView";
 import DriverInfoCard from "../../components/shared/DriverInfoCard";
 import SosPanel from "../../components/shared/SosPanel";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { socket, connectWithAuth } from "../../lib/socket";
+import { useDriverLocation } from "../../lib/useTripTracking";
+import { useRoute } from "../../lib/useRoute";
 
 export default function DriverArriving() {
   const navigate = useNavigate();
   const location = useLocation();
   const [request, setRequest] = useState(location.state?.request ?? null);
   const [sosOpen, setSosOpen] = useState(false);
+
+  // ตำแหน่งสดของคนขับ (socket) + เส้นทางถนนจริงจากคนขับมาจุดรับ — ไม่มีตำแหน่งคนขับก็ยังเห็นจุดรับ
+  const pickupPoint = request?.pickupLat != null ? { lat: request.pickupLat, lng: request.pickupLng } : null;
+  const driverPos = useDriverLocation(request?.id, request?.driver);
+  const route = useRoute(driverPos, pickupPoint, { precision: 3 });
 
   useEffect(() => {
     if (!request?.id) {
@@ -68,9 +75,21 @@ export default function DriverArriving() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <MapPlaceholder height="h-64" className="rounded-none">
-        <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4">
-          <p className="text-xs font-medium text-slate-500">คนขับกำลังมารับคุณ</p>
+      <MapView
+        height="h-72"
+        className="rounded-none"
+        pickup={pickupPoint}
+        driver={driverPos}
+        route={route?.coordinates}
+        interactive
+      >
+        <div className="absolute left-0 right-0 top-0 flex items-start justify-between p-4">
+          <div className="rounded-xl bg-white/95 px-3 py-2 shadow backdrop-blur">
+            <p className="text-xs font-semibold text-slate-900">คนขับกำลังมารับคุณ</p>
+            <p className="text-xs text-slate-500">
+              {route ? `ถึงใน ประมาณ ${route.durationMin} นาที · ${route.distanceKm} กม.` : "กำลังรอตำแหน่งคนขับ..."}
+            </p>
+          </div>
           <button
             onClick={() => setSosOpen(true)}
             className="flex items-center gap-1 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white shadow"
@@ -78,7 +97,7 @@ export default function DriverArriving() {
             <ShieldAlert className="h-3.5 w-3.5" /> SOS
           </button>
         </div>
-      </MapPlaceholder>
+      </MapView>
 
       <div className="flex flex-1 flex-col gap-4 rounded-t-3xl bg-white p-5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <Card className="gap-2 shadow-none ring-emerald-100">

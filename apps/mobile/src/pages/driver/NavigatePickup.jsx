@@ -1,13 +1,21 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Phone, Navigation } from "lucide-react";
-import MapPlaceholder from "../../components/shared/MapPlaceholder";
+import MapView from "../../components/shared/MapView";
 import Avatar from "../../components/ui/Avatar";
 import Button from "../../components/ui/Button";
+import { useDriverTracking } from "../../lib/useTripTracking";
+import { useRoute } from "../../lib/useRoute";
+import { gpsMessage } from "../../lib/gpsMessage";
 
 export default function NavigatePickup() {
   const navigate = useNavigate();
   const location = useLocation();
   const request = location.state?.request;
+
+  // GPS ของคนขับ (ส่งให้ผู้โดยสารเห็นสดด้วย) + เส้นทางถนนจริงไปจุดรับ
+  const { position: myPos, error: gpsError } = useDriverTracking(request?.id);
+  const pickupPoint = request ? { lat: request.pickupLat, lng: request.pickupLng } : null;
+  const route = useRoute(myPos, pickupPoint, { precision: 3 });
 
   if (!request) {
     navigate("/driver/home");
@@ -17,15 +25,23 @@ export default function NavigatePickup() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <MapPlaceholder height="h-72" className="rounded-none">
-        <div className="absolute left-0 right-0 top-0 flex flex-col gap-1 p-5 text-white">
-          <p className="flex items-center gap-1 text-sm text-white/70">
-            <Navigation className="h-3.5 w-3.5" /> กำลังนำทาง →
-          </p>
-          <p className="text-2xl font-bold drop-shadow">ไปรับผู้โดยสาร</p>
-          <p className="text-base font-semibold text-white/90">{request.pickupAddress ?? "จุดนัดพบ"}</p>
+      <MapView height="h-72" className="rounded-none" pickup={pickupPoint} me={myPos} route={route?.coordinates} interactive>
+        <div className="absolute left-0 right-0 top-0 p-4">
+          <div className="rounded-xl bg-white/95 p-3 shadow backdrop-blur">
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              <Navigation className="h-3.5 w-3.5" /> นำทางไปรับผู้โดยสาร
+            </p>
+            <p className="text-base font-bold text-slate-900">{request.pickupAddress ?? "จุดนัดพบ"}</p>
+            <p className="text-xs text-slate-500">
+              {route
+                ? `อีกประมาณ ${route.durationMin} นาที · ${route.distanceKm} กม.`
+                : gpsError
+                  ? gpsMessage(gpsError)
+                  : "กำลังหาตำแหน่งของคุณ..."}
+            </p>
+          </div>
         </div>
-      </MapPlaceholder>
+      </MapView>
 
       <div className="flex flex-1 flex-col gap-4 rounded-t-3xl bg-white p-5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-3">

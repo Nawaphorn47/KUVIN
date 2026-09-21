@@ -2,19 +2,28 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ShieldAlert } from "lucide-react";
-import MapPlaceholder from "../../components/shared/MapPlaceholder";
+import MapView from "../../components/shared/MapView";
 import RouteSummary from "../../components/shared/RouteSummary";
 import SosPanel from "../../components/shared/SosPanel";
 import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
 import { socket, connectWithAuth } from "../../lib/socket";
 import { api } from "../../lib/api";
+import { useDriverLocation } from "../../lib/useTripTracking";
+import { useRoute } from "../../lib/useRoute";
 
 export default function DuringRide() {
   const navigate = useNavigate();
   const location = useLocation();
   const [request, setRequest] = useState(location.state?.request ?? null);
   const [sosOpen, setSosOpen] = useState(false);
+
+  const pickupPoint = request?.pickupLat != null ? { lat: request.pickupLat, lng: request.pickupLng } : null;
+  const destinationPoint = request?.destinationLat != null ? { lat: request.destinationLat, lng: request.destinationLng } : null;
+  const driverPos = useDriverLocation(request?.id, request?.driver);
+  // เส้นทางเหลือถึงปลายทางนับจากตำแหน่งคนขับตอนนี้ (ยังไม่มีตำแหน่งสดก็วาดจากจุดรับ)
+  const originPoint = driverPos ?? pickupPoint;
+  const route = useRoute(originPoint, destinationPoint, { precision: 3 });
 
   useEffect(() => {
     if (!request?.id) {
@@ -54,10 +63,26 @@ export default function DuringRide() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <MapPlaceholder height="h-72" className="rounded-none">
-        <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4">
-          <div className="rounded-xl bg-white/90 px-3 py-1.5 text-xs text-slate-500 backdrop-blur">
-            กำลังเดินทาง
+      <MapView
+        height="h-72"
+        className="rounded-none"
+        destination={destinationPoint}
+        driver={driverPos}
+        route={route?.coordinates}
+        fit={[
+          destinationPoint && [destinationPoint.lat, destinationPoint.lng],
+          originPoint && [originPoint.lat, originPoint.lng],
+        ]}
+        interactive
+      >
+        <div className="absolute left-0 right-0 top-0 flex items-start justify-between p-4">
+          <div className="rounded-xl bg-white/95 px-3 py-2 shadow backdrop-blur">
+            <p className="text-xs font-semibold text-slate-900">กำลังเดินทาง</p>
+            {route && (
+              <p className="text-xs text-slate-500">
+                อีกประมาณ {route.durationMin} นาที · {route.distanceKm} กม.
+              </p>
+            )}
           </div>
           <button
             onClick={() => setSosOpen(true)}
@@ -67,7 +92,7 @@ export default function DuringRide() {
             <span className="text-[8px] font-bold">SOS ฉุกเฉิน</span>
           </button>
         </div>
-      </MapPlaceholder>
+      </MapView>
 
       <div className="flex flex-1 flex-col gap-4 rounded-t-3xl bg-white p-5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between">

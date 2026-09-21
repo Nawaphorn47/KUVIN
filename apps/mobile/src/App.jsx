@@ -9,6 +9,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 
 import Home from "./pages/user/Home";
 import SearchDestination from "./pages/user/SearchDestination";
+import PickOnMap from "./pages/user/PickOnMap";
 import ConfirmBooking from "./pages/user/ConfirmBooking";
 import SearchingDriver from "./pages/user/SearchingDriver";
 import DriverArriving from "./pages/user/DriverArriving";
@@ -56,6 +57,7 @@ export default function App() {
 
           <Route path="/home" element={<Home />} />
           <Route path="/search-destination" element={<SearchDestination />} />
+          <Route path="/pick-on-map" element={<PickOnMap />} />
           <Route path="/confirm-booking" element={<ConfirmBooking />} />
           <Route path="/searching-driver" element={<SearchingDriver />} />
           <Route path="/driver-arriving" element={<DriverArriving />} />

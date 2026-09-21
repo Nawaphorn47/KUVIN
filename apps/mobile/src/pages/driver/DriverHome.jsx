@@ -5,7 +5,9 @@ import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
-import MapPlaceholder from "../../components/shared/MapPlaceholder";
+import MapView from "../../components/shared/MapView";
+import { useGeolocation } from "../../lib/useGeolocation";
+import { CAMPUS_CENTER, isNearCampus } from "../../lib/geo";
 import QueueRow from "../../components/shared/QueueRow";
 import { currentDriver } from "../../lib/mockData";
 import { api } from "../../lib/api";
@@ -24,6 +26,8 @@ export default function DriverHome() {
   // สถานะออนไลน์+การรอฟังงานใหม่ย้ายไปอยู่ระดับ App แล้ว (DriverPresenceContext) ทำงานได้ตลอดไม่ว่าจะเปิด
   // หน้าไหนอยู่ — หน้านี้แค่อ่านค่ามาโชว์/ใช้ปุ่มสลับเฉย ๆ
   const { online, notice, toggleOnline: setPresence } = useDriverPresence();
+  const { position: gpsPos } = useGeolocation();
+  const myMapPos = gpsPos && isNearCampus(gpsPos) ? gpsPos : null; // นอกพื้นที่/ไม่มี GPS → แสดงแผนที่มหาวิทยาลัยเฉย ๆ
   const { overview, error: queueError } = useQueueOverview(hasSession && online === true);
 
   // ดึงโปรไฟล์คนขับจริงตอนมี session (แทนข้อมูล mock) — จะได้เบอร์วิน/คะแนนจริงตามบัญชีที่ login อยู่
@@ -87,7 +91,7 @@ export default function DriverHome() {
           </p>
         )}
 
-        <MapPlaceholder height="h-40" />
+        <MapView height="h-40" me={myMapPos} fit={[[(myMapPos ?? CAMPUS_CENTER).lat, (myMapPos ?? CAMPUS_CENTER).lng]]} />
       </Screen>
 
       <Screen className="gap-4 pt-2">

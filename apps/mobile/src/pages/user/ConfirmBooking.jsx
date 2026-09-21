@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet, ChevronRight, AlertTriangle } from "lucide-react";
+import { Wallet, ChevronRight, AlertTriangle, Clock } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import MapPlaceholder from "../../components/shared/MapPlaceholder";
+import MapView from "../../components/shared/MapView";
 import RouteSummary from "../../components/shared/RouteSummary";
 import { useApp } from "../../context/AppContext";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
+import { CAMPUS_CENTER, isNearCampus } from "../../lib/geo";
 
-// จุดศูนย์กลาง มก. กำแพงแสน — ใช้เป็นค่าเริ่มต้นเวลาไม่ได้รับอนุญาต GPS (ต้องตรงกับ CAMPUS_CENTER ใน
-// apps/api/src/utils/geo.js) ดีกว่าปล่อยให้เรียกวินไม่ได้เลยเพราะไม่มีพิกัด
-const CAMPUS_CENTER = { lat: 14.0206, lng: 99.9679 };
+// ปลายทางเป็นได้ทั้งสถานที่ในระบบ (landmarkId) หรือจุดที่ผู้ใช้ปักหมุดเอง (lat/lng)
+function destinationPayload(destination) {
+  return destination.landmarkId
+    ? { destinationLandmarkId: destination.landmarkId }
+    : { destinationLat: destination.lat, destinationLng: destination.lng, destinationAddress: destination.name };
+}
 
 export default function ConfirmBooking() {
   const navigate = useNavigate();
@@ -21,29 +25,50 @@ export default function ConfirmBooking() {
   const destination = booking.destination;
   const hasSession = Boolean(getToken());
 
+  const [pickupPoint, setPickupPoint] = useState(null); // { lat, lng } จุดรับ (เริ่มจาก GPS แล้วลากหมุดปรับได้)
+  const [pickupLabel, setPickupLabel] = useState(booking.pickup);
+  const [pickupNote, setPickupNote] = useState("");
   const [estimate, setEstimate] = useState(null);
   const [loadingEstimate, setLoadingEstimate] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!destination?.landmarkId) return;
+    getPickupCoords().then(({ point, note }) => {
+      setPickupPoint(point);
+      setPickupNote(note);
+    });
+  }, []);
+
+  const destKey = destination ? (destination.landmarkId ?? `${destination.lat},${destination.lng}`) : null;
+  useEffect(() => {
+    if (!destination || !pickupPoint) return undefined;
+    let cancelled = false;
     setLoadingEstimate(true);
-    getPickupCoords()
-      .then((pickup) =>
-        api.post("/service-requests/estimate", {
-          destinationLandmarkId: destination.landmarkId,
-          pickupLat: pickup.lat,
-          pickupLng: pickup.lng,
-        })
-      )
-      .then(({ data }) => setEstimate(data))
-      .catch(() => setEstimate(null))
-      .finally(() => setLoadingEstimate(false));
-  }, [destination?.landmarkId]);
+    api
+      .post("/service-requests/estimate", {
+        ...destinationPayload(destination),
+        pickupLat: pickupPoint.lat,
+        pickupLng: pickupPoint.lng,
+      })
+      .then(({ data }) => !cancelled && setEstimate(data))
+      .catch(() => !cancelled && setEstimate(null))
+      .finally(() => !cancelled && setLoadingEstimate(false));
+    return () => {
+      cancelled = true;
+    };
+    // destKey แทน destination ทั้งก้อน
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destKey, pickupPoint?.lat, pickupPoint?.lng]);
+
+  function handlePickupDrag(point) {
+    setPickupPoint(point);
+    setPickupLabel("ตำแหน่งที่ปักหมุด");
+    setPickupNote("");
+  }
 
   async function handleConfirm() {
-    if (!destination?.landmarkId) return;
+    if (!destination || !pickupPoint) return;
     if (!hasSession) {
       setError("กรุณาเข้าสู่ระบบก่อนเรียกวิน");
       return;
@@ -51,11 +76,11 @@ export default function ConfirmBooking() {
     setSubmitting(true);
     setError("");
     try {
-      const pickup = await getPickupCoords();
       const { data: request } = await api.post("/service-requests", {
-        destinationLandmarkId: destination.landmarkId,
-        pickupLat: pickup.lat,
-        pickupLng: pickup.lng,
+        ...destinationPayload(destination),
+        pickupLat: pickupPoint.lat,
+        pickupLng: pickupPoint.lng,
+        pickupAddress: pickupLabel,
       });
       navigate("/searching-driver", { state: { request } });
     } catch (err) {
@@ -78,18 +103,36 @@ export default function ConfirmBooking() {
 
   const fare = estimate?.fare ?? null;
   const distanceKm = estimate?.distanceKm ?? null;
+  const durationMin = estimate?.route?.durationMin ?? null;
   const isWithinCampus = estimate?.isWithinCampus ?? true;
+  const destPoint = estimate?.destination ?? (destination.lat != null ? destination : null);
 
   return (
     <div className="flex flex-1 flex-col">
       <TopBar title="ยืนยันการเรียกวิน" />
       <Screen className="gap-4 pt-2">
-        <MapPlaceholder height="h-40" />
+        <div className="flex flex-col gap-1.5">
+          <MapView
+            height="h-52"
+            pickup={pickupPoint}
+            destination={destPoint}
+            route={estimate?.route?.coordinates}
+            onPickupChange={handlePickupDrag}
+          />
+          <p className="text-center text-xs text-slate-400">
+            {pickupNote || "กดค้างที่หมุดสีเขียวแล้วลากเพื่อปรับจุดรับ"}
+          </p>
+        </div>
 
         <Card>
-          <RouteSummary pickup={booking.pickup} destination={destination.name} />
+          <RouteSummary pickup={pickupLabel} destination={destination.name} />
           <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
             <span>{loadingEstimate ? "กำลังคำนวณ..." : distanceKm != null ? `${distanceKm} กม.` : "-"}</span>
+            {!loadingEstimate && durationMin != null && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" /> ประมาณ {durationMin} นาที
+              </span>
+            )}
           </div>
         </Card>
 
@@ -102,7 +145,9 @@ export default function ConfirmBooking() {
             </span>
           </div>
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-            {isWithinCampus ? "เส้นทางภายในมหาวิทยาลัย เหมาจ่าย 20 บาท" : "เส้นทางออกนอกมหาวิทยาลัย คิดตามระยะทาง"}
+            {isWithinCampus
+              ? "เส้นทางภายในมหาวิทยาลัย เหมาจ่าย 20 บาท"
+              : "เส้นทางออกนอกมหาวิทยาลัย คิดตามระยะทางบนถนนจริง"}
           </p>
         </Card>
 
@@ -113,7 +158,7 @@ export default function ConfirmBooking() {
             </span>
             <div>
               <p className="text-xs text-slate-400">ชำระเงิน</p>
-              <p className="text-sm font-semibold text-slate-900">เงินสด</p>
+              <p className="text-sm font-semibold text-slate-900">เงินสด หรือ QR พร้อมเพย์</p>
             </div>
           </div>
           <span className="flex items-center gap-1 text-sm font-medium text-slate-400">
@@ -133,22 +178,33 @@ export default function ConfirmBooking() {
       </Screen>
 
       <div className="border-t border-slate-100 p-5">
-        <Button onClick={handleConfirm} disabled={submitting || loadingEstimate}>
-          {submitting ? "กำลังเรียกวิน..." : "🏍️ เรียกวินมอเตอร์ไซค์"}
+        <Button onClick={handleConfirm} disabled={submitting || loadingEstimate || !pickupPoint}>
+          {submitting ? "กำลังเรียกวิน..." : "เรียกวินมอเตอร์ไซค์"}
         </Button>
       </div>
     </div>
   );
 }
 
-// พิกัดรับจริงจาก GPS ถ้าอนุญาต ไม่งั้น fallback ไปจุดศูนย์กลางแคมปัส — ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
-// เพราะ browser ไม่มี geolocation หรือผู้ใช้ยังไม่กดอนุญาต
+// พิกัดจุดรับเริ่มต้นจาก GPS — ถ้าใช้ GPS ไม่ได้ (ไม่อนุญาต/เปิดผ่าน HTTP ในวง LAN) หรืออยู่ไกลจากมหาวิทยาลัยมาก
+// จะใช้จุดกลางมหาวิทยาลัยแทน แล้วบอกผู้ใช้ให้ลากหมุดปรับเอง ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
 async function getPickupCoords() {
-  if (!("geolocation" in navigator)) return CAMPUS_CENTER;
+  const fallback = (note) => ({ point: { ...CAMPUS_CENTER }, note });
+
+  if (!("geolocation" in navigator) || !window.isSecureContext) {
+    return fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดสีเขียวไปยังจุดที่ต้องการให้รับ");
+  }
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(CAMPUS_CENTER),
+      (pos) => {
+        const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(
+          isNearCampus(point)
+            ? { point, note: "" }
+            : fallback("ตำแหน่งของคุณอยู่ไกลจากมหาวิทยาลัย จึงใช้จุดกลางมหาวิทยาลัยแทน ลากหมุดเพื่อปรับ")
+        );
+      },
+      () => resolve(fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดสีเขียวไปยังจุดที่ต้องการให้รับ")),
       { timeout: 5000 }
     );
   });
