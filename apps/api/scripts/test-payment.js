@@ -54,6 +54,11 @@ async function upload(requestId, token, filename, { type = "image/png" } = {}) {
 }
 
 async function main() {
+  // เผื่อรันครั้งก่อนพังกลางคันแล้วไม่ได้ลบข้อมูลทดสอบทิ้ง (เช่น phone ชนกันจนสร้างไม่ได้ทุกรอบถัดไป)
+  await prisma.serviceRequest.deleteMany({ where: { user: { phone: { startsWith: PREFIX } } } });
+  await prisma.user.deleteMany({ where: { phone: { startsWith: PREFIX } } });
+  await prisma.driver.deleteMany({ where: { phone: { startsWith: PREFIX } } });
+
   // ---------------- unit ----------------
   console.log("\nเทียบผู้รับเงิน (receiver)");
   const ID = "0812345678";
@@ -117,6 +122,16 @@ async function main() {
     assert.equal(r.sentAt.toISOString(), "2026-09-25T03:20:30.000Z"); // 10:20:30 +07:00
     assert.ok(r.receiverHints.includes("xxx-xxx-5678"));
   });
+  await test("ใช้ transTimestamp (UTC, ฟิลด์บังคับตามเอกสาร) เป็นหลัก ไม่ต้องพึ่ง transDate/transTime", async () => {
+    const p = mkProvider(
+      jsonRes(200, {
+        success: true,
+        data: { success: true, transRef: "REF2", sendingBank: "004", transTimestamp: "2026-09-25T03:20:30.000Z", amount: 20, receiver: {} },
+      })
+    );
+    const r = await p.verify(file);
+    assert.equal(r.sentAt.toISOString(), "2026-09-25T03:20:30.000Z");
+  });
   await test("ข้อมูลไม่ครบ = SLIP_UNREADABLE (ไม่เดาค่า)", async () => {
     const p = mkProvider(jsonRes(200, { success: true, data: { transRef: "R" } }));
     await assert.rejects(p.verify(file), (e) => e instanceof SlipError && e.code === "SLIP_UNREADABLE");
@@ -132,34 +147,47 @@ async function main() {
       (e) => e.code === "PROVIDER_UNAVAILABLE"
     );
   });
+  await test("แพ็กเกจ/โควตาของบัญชี SlipOK หมด (1003/1004/1015) ไม่ใช่ความผิดผู้โดยสาร", async () => {
+    for (const code of [1003, 1004, 1015]) {
+      await assert.rejects(mkProvider(jsonRes(400, { code, message: "x" })).verify(file), (e) => e.code === "PROVIDER_UNAVAILABLE", `code ${code}`);
+    }
+  });
+  await test("1010 (ธนาคารต้องรอก่อนตรวจซ้ำ) บอกจำนวนนาทีจาก data.delay ถ้ามี", async () => {
+    const e1 = await mkProvider(jsonRes(400, { code: 1010, message: "x", data: { delay: 8 } })).verify(file).catch((e) => e);
+    assert.equal(e1.code, "SLIP_NOT_READY");
+    assert.match(e1.message, /8 นาที/);
+    const e2 = await mkProvider(jsonRes(400, { code: 1010, message: "x" })).verify(file).catch((e) => e);
+    assert.equal(e2.code, "SLIP_NOT_READY");
+  });
 
   // ---------------- integration ----------------
-  const passwordHash = await bcrypt.hash("test1234", 4);
-  const mkUser = (n) =>
-    prisma.user.create({ data: { fullName: `P-user${n}`, phone: `${PREFIX}U${n}`, email: `pay-u${n}-${Date.now()}@ku.th`, passwordHash } });
-  const mkDriver = (n, promptPayId) =>
-    prisma.driver.create({
-      data: { fullName: `P-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, vinNumber: `P${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED", promptPayId },
-    });
-  const mkTrip = (user, driver, overrides = {}) =>
-    prisma.serviceRequest.create({
-      data: {
-        userId: user.id, driverId: driver?.id, status: "COMPLETED", fare: 20, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1,
-        acceptedAt: new Date(Date.now() - 20 * 60 * 1000), completedAt: new Date(), ...overrides,
-      },
-    });
-  const login = async (kind, who) =>
-    (kind === "user"
-      ? await call("POST", "/auth/user/login", null, { email: who.email, password: "test1234" })
-      : await call("POST", "/auth/driver/login", null, { phone: who.phone, password: "test1234" })).body.token;
-
-  const u1 = await mkUser(1);
-  const u2 = await mkUser(2);
-  const d1 = await mkDriver(1, ID);
-  const d2 = await mkDriver(2, null);
-  const [tu1, tu2, td1] = [await login("user", u1), await login("user", u2), await login("driver", d1)];
-
+  // ตั้งแต่บรรทัดนี้เริ่มสร้างข้อมูลจริงในฐานข้อมูล ต้องอยู่ใน try เพื่อให้ finally ลบทิ้งได้เสมอแม้ setup เองจะพัง
   try {
+    const passwordHash = await bcrypt.hash("test1234", 4);
+    const mkUser = (n) =>
+      prisma.user.create({ data: { fullName: `P-user${n}`, phone: `${PREFIX}U${n}`, email: `pay-u${n}-${Date.now()}@ku.th`, passwordHash } });
+    const mkDriver = (n, promptPayId) =>
+      prisma.driver.create({
+        data: { fullName: `P-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, vinNumber: `P${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED", promptPayId },
+      });
+    const mkTrip = (user, driver, overrides = {}) =>
+      prisma.serviceRequest.create({
+        data: {
+          userId: user.id, driverId: driver?.id, status: "COMPLETED", fare: 20, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1,
+          acceptedAt: new Date(Date.now() - 20 * 60 * 1000), completedAt: new Date(), ...overrides,
+        },
+      });
+    const login = async (kind, who) =>
+      (kind === "user"
+        ? await call("POST", "/auth/user/login", null, { email: who.email, password: "test1234" })
+        : await call("POST", "/auth/driver/login", null, { phone: who.phone, password: "test1234" })).body.token;
+
+    const u1 = await mkUser(1);
+    const u2 = await mkUser(2);
+    const d1 = await mkDriver(1, ID);
+    const d2 = await mkDriver(2, null);
+    const [tu1, tu2, td1] = [await login("user", u1), await login("user", u2), await login("driver", d1)];
+
     console.log("\nอัปโหลดสลิป (ผ่าน HTTP)");
     await test("สลิปถูกต้อง: จ่ายแล้วอัตโนมัติ (PROMPTPAY/SLIP) + แจ้งคนขับ; ส่งซ้ำได้ 409", async () => {
       const t = await mkTrip(u1, d1);
@@ -268,8 +296,13 @@ async function main() {
       assert.equal(qr.body.slipVerification, true);
     });
   } finally {
-    const ids = [d1.id, d2.id, u1.id, u2.id];
-    await prisma.serviceRequest.deleteMany({ where: { userId: { in: [u1.id, u2.id] } } });
+    // อ้างอิงด้วย PREFIX ไม่ใช่ตัวแปร u1/d1/... เพราะบางตัวอาจสร้างไม่สำเร็จ (setup พังกลางคัน) แล้วยังไม่มีค่า
+    const [users, drivers] = await Promise.all([
+      prisma.user.findMany({ where: { phone: { startsWith: PREFIX } }, select: { id: true } }),
+      prisma.driver.findMany({ where: { phone: { startsWith: PREFIX } }, select: { id: true } }),
+    ]);
+    const ids = [...users, ...drivers].map((x) => x.id);
+    await prisma.serviceRequest.deleteMany({ where: { userId: { in: users.map((u) => u.id) } } });
     await prisma.notification.deleteMany({ where: { recipientId: { in: ids } } });
     await prisma.user.deleteMany({ where: { phone: { startsWith: PREFIX } } });
     await prisma.driver.deleteMany({ where: { phone: { startsWith: PREFIX } } });
@@ -277,4 +310,7 @@ async function main() {
     console.log(`\n${passed} tests passed${process.exitCode ? " (มีบางข้อล้มเหลว)" : ""}`);
   }
 }
-main();
+main().catch((err) => {
+  console.error("test-payment.js: unexpected crash", err);
+  process.exit(1);
+});
