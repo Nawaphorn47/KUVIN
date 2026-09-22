@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Search, Bell, Library, UtensilsCrossed, Home as HomeIcon, Building2, Landmark, DoorOpen } from "lucide-react";
+import { Search, Bell, Loader2, Library, UtensilsCrossed, Home as HomeIcon, Building2, Landmark, DoorOpen } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
 import { useApp } from "../../context/AppContext";
 import { popularDestinations, recentTrips } from "../../lib/mockData";
 import { api } from "../../lib/api";
+import { useUnreadCount } from "../../lib/useUnreadCount";
+import { useResumeActiveTrip } from "../../lib/useResumeActiveTrip";
 
 const destinationIcons = {
   lib: Library,
@@ -21,6 +23,9 @@ export default function Home() {
   const navigate = useNavigate();
   const { user, setBooking } = useApp();
   const [landmarks, setLandmarks] = useState([]);
+  const unread = useUnreadCount();
+  // มีทริปที่ยังไม่จบ/ยังไม่จ่ายเงินค้างอยู่ไหม — ถ้ามีพาไปหน้านั้นเลยแทนที่จะโชว์หน้าแรกเหมือนไม่มีอะไรเกิดขึ้น
+  const checkingActiveTrip = useResumeActiveTrip("user");
 
   useEffect(() => {
     api
@@ -41,6 +46,14 @@ export default function Home() {
     }
   }
 
+  if (checkingActiveTrip) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <Screen padded={false} className="gap-5 px-5 pb-4 pt-5">
@@ -54,7 +67,9 @@ export default function Home() {
             className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-card"
           >
             <Bell className="h-5 w-5 text-emerald-700" />
-            <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
+            {unread > 0 && (
+              <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
+            )}
           </button>
         </div>
 

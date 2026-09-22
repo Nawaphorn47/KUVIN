@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Bike, Power, Hash, LogIn, AlertTriangle } from "lucide-react";
+import { Star, Bike, Power, Hash, LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
@@ -14,6 +14,7 @@ import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { useQueueOverview } from "../../lib/useQueueOverview";
 import { useDriverPresence } from "../../context/DriverPresenceContext";
+import { useResumeActiveTrip } from "../../lib/useResumeActiveTrip";
 import clsx from "clsx";
 
 const PREVIEW_ROWS = 4;
@@ -29,6 +30,8 @@ export default function DriverHome() {
   const { position: gpsPos } = useGeolocation();
   const myMapPos = gpsPos && isNearCampus(gpsPos) ? gpsPos : null; // นอกพื้นที่/ไม่มี GPS → แสดงแผนที่มหาวิทยาลัยเฉย ๆ
   const { overview, error: queueError } = useQueueOverview(hasSession && online === true);
+  // มีทริปที่รับไว้แล้วยังไม่จบ (หรือจบแล้วยังไม่ได้เงิน) ค้างอยู่ไหม — เช่นรีเฟรชหน้ากลางทริป — พาไปหน้านั้นเลย
+  const checkingActiveTrip = useResumeActiveTrip("driver");
 
   // ดึงโปรไฟล์คนขับจริงตอนมี session (แทนข้อมูล mock) — จะได้เบอร์วิน/คะแนนจริงตามบัญชีที่ login อยู่
   useEffect(() => {
@@ -51,6 +54,14 @@ export default function DriverHome() {
   const displayName = profile?.fullName ?? currentDriver.name;
   const vinNumber = profile?.vinNumber ?? currentDriver.vinNumber;
   const rating = profile?.ratingAvg ?? currentDriver.rating;
+
+  if (checkingActiveTrip) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col">

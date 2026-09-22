@@ -23,6 +23,10 @@ export function AppProvider({ children }) {
     }
     try {
       const { data } = await api.get("/auth/me");
+      // sync mode กับ role จริงของ session เสมอ — เดิม mode ตั้งแค่ตอน login/register/verify สำเร็จ พอ reload
+      // เต็มหน้า (เช่น กด F5 หรือเปิดลิงก์ตรง) mode รีเซ็ตกลับเป็น "user" ค่าเริ่มต้น ทั้งที่ token จริงเป็นคนขับ
+      // ทำให้ BottomNav โชว์เมนูผิด role (เช่น ไม่มีแท็บรายได้/แจ้งเตือนของคนขับ) จนกว่าจะ toggle เอง
+      if (data.role === "user" || data.role === "driver") setMode(data.role);
       if (data.role === "user") {
         const { data: trips } = await api
           .get("/service-requests/mine", { params: { status: "COMPLETED" } })
