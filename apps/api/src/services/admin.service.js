@@ -69,7 +69,7 @@ async function resolveDispute(requestId) {
 
   return prisma.serviceRequest.update({
     where: { id: requestId },
-    data: { paymentStatus: "PAID", disputeNote: null },
+    data: { paymentStatus: "PAID", disputeNote: null, paymentConfirmedBy: "ADMIN" },
   });
 }
 

@@ -205,6 +205,30 @@ Sweeper (`sweepExpiredOffers`, ทุก 1 วิใน `index.js`) เรีย
 
 `GET /service-requests/pending` (endpoint สำรองแบบ polling) คืนคำขอ `PENDING` พร้อม `isMyTurn`
 
+## ชำระเงินและตรวจสลิป
+ผู้โดยสารโอนตาม QR พร้อมเพย์ของคนขับ (`GET /service-requests/:id/payment-qr` ยอดตรงค่าโดยสาร) แล้วแนบสลิป
+`POST /service-requests/:id/payment-slip` (multipart ฟิลด์ `file`, JPEG/PNG/WEBP ≤ 4MB, เฉพาะเจ้าของทริปที่จบแล้ว) —
+ระบบส่งสลิปให้ผู้ให้บริการตรวจกับธนาคาร แล้วเปลี่ยนเป็น `PAID` + `paymentMethod = PROMPTPAY` + `paymentConfirmedBy = SLIP`
+ให้เอง พร้อมแจ้งคนขับ (`services/payment.service.js`)
+
+ยืนยันอัตโนมัติก็ต่อเมื่อผ่านครบ: สลิปจริงตามผู้ให้บริการ · ยอดตรงค่าโดยสาร · **ผู้รับตรงกับพร้อมเพย์ของคนขับทริปนี้** (เทียบเลขที่
+สลิปไม่ปิดบัง ต้องเห็น ≥ 4 หลัก — `services/slip/receiver.js`) · เวลาโอนไม่ก่อนเริ่มทริป · เลขอ้างอิงธุรกรรมไม่เคยใช้กับทริปอื่น
+(`paymentRef` unique) ถ้าสลิปไม่บอกผู้รับให้เทียบได้ จะ**ไม่ยืนยัน** (กันโอนเข้าบัญชีตัวเองด้วยยอดเท่ากัน) ไม่ผ่านตอบ `422` พร้อม
+`code` (`AMOUNT_MISMATCH`, `RECEIVER_MISMATCH`, `RECEIVER_UNVERIFIABLE`, `SLIP_TOO_OLD`, `SLIP_ALREADY_USED`, `NOT_A_SLIP`, ...)
+และจำกัดจำนวนครั้ง (`SLIP_MAX_ATTEMPTS`, ค่าเริ่มต้น 5); บริการตรวจสลิปล่มตอบ `422 PROVIDER_UNAVAILABLE` และไม่นับเป็นความพยายาม
+ทางสำรองเสมอ: คนขับกดยืนยันรับเงินเอง (`POST /:id/payment`, `paymentConfirmedBy = DRIVER`) — แต่ถ้าสลิปตรวจผ่านแล้ว
+คนขับกลับเป็น `DISPUTED` เองไม่ได้ (ต้องผ่าน admin) และผู้โดยสารส่งสลิปแก้ทริปที่คนขับแจ้งข้อพิพาทได้
+
+**ไม่เก็บรูปสลิป** (มีข้อมูลบัญชีธนาคาร; อัปโหลดแบบ memory ส่งต่อให้ผู้ให้บริการแล้วทิ้ง) เก็บแค่เลขอ้างอิง เวลา และเหตุผลที่ไม่ผ่านล่าสุด
+
+ผู้ให้บริการตั้งด้วย `SLIP_PROVIDER` (ดู `.env.example`): `slipok` (ตัวเชื่อมจริง `services/slip/slipok.provider.js`),
+`mock` (dev — ควบคุมผลด้วยชื่อไฟล์ เช่น `wrong-amount.png`, `ref-abc.png`), `off` (production ที่ไม่ตั้งค่า = ปิด, ยังจ่ายสด/คนขับยืนยันได้)
+เพิ่มผู้ให้บริการอื่น (เช่น EasySlip) โดยเขียน `verify({ buffer, mimeType, filename }, expected)` ที่คืน
+`{ ref, bank, amount, sentAt, receiverHints }` หรือ throw `SlipError` แล้วเพิ่มใน `services/slip/index.js`
+**ตัวเชื่อม SlipOK เขียนตามเอกสารสาธารณะ ยังไม่เคยทดสอบกับ API key จริง** — ทดสอบด้วยสลิปจริงก่อนเปิดใช้ (โดยเฉพาะการอ่านข้อมูลผู้รับ)
+ทดสอบ: `npm run test:payment` (22 เคส)
+(เทสต์ที่ยิง HTTP — `test:suspension`, `test:payment` — ล็อกอินหลายครั้ง ถ้ารันติดกันจะชนตัวจำกัดล็อกอิน 20 ครั้ง/15 นาที ให้รีสตาร์ต API ระหว่างชุด)
+
 ## จัดการผู้ใช้/คนขับและระงับบัญชี (admin)
 `GET /admin/users` · `GET /admin/drivers` (query `q` ค้นหา, `status`: ผู้ใช้ = `active|suspended`, คนขับ =
 `online|APPROVED|PENDING|REJECTED|suspended`, สูงสุด 200 รายการ) · `GET /admin/users/:id` · `GET /admin/drivers/:id`

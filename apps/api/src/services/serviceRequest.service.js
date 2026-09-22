@@ -6,6 +6,7 @@ const { notify } = require("./notification.service");
 const { generatePaymentQr } = require("../utils/promptpay");
 
 const queue = require("./queue.service");
+const slip = require("./slip");
 
 const { includeParties } = queue;
 
@@ -202,10 +203,19 @@ async function setPaymentStatus(requestId, driverId, { status, disputeNote }) {
   if (existing.status !== "COMPLETED") {
     throw ApiError.conflict("บันทึกสถานะการชำระเงินได้เฉพาะทริปที่เสร็จสิ้นแล้ว");
   }
+  // สลิปที่ธนาคารยืนยันแล้วเป็นหลักฐานที่หนักกว่าคำบอกของคนขับ — คนขับกลับคำเป็น "ข้อพิพาท" เองไม่ได้ ต้องผ่าน admin
+  if (existing.paymentConfirmedBy === "SLIP" && status !== "PAID") {
+    throw ApiError.conflict("ทริปนี้ตรวจสลิปโอนเงินผ่านแล้ว หากมีปัญหากรุณาติดต่อผู้ดูแลระบบ");
+  }
 
   return prisma.serviceRequest.update({
     where: { id: requestId },
-    data: { paymentStatus: status, disputeNote: status === "DISPUTED" ? disputeNote ?? null : null },
+    data: {
+      paymentStatus: status,
+      disputeNote: status === "DISPUTED" ? disputeNote ?? null : null,
+      // คนขับกด PAID ตอนที่สลิปยังไม่ผ่าน = ยืนยันเอง (คงค่า SLIP ไว้ถ้าตรวจสลิปผ่านไปแล้ว)
+      paymentConfirmedBy: status === "PAID" ? existing.paymentConfirmedBy ?? "DRIVER" : null,
+    },
   });
 }
 
@@ -231,7 +241,7 @@ async function getPaymentQr(requestId, actor) {
   if (!request.fare) throw ApiError.conflict("ทริปนี้ยังไม่มีค่าโดยสารให้ชำระ");
 
   const { payload, qrDataUrl } = await generatePaymentQr(request.driver.promptPayId, request.fare);
-  return { payload, qrDataUrl, amount: request.fare };
+  return { payload, qrDataUrl, amount: request.fare, slipVerification: slip.isEnabled() };
 }
 
 async function rateRequest(requestId, userId, { score, comment }) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PartyPopper, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -13,6 +13,25 @@ export default function FinishRide() {
   const [paymentStatus, setPaymentStatus] = useState(request?.paymentStatus ?? "PENDING");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  const [paidBy, setPaidBy] = useState(request?.paymentConfirmedBy ?? null);
+  const [slipEnabled, setSlipEnabled] = useState(false);
+
+  // ผู้โดยสารโอนแล้วแนบสลิป ระบบตรวจผ่านจะเปลี่ยนเป็นจ่ายแล้วเอง — เช็คสถานะเป็นระยะให้หน้านี้อัปเดตตาม
+  useEffect(() => {
+    if (!request?.id || paymentStatus === "PAID") return undefined;
+    const t = setInterval(() => {
+      api
+        .get(`/service-requests/${request.id}`)
+        .then(({ data }) => {
+          if (data.paymentStatus === "PAID") {
+            setPaidBy(data.paymentConfirmedBy);
+            setPaymentStatus("PAID");
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => clearInterval(t);
+  }, [request?.id, paymentStatus]);
 
   if (!request) {
     navigate("/driver/home");
@@ -51,10 +70,16 @@ export default function FinishRide() {
         <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/10 px-6 py-8">
           <CheckCircle2 className="h-10 w-10" />
           <p className="text-lg font-bold">ได้รับเงิน {request.fare} บาทแล้ว</p>
+          {paidBy === "SLIP" && <p className="text-xs text-emerald-100">ผู้โดยสารโอนแล้ว ตรวจสลิปกับธนาคารเรียบร้อย</p>}
         </div>
       ) : (
         <>
-          <PaymentQr requestId={request.id} />
+          <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
+          {slipEnabled && (
+            <p className="text-xs text-emerald-100">
+              เมื่อผู้โดยสารโอนและแนบสลิป ระบบจะตรวจและยืนยันให้อัตโนมัติ ถ้าจ่ายเงินสดให้กดยืนยันด้านล่าง
+            </p>
+          )}
           {error && <p className="text-sm text-red-200">{error}</p>}
           <Button variant="secondary" onClick={confirmPaid} disabled={confirming}>
             {confirming ? "กำลังบันทึก..." : "ยืนยันได้รับเงินแล้ว"}

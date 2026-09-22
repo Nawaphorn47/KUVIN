@@ -171,7 +171,7 @@ export default function AdminDashboard() {
 
           {trips && (
             <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
-              <table className="w-full min-w-[900px] text-left">
+              <table className="w-full min-w-[1100px] text-left">
                 <thead className="bg-stone-200 text-base text-stone-900">
                   <tr>
                     <th className="px-6 py-4 font-medium">วันที่/เวลา</th>
@@ -179,6 +179,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-4 font-medium">เส้นทาง</th>
                     <th className="px-6 py-4 text-right font-medium">ค่าโดยสาร</th>
                     <th className="px-6 py-4 font-medium">สถานะ</th>
+                    <th className="px-6 py-4 font-medium">การชำระเงิน</th>
                     <th className="px-6 py-4 font-medium" />
                   </tr>
                 </thead>
@@ -211,6 +212,9 @@ export default function AdminDashboard() {
                             {STATUS_LABEL[t.status] ?? t.status}
                           </Badge>
                         )}
+                      </td>
+                      <td className="px-6 py-5">
+                        <PaymentCell trip={t} />
                       </td>
                       <td className="px-6 py-5">
                         {t.paymentStatus === "DISPUTED" && (
@@ -431,6 +435,38 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const PAID_BY_LABEL = { SLIP: "ตรวจสลิปแล้ว", DRIVER: "คนขับยืนยัน", ADMIN: "แอดมินแก้ไข" };
+
+// สถานะการชำระเงินของทริป: จ่ายแล้วด้วยวิธีไหน / รอชำระ (พร้อมเหตุผลที่สลิปล่าสุดไม่ผ่านถ้ามี — ช่วยตัดสินข้อพิพาท)
+function PaymentCell({ trip }) {
+  if (trip.status !== "COMPLETED") return <span className="text-stone-400">-</span>;
+
+  if (trip.paymentStatus === "PAID") {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <Badge tone="success">จ่ายแล้ว</Badge>
+        <span className="text-xs text-stone-500">
+          {PAID_BY_LABEL[trip.paymentConfirmedBy] ?? "ไม่ระบุ"}
+          {trip.paymentMethod === "PROMPTPAY" ? " · พร้อมเพย์" : ""}
+        </span>
+        {trip.paymentRef && <span className="text-[11px] text-stone-400">อ้างอิง {trip.paymentRef}</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Badge tone={trip.paymentStatus === "DISPUTED" ? "danger" : "warning"}>
+        {trip.paymentStatus === "DISPUTED" ? "ข้อพิพาท" : "รอชำระ"}
+      </Badge>
+      {trip.paymentSlipAttempts > 0 && (
+        <span className="text-xs text-stone-500">ส่งสลิป {trip.paymentSlipAttempts} ครั้ง ไม่ผ่าน</span>
+      )}
+      {trip.paymentSlipError && <span className="max-w-[16rem] text-[11px] text-red-600">{trip.paymentSlipError}</span>}
     </div>
   );
 }

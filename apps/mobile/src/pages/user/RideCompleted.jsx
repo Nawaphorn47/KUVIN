@@ -1,13 +1,32 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import PaymentQr from "../../components/shared/PaymentQr";
+import SlipUploader from "../../components/shared/SlipUploader";
+import { api } from "../../lib/api";
 
 export default function RideCompleted() {
   const navigate = useNavigate();
   const location = useLocation();
-  const request = location.state?.request;
+  const initial = location.state?.request;
+  const [paid, setPaid] = useState(initial?.paymentStatus === "PAID");
+  const [slipEnabled, setSlipEnabled] = useState(false);
+
+  // คนขับอาจกดยืนยันรับเงิน (เช่นจ่ายสด) ขณะที่ผู้โดยสารยังอยู่หน้านี้ — เช็คสถานะเป็นระยะ
+  useEffect(() => {
+    if (!initial?.id || paid) return undefined;
+    const t = setInterval(() => {
+      api
+        .get(`/service-requests/${initial.id}`)
+        .then(({ data }) => data.paymentStatus === "PAID" && setPaid(true))
+        .catch(() => {});
+    }, 4000);
+    return () => clearInterval(t);
+  }, [initial?.id, paid]);
+
+  const request = initial;
 
   if (!request) {
     navigate("/home");
@@ -44,7 +63,19 @@ export default function RideCompleted() {
         </div>
       </div>
 
-      {request.paymentStatus !== "PAID" && <PaymentQr requestId={request.id} />}
+      {paid ? (
+        <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold">
+          <CheckCircle2 className="h-5 w-5" /> ชำระเงินเรียบร้อยแล้ว
+        </div>
+      ) : (
+        <div className="flex w-full flex-col items-center gap-3">
+          <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
+          {slipEnabled && <SlipUploader requestId={request.id} onPaid={() => setPaid(true)} />}
+          <p className="text-xs text-emerald-100">
+            {slipEnabled ? "จ่ายเงินสดให้คนขับได้เช่นกัน คนขับจะกดยืนยันการรับเงิน" : "หรือจ่ายเงินสดให้คนขับโดยตรง"}
+          </p>
+        </div>
+      )}
 
       <Button variant="secondary" onClick={() => navigate("/rating", { state: { request } })}>
         ให้คะแนนคนขับ

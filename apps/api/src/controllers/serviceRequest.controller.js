@@ -1,5 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
+const ApiError = require("../utils/ApiError");
 const service = require("../services/serviceRequest.service");
+const paymentService = require("../services/payment.service");
 
 const io = (req) => req.app.get("io");
 
@@ -41,6 +43,11 @@ exports.cancel = asyncHandler(async (req, res) => {
 exports.setPayment = asyncHandler(async (req, res) => {
   const request = await service.setPaymentStatus(req.params.id, req.auth.id, req.body);
   res.json(request);
+});
+
+exports.paymentSlip = asyncHandler(async (req, res) => {
+  if (!req.file) throw ApiError.badRequest("ต้องแนบรูปสลิปโอนเงิน (ฟิลด์ file)");
+  res.json(await paymentService.submitSlip(req.params.id, req.auth.id, req.file, io(req)));
 });
 
 exports.paymentQr = asyncHandler(async (req, res) => {

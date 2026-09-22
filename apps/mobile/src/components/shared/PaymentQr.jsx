@@ -4,15 +4,20 @@ import { api } from "../../lib/api";
 
 // QR พร้อมเพย์ให้สแกนจ่ายค่าโดยสารตรงให้คนขับ — ถ้าคนขับยังไม่ได้ตั้งค่าพร้อมเพย์ไว้ (promptPayId) จะโชว์ข้อความ
 // ให้จ่ายเงินสดแทนแทนที่จะพัง เพราะพร้อมเพย์เป็นออปชันเสริม ไม่ใช่วิธีชำระเงินบังคับ
-export default function PaymentQr({ requestId }) {
+export default function PaymentQr({ requestId, onLoaded }) {
   const [qr, setQr] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     api
       .get(`/service-requests/${requestId}/payment-qr`)
-      .then(({ data }) => setQr(data))
+      .then(({ data }) => {
+        setQr(data);
+        onLoaded?.(data); // เช่น slipVerification = เปิดตรวจสลิปอัตโนมัติอยู่หรือไม่
+      })
       .catch((err) => setError(err.response?.data?.message || "โหลด QR ไม่สำเร็จ"));
+    // onLoaded เปลี่ยนตัวทุก render ไม่ควรทำให้ยิง API ซ้ำ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
 
   if (error) {

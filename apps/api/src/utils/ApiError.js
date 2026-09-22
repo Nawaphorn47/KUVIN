@@ -17,8 +17,11 @@ class ApiError extends Error {
   static notFound(message = "Not found") {
     return new ApiError(404, message);
   }
-  static conflict(message) {
-    return new ApiError(409, message);
+  static conflict(message, code) {
+    return new ApiError(409, message, code);
+  }
+  static unprocessable(message, code) {
+    return new ApiError(422, message, code);
   }
 }
 

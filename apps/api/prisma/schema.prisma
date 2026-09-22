@@ -23,6 +23,7 @@ enum DriverVerificationStatus {
 
 enum PaymentMethod {
   CASH
+  PROMPTPAY // ผู้โดยสารโอนตาม QR พร้อมเพย์และระบบตรวจสลิปแล้ว
 }
 
 enum PaymentStatus {
@@ -151,6 +152,12 @@ model ServiceRequest {
   paymentMethod PaymentMethod @default(CASH)
   paymentStatus PaymentStatus @default(PENDING)
   disputeNote   String? // เหตุผลเมื่อ paymentStatus = DISPUTED
+  // ตรวจสลิปโอนเงิน (ดู services/payment.service.js) — ไม่เก็บรูปสลิป เก็บแค่เลขอ้างอิงธุรกรรมไว้กันสลิปซ้ำ
+  paymentRef          String?   @unique // เลขอ้างอิงธุรกรรมบนสลิป (unique = สลิปใบเดียวใช้ได้ทริปเดียว)
+  paymentVerifiedAt   DateTime? // เวลาที่ตรวจสลิปผ่าน
+  paymentConfirmedBy  String? // ใครยืนยันว่าจ่ายแล้ว: SLIP | DRIVER | ADMIN
+  paymentSlipAttempts Int       @default(0) // จำนวนครั้งที่ผู้โดยสารส่งสลิปแล้วไม่ผ่าน (จำกัดตาม SLIP_MAX_ATTEMPTS)
+  paymentSlipError    String? // เหตุผลที่สลิปล่าสุดไม่ผ่าน (ให้ admin ดูตอนมีข้อพิพาท)
 
   requestedAt  DateTime  @default(now())
   acceptedAt   DateTime?
