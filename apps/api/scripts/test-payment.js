@@ -8,6 +8,7 @@ const prisma = require("../src/config/prisma");
 const { matchReceiver } = require("../src/services/slip/receiver");
 const { evaluateSlip } = require("../src/services/payment.service");
 const slipok = require("../src/services/slip/slipok.provider");
+const easyslip = require("../src/services/slip/easyslip.provider");
 const { SlipError } = require("../src/services/slip/errors");
 
 const B = `http://localhost:${process.env.PORT || 4000}/api`;
@@ -158,6 +159,59 @@ async function main() {
     assert.match(e1.message, /8 นาที/);
     const e2 = await mkProvider(jsonRes(400, { code: 1010, message: "x" })).verify(file).catch((e) => e);
     assert.equal(e2.code, "SLIP_NOT_READY");
+  });
+
+  console.log("\nตัวเชื่อม EasySlip (fetch จำลอง)");
+  const mkEasy = (impl) => easyslip.createProvider({ apiKey: "k", fetchImpl: impl });
+  await test("อ่านผลสำเร็จ: เลขอ้างอิง ยอด (rawSlip.amount.amount) เวลา ISO และข้อมูลผู้รับ", async () => {
+    const p = mkEasy(
+      jsonRes(200, {
+        success: true,
+        data: {
+          isDuplicate: false,
+          rawSlip: {
+            transRef: "68370160657749I376388B35",
+            date: "2026-09-25T10:20:30+07:00",
+            amount: { amount: 20 },
+            sender: { bank: { id: "004", name: "กสิกรไทย", short: "KBANK" }, account: { name: { th: "x" } } },
+            receiver: {
+              bank: { id: "014", name: "ไทยพาณิชย์", short: "SCB" },
+              account: { name: { th: "y" }, proxy: { type: "MSISDN", account: "xxx-xxx-5678" } },
+            },
+          },
+        },
+        message: "ok",
+      })
+    );
+    const r = await p.verify(file);
+    assert.equal(r.ref, "68370160657749I376388B35");
+    assert.equal(r.bank, "KBANK");
+    assert.equal(r.amount, 20);
+    assert.equal(r.sentAt.toISOString(), "2026-09-25T03:20:30.000Z");
+    assert.ok(r.receiverHints.includes("xxx-xxx-5678"));
+  });
+  await test("ข้อมูลไม่ครบ = SLIP_UNREADABLE (ไม่เดาค่า)", async () => {
+    const p = mkEasy(jsonRes(200, { success: true, data: { rawSlip: { transRef: "R" } } }));
+    await assert.rejects(p.verify(file), (e) => e instanceof SlipError && e.code === "SLIP_UNREADABLE");
+  });
+  await test("แยกประเภทข้อผิดพลาดตามรูปแบบ { success:false, error:{code,message} }", async () => {
+    const err = (status, code) => mkEasy(jsonRes(status, { success: false, error: { code, message: "x" } })).verify(file);
+    await assert.rejects(err(404, "SLIP_NOT_FOUND"), (e) => e.code === "NOT_A_SLIP");
+    await assert.rejects(err(400, "INVALID_IMAGE_FORMAT"), (e) => e.code === "NOT_A_SLIP");
+    await assert.rejects(err(400, "IMAGE_SIZE_TOO_LARGE"), (e) => e.code === "NOT_A_SLIP");
+    await assert.rejects(err(404, "SLIP_PENDING"), (e) => e.code === "SLIP_NOT_READY");
+    await assert.rejects(err(401, "MISSING_API_KEY"), (e) => e.code === "PROVIDER_UNAVAILABLE");
+    await assert.rejects(err(403, "QUOTA_EXCEEDED"), (e) => e.code === "PROVIDER_UNAVAILABLE");
+    await assert.rejects(err(429, "RATE_LIMIT_EXCEEDED"), (e) => e.code === "PROVIDER_UNAVAILABLE");
+    await assert.rejects(err(500, "API_SERVER_ERROR"), (e) => e.code === "PROVIDER_UNAVAILABLE");
+    // โค้ด 400 ที่ไม่ควรเกิดจากคำขอของเรา (ผิดรูปแบบคำขอเอง ไม่ใช่ของผู้โดยสาร) → ไม่นับเป็นความพยายาม
+    await assert.rejects(err(400, "VALIDATION_ERROR"), (e) => e.code === "PROVIDER_UNAVAILABLE");
+    await assert.rejects(
+      mkEasy(async () => {
+        throw new Error("ECONNRESET");
+      }).verify(file),
+      (e) => e.code === "PROVIDER_UNAVAILABLE"
+    );
   });
 
   // ---------------- integration ----------------
