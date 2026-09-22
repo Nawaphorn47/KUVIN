@@ -1,0 +1,119 @@
+name: CI
+
+# ยังไม่มี CD ต่อท้าย — รอเลือก hosting ก่อน (ดู docs/CI_CD.md) ตอนนี้แค่ build + ทดสอบทุก push/PR
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+# กดยกเลิก workflow run เก่าของ branch เดียวกันถ้า push ใหม่ทับเข้ามา ไม่ต้องรอของเก่าให้จบ
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: apps/api (build + test)
+    runs-on: ubuntu-latest
+
+    # ใช้ image เดียวกับ docker/docker-compose.yml — schema ไม่ได้ใช้ฟีเจอร์ PostGIS จริง (พิกัดเก็บเป็น Float
+    # ธรรมดา) แต่ใช้ image เดียวกันไว้กันความเซอร์ไพรส์ถ้ามีคนเปลี่ยนไปใช้ PostGIS จริงทีหลัง
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kuvin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kuvin?schema=public
+      JWT_SECRET: ci-test-secret-not-for-production
+      JWT_EXPIRES_IN: 7d
+      PORT: 4000
+      # mock ตอบสลิปตามชื่อไฟล์ (ดู apps/api/src/services/slip/mock.provider.js) — ห้ามใช้ค่านี้ใน production
+      SLIP_PROVIDER: mock
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: ติดตั้ง dependency ทั้ง workspace
+        run: npm ci
+
+      - name: Prisma generate + migrate
+        working-directory: apps/api
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Seed ข้อมูลเดโม (แอดมิน/ผู้ใช้/คนขับ 3 คน ที่ชุดทดสอบต้องใช้)
+        working-directory: apps/api
+        run: node prisma/seed.js
+
+      - name: ทดสอบตรรกะคิว (ไม่ต้องเปิด server — เรียก service ตรง ๆ)
+        working-directory: apps/api
+        run: npm run test:queue
+
+      - name: เปิด API server (พื้นหลัง) สำหรับชุดทดสอบที่ยิง HTTP จริง
+        working-directory: apps/api
+        run: |
+          node src/index.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          npx wait-on -t 30000 http://localhost:4000/api/health
+
+      - name: ทดสอบระงับบัญชี (ยิง HTTP จริง)
+        working-directory: apps/api
+        run: npm run test:suspension
+
+      - name: รีสตาร์ต API server (กันชนตัวจำกัดล็อกอิน 20 ครั้ง/15 นาทีระหว่างสองชุด)
+        working-directory: apps/api
+        run: |
+          kill "$(cat /tmp/api.pid)" || true
+          node src/index.js > /tmp/api-2.log 2>&1 &
+          echo $! > /tmp/api.pid
+          npx wait-on -t 30000 http://localhost:4000/api/health
+
+      - name: ทดสอบการชำระเงิน/ตรวจสลิป (ยิง HTTP จริง)
+        working-directory: apps/api
+        run: npm run test:payment
+
+      - name: แสดง log ของ API ถ้ามีขั้นตอนไหนล้มเหลว
+        if: failure()
+        run: cat /tmp/api.log /tmp/api-2.log 2>/dev/null || true
+
+  mobile:
+    name: apps/mobile (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=apps/mobile
+
+  web-dashboard:
+    name: apps/web-dashboard (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=apps/web-dashboard
