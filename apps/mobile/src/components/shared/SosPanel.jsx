@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldAlert, Phone, CheckCircle2, AlertTriangle, X, Loader2 } from "lucide-react";
 import TopBar from "../layout/TopBar";
-import { emergencyContacts } from "../../lib/mockData";
+import { emergencyContacts } from "../../lib/emergencyContacts";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 

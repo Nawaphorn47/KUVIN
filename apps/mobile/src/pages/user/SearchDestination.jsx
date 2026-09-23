@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { MapPin, Search, Crosshair } from "lucide-react";
+import { MapPin, Search, Crosshair, Loader2 } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
-import { kuLandmarks } from "../../lib/mockData";
 import { api } from "../../lib/api";
 import { useApp } from "../../context/AppContext";
 
@@ -11,18 +10,22 @@ export default function SearchDestination() {
   const navigate = useNavigate();
   const { booking, setBooking } = useApp();
   const [query, setQuery] = useState("");
-  const [landmarks, setLandmarks] = useState(kuLandmarks);
+  const [landmarks, setLandmarks] = useState(null); // null = กำลังโหลด
+  const [loadError, setLoadError] = useState(false);
 
-  // ดึงรายชื่อสถานที่จริงจาก backend (มี id ตรงกับ DB ใช้จองจริงได้) — ถ้าเรียกไม่ได้ (backend ปิดอยู่)
-  // ใช้รายการ mock แทนไปก่อนเพื่อให้เลื่อนดู UI ได้ แต่จะกดจองจริงจากรายการนั้นไม่ได้
-  useEffect(() => {
+  // รายชื่อสถานที่จริงจาก backend — เดิมถ้าโหลดไม่ได้จะโชว์รายการ mock แทน ซึ่งกดจองไม่ได้จริง (id ไม่ตรงกับ DB)
+  // ผู้ใช้กดแล้วพังโดยไม่รู้สาเหตุ จึงบอกตรง ๆ ว่าโหลดไม่สำเร็จและให้ลองใหม่แทน
+  function load() {
+    setLoadError(false);
+    setLandmarks(null);
     api
       .get("/landmarks")
       .then(({ data }) => setLandmarks(data))
-      .catch(() => setLandmarks(kuLandmarks));
-  }, []);
+      .catch(() => setLoadError(true));
+  }
+  useEffect(load, []);
 
-  const filtered = landmarks.filter(
+  const filtered = (landmarks ?? []).filter(
     (l) => l.name.includes(query) || l.detail?.includes(query)
   );
 
@@ -68,6 +71,18 @@ export default function SearchDestination() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             เลือกจุดหมาย
           </p>
+          {loadError && (
+            <div className="flex flex-col items-center gap-2 py-6 text-center">
+              <p className="text-sm text-slate-500">โหลดรายชื่อสถานที่ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต</p>
+              <button onClick={load} className="text-sm font-semibold text-emerald-600">
+                ลองใหม่
+              </button>
+            </div>
+          )}
+          {landmarks === null && !loadError && <Loader2 className="mx-auto my-6 h-5 w-5 animate-spin text-emerald-500" />}
+          {landmarks !== null && filtered.length === 0 && (
+            <p className="py-6 text-center text-sm text-slate-400">ไม่พบสถานที่ที่ค้นหา ลองปักหมุดบนแผนที่แทนได้</p>
+          )}
           <div className="flex flex-col divide-y divide-slate-100">
             {filtered.map((landmark) => (
               <button

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { UserCog, ShieldCheck, Settings, LogOut, User2, ChevronRight } from "lucide-react";
+import { ShieldCheck, Settings, LogOut, User2, ChevronRight } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
@@ -8,15 +8,27 @@ import { useApp } from "../../context/AppContext";
 import { clearToken } from "../../lib/auth";
 import { unregisterPush } from "../../lib/push";
 
-const menu = [
-  { icon: UserCog, label: "แก้ไขข้อมูลส่วนตัว" },
-  { icon: ShieldCheck, label: "ยืนยันตัวตน", to: "/driver/verify/success" },
-  { icon: Settings, label: "ตั้งค่า", to: "/settings" },
-];
+// หน้าสถานะยืนยันตัวตนตามสถานะจริงของบัญชี — เดิมพาไปหน้า "ยืนยันสำเร็จ" เสมอ แม้ยังรออนุมัติหรือถูกปฏิเสธ
+// ("แก้ไขข้อมูลส่วนตัว" เอาออกแล้ว — เดิมกดแล้วไม่เกิดอะไร ยังไม่มีหน้าแก้ไขโปรไฟล์ของคนขับ)
+const VERIFY_ROUTE = {
+  APPROVED: "/driver/verify/success",
+  PENDING: "/driver/verify/pending",
+  REJECTED: "/driver/verify/rejected",
+};
 
 export default function DriverProfile() {
   const navigate = useNavigate();
   const { driver, refreshMe } = useApp();
+  const menu = [
+    {
+      icon: ShieldCheck,
+      label: "ยืนยันตัวตน",
+      // ยังไม่เคยส่งเอกสาร (สถานะอื่น/ยังโหลดไม่เสร็จ) = ไปเริ่มส่งเอกสารใหม่
+      to: VERIFY_ROUTE[driver.verificationStatus] ?? "/driver/verify/step-1",
+      state: driver.verificationStatus === "REJECTED" ? { reason: driver.rejectionReason } : undefined,
+    },
+    { icon: Settings, label: "ตั้งค่า", to: "/settings" },
+  ];
 
   function handleLogout(loginState) {
     unregisterPush();
@@ -80,10 +92,10 @@ export default function DriverProfile() {
         </button>
 
         <Card className="divide-y divide-slate-100 p-0 shadow-none ring-slate-100">
-          {menu.map(({ icon: Icon, label, to }) => (
+          {menu.map(({ icon: Icon, label, to, state }) => (
             <button
               key={label}
-              onClick={() => to && navigate(to)}
+              onClick={() => navigate(to, state && { state })}
               className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
             >
               <Icon className="h-5 w-5 text-slate-400" />

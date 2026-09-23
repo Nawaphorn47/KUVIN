@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Heart, User2, Settings, LogOut, Bike, Pencil, ChevronRight } from "lucide-react";
+import { User2, Settings, LogOut, Bike, Pencil, ChevronRight } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
@@ -8,8 +8,8 @@ import { useApp } from "../../context/AppContext";
 import { clearToken } from "../../lib/auth";
 import { unregisterPush } from "../../lib/push";
 
+// "สถานที่โปรด" เอาออกแล้ว — เดิมกดแล้วไม่เกิดอะไร (ยังไม่มีฟีเจอร์นี้ทั้งฝั่งแอปและ backend)
 const menu = [
-  { icon: Heart, label: "สถานที่โปรด" },
   { icon: User2, label: "ข้อมูลส่วนตัว", to: "/profile/edit" },
   { icon: Settings, label: "ตั้งค่า", to: "/settings" },
 ];
