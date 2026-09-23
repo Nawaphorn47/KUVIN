@@ -119,9 +119,17 @@ export default function ConfirmBooking() {
             route={estimate?.route?.coordinates}
             onPickupChange={handlePickupDrag}
           />
-          <p className="text-center text-xs text-slate-400">
-            {pickupNote || "กดค้างที่หมุดสีเขียวแล้วลากเพื่อปรับจุดรับ"}
-          </p>
+          {/* จุดรับถูกแทนด้วยจุดกลางมหาวิทยาลัย (ไม่มี GPS/อยู่ไกล) — เตือนให้เห็นชัด ไม่งั้นผู้ใช้เรียกวินไปโดยไม่รู้ตัว
+              แล้วคนขับไปรอผิดที่ (เดิมเป็นตัวหนังสือเทาเล็ก ๆ ที่แทบไม่มีใครเห็น) */}
+          {pickupNote ? (
+            <p className="flex items-start gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-left text-sm font-medium text-amber-800 ring-1 ring-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" /> {pickupNote}
+            </p>
+          ) : (
+            <p className="text-center text-xs text-slate-400">
+              {pickupPoint ? "กดค้างที่หมุดสีเขียวแล้วลากเพื่อปรับจุดรับ" : "กำลังหาตำแหน่งของคุณจาก GPS..."}
+            </p>
+          )}
         </div>
 
         <Card>
@@ -205,7 +213,9 @@ async function getPickupCoords() {
         );
       },
       () => resolve(fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดสีเขียวไปยังจุดที่ต้องการให้รับ")),
-      { timeout: 5000 }
+      // เดิม timeout 5 วิ ความแม่นยำปกติ — iPhone/ในอาคารจับ GPS ครั้งแรกนานกว่านั้นบ่อย ๆ เลยตกไปใช้จุดกลางมหาวิทยาลัย
+      // ทั้งที่อยู่ในแคมปัสจริง; maximumAge ใช้ตำแหน่งล่าสุดที่เครื่องมีอยู่แล้วได้ (ไม่เกิน 30 วิ) จะได้ไม่ต้องรอจับใหม่
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 30000 }
     );
   });
 }

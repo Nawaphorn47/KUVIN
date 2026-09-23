@@ -9,7 +9,6 @@ import MapView from "../../components/shared/MapView";
 import { useGeolocation } from "../../lib/useGeolocation";
 import { CAMPUS_CENTER, isNearCampus } from "../../lib/geo";
 import QueueRow from "../../components/shared/QueueRow";
-import { currentDriver } from "../../lib/mockData";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { useQueueOverview } from "../../lib/useQueueOverview";
@@ -19,9 +18,31 @@ import clsx from "clsx";
 
 const PREVIEW_ROWS = 4;
 
+// สรุปทริปที่จบแล้วตั้งแต่เที่ยงคืนวันนี้ (เวลาเครื่อง) — เวลาวิ่งงานนับจากรับงานถึงจบทริป เพราะระบบไม่ได้เก็บเวลาออนไลน์
+function summarizeToday(trips) {
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const todays = trips.filter((t) => t.completedAt && new Date(t.completedAt) >= midnight);
+  const minutes = todays.reduce((sum, t) => {
+    if (!t.acceptedAt) return sum;
+    return sum + Math.max(0, (new Date(t.completedAt) - new Date(t.acceptedAt)) / 60000);
+  }, 0);
+  return {
+    income: todays.reduce((sum, t) => sum + (t.fare ?? 0), 0),
+    trips: todays.length,
+    minutes: Math.round(minutes),
+  };
+}
+
+function formatDuration(minutes) {
+  if (minutes < 60) return `${minutes} นาที`;
+  return `${(minutes / 60).toFixed(1)} ชม.`;
+}
+
 export default function DriverHome() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [today, setToday] = useState(null); // { income, trips, minutes } ของวันนี้ (null = ยังโหลดไม่เสร็จ/ไม่มี session)
   const [toggleError, setToggleError] = useState("");
   const hasSession = Boolean(getToken());
   // สถานะออนไลน์+การรอฟังงานใหม่ย้ายไปอยู่ระดับ App แล้ว (DriverPresenceContext) ทำงานได้ตลอดไม่ว่าจะเปิด
@@ -40,6 +61,10 @@ export default function DriverHome() {
       .get("/drivers/me")
       .then(({ data }) => setProfile(data))
       .catch(() => setProfile(null));
+    api
+      .get("/service-requests/driver/mine", { params: { status: "COMPLETED" } })
+      .then(({ data }) => setToday(summarizeToday(data)))
+      .catch(() => setToday(null));
   }, [hasSession]);
 
   async function toggleOnline() {
@@ -51,9 +76,10 @@ export default function DriverHome() {
     }
   }
 
-  const displayName = profile?.fullName ?? currentDriver.name;
-  const vinNumber = profile?.vinNumber ?? currentDriver.vinNumber;
-  const rating = profile?.ratingAvg ?? currentDriver.rating;
+  // ไม่ fallback เป็นข้อมูล mock — คนขับที่ยังไม่มีคะแนนต้องเห็น "-" ไม่ใช่คะแนนปลอม 4.8
+  const displayName = profile?.fullName ?? "";
+  const vinNumber = profile?.vinNumber ?? "-";
+  const rating = profile?.ratingAvg;
 
   if (checkingActiveTrip) {
     return (
@@ -113,18 +139,19 @@ export default function DriverHome() {
               ดูรายได้ →
             </button>
           </div>
+          {/* เดิมเป็นตัวเลขตายตัว 320 ฿ / 12 เที่ยว / 5.5 ชม. — คนขับทุกคนเห็นเลขเดียวกันหมด */}
           <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
             <div>
-              <p className="text-lg font-bold text-emerald-600">320 ฿</p>
+              <p className="text-lg font-bold text-emerald-600">{today ? `${today.income} ฿` : "-"}</p>
               <p className="text-xs text-slate-400">รายได้</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-700">12</p>
+              <p className="text-lg font-bold text-slate-700">{today ? today.trips : "-"}</p>
               <p className="text-xs text-slate-400">เที่ยว</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-orange-500">5.5 ชม.</p>
-              <p className="text-xs text-slate-400">ชั่วโมง</p>
+              <p className="text-lg font-bold text-orange-500">{today ? formatDuration(today.minutes) : "-"}</p>
+              <p className="text-xs text-slate-400">เวลาวิ่งงาน</p>
             </div>
           </div>
         </Card>
