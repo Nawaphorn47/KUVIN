@@ -48,17 +48,29 @@ async function main() {
   }
   console.log(`Seeded ${landmarks.length} landmarks.`);
 
-  // บัญชีเดโม — เฉพาะ dev เท่านั้น เปลี่ยนรหัสผ่านก่อนใช้งานจริง
-  const adminEmail = "admin@ku.th";
+  // production (server จริงที่เปิดสาธารณะ): สร้างแค่สถานที่ + แอดมินที่ใช้รหัสผ่านจาก SEED_ADMIN_PASSWORD เท่านั้น
+  // ห้ามมีบัญชีรหัสผ่านเดาง่ายแบบ dev (admin1234 = ใครก็เข้าหน้าแอดมินได้ ดู/ระงับผู้ใช้ เห็นเอกสารยืนยันตัวตนคนขับ)
+  const isProduction = process.env.NODE_ENV === "production";
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL || "admin@ku.th").toLowerCase();
+  const adminPassword = isProduction ? process.env.SEED_ADMIN_PASSWORD : "admin1234";
+  if (isProduction && (!adminPassword || adminPassword.length < 12)) {
+    throw new Error("production ต้องตั้ง SEED_ADMIN_PASSWORD (อย่างน้อย 12 ตัวอักษร) ก่อนรัน seed");
+  }
+
   if (!(await prisma.admin.findUnique({ where: { email: adminEmail } }))) {
     await prisma.admin.create({
       data: {
         fullName: "ผู้ดูแลระบบ",
         email: adminEmail,
-        passwordHash: await bcrypt.hash("admin1234", 10),
+        passwordHash: await bcrypt.hash(adminPassword, 10),
       },
     });
-    console.log(`Seeded admin: ${adminEmail} / admin1234 (เปลี่ยนรหัสผ่านก่อนใช้งานจริง)`);
+    console.log(`Seeded admin: ${adminEmail}${isProduction ? "" : " / admin1234 (เฉพาะ dev)"}`);
+  }
+
+  if (isProduction) {
+    console.log("production: ข้ามบัญชีผู้ใช้/คนขับเดโม");
+    return;
   }
 
   const demoUserPhone = "0800000001";

@@ -1,0 +1,24 @@
+# build context ของทุก Dockerfile คือ root ของ repo (ต้องใช้ package-lock.json ของ workspace) — ตัดของที่ไม่ต้องใช้/ห้ามหลุด
+**/node_modules
+**/dist
+**/.vite
+.git
+.github
+.claude
+docs
+*.md
+*.pdf
+
+# ความลับ — ห้ามติดเข้าไปใน image เด็ดขาด (ตั้งเป็น environment variable บน platform แทน)
+**/.env
+**/.env.*
+!**/.env.example
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/google-services.json
+
+# ไฟล์ที่ผู้ใช้อัปโหลด (บน server ใช้ volume แยก ไม่ bake ลง image)
+apps/api/uploads
+
+# โปรเจกต์ Android (build บนเครื่อง dev/CI แยกต่างหาก ไม่เกี่ยวกับ image เว็บ)
+apps/mobile/android

@@ -14,7 +14,9 @@ services:
 
   api:
     build:
-      context: ../apps/api
+      # context = root ของ repo เพราะต้องใช้ package-lock.json ของ workspace (ดูหมายเหตุใน apps/api/Dockerfile)
+      context: ..
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     env_file:
       - ../apps/api/.env
