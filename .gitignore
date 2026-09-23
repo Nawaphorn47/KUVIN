@@ -16,3 +16,6 @@ apps/api/uploads/
 # IDE
 .vscode/
 .idea/
+
+# เอกสาร proposal เก็บไว้ในเครื่องเท่านั้น ไม่ขึ้น repo (public)
+Proposal-*.pdf
