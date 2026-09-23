@@ -60,7 +60,7 @@ docker exec docker-db-1 psql -U postgres -d kuvin -c "\dt"
 
 > มีคนขับ 3 คน (เบอร์วิน 1/2/3) ไว้เทสคิวหมุนเวียนโดยเฉพาะ — ดูหัวข้อ "คิวรับงานแบบวินหมุนเวียน" ด้านล่าง
 
-> User ล็อกอินด้วย**อีเมล** (ต้องเป็น `@ku.th` เท่านั้น — ตรวจตอนสมัครด้วย) ส่วน Driver ล็อกอินด้วยเบอร์โทรศัพท์
+> User ล็อกอินด้วย**อีเมล** (อีเมลไหนก็ได้ ไม่จำกัด `@ku.th` — ไม่สนตัวพิมพ์เล็ก/ใหญ่) ส่วน Driver ล็อกอินด้วยเบอร์โทรศัพท์
 > ตามที่ wireframe ออกแบบไว้ (3login.html ใช้อีเมล, Verify Step 1 ใช้เบอร์โทร) รหัสผ่านทุก role ต้องมีอย่างน้อย 8 ตัวอักษร
 
 ## Endpoints
@@ -68,10 +68,12 @@ docker exec docker-db-1 psql -U postgres -d kuvin -c "\dt"
 ทุก endpoint ที่ต้อง auth ใช้ `Authorization: Bearer <token>` จาก response ของ login
 
 **Auth** (`/api/auth`)
-- `POST /user/register` `{ fullName, phone, email, password, studentId? }` — email ต้องลงท้าย `@ku.th`, password ≥ 8 ตัวอักษร
+- `POST /user/register` `{ fullName, phone, email, password, studentId? }` — email รูปแบบถูกต้อง (เก็บเป็นตัวพิมพ์เล็ก), password ≥ 8 ตัวอักษร
 - `POST /user/login` `{ email, password }`
-- `POST /user/forgot-password` `{ email }` — ยังไม่ต่อ email service จริง จึงคืน `devResetToken` มาในตัว response โดยตรง (dev only, ไม่ leak ว่าอีเมลมีอยู่จริงไหม)
-- `POST /user/reset-password` `{ token, newPassword }`
+- `POST /user/forgot-password` `{ email }` — ส่งรหัส 6 หลัก (หมดอายุ 15 นาที) ทางอีเมลผ่าน SMTP (ตั้งค่า `SMTP_*` ใน `.env`)
+  ยังไม่ตั้ง SMTP = ตอบ 503 `MAIL_NOT_CONFIGURED`; ตอน dev ตั้ง `DEV_SHOW_RESET_CODE=1` จะได้ `devResetCode` ใน response แทน
+  (ไม่มีผลเมื่อ `NODE_ENV=production`)
+- `POST /user/reset-password` `{ email, code, newPassword }` — กรอกรหัสผิดได้ 5 ครั้งต่อรหัส จากนั้นต้องขอรหัสใหม่
 - `POST /driver/register` `{ fullName, phone, password, vinNumber, licensePlate, vehicleModel? }` —
   `vinNumber` ต้องเป็น**ตัวเลขล้วนเท่านั้น** (เช่น `"1"`, `"2"`) เพราะใช้กำหนดลำดับคิวรับงานโดยตรง
 - `POST /driver/login` `{ phone, password }`
@@ -152,8 +154,12 @@ docker exec docker-db-1 psql -U postgres -d kuvin -c "\dt"
 ## ความปลอดภัย
 
 - Endpoint กลุ่ม auth (`register`/`login`/`forgot-password`/`reset-password`) จำกัด 20 ครั้ง/15 นาที ต่อ IP กัน brute-force
-- เบอร์โทรศัพท์ต้องเป็นรูปแบบไทย 10 หลักขึ้นต้นด้วย 0, รหัสผ่านอย่างน้อย 8 ตัวอักษร, อีเมล user ต้องเป็น `@ku.th`
+- เบอร์โทรศัพท์ต้องเป็นรูปแบบไทย 10 หลักขึ้นต้นด้วย 0, รหัสผ่านอย่างน้อย 8 ตัวอักษร
 - `forgot-password` ไม่ leak ว่าอีเมลมีอยู่ในระบบจริงหรือไม่ (คืนข้อความเดียวกันเสมอ)
+- รหัสรีเซ็ตเก็บเป็น sha256 ใน DB (ไม่เก็บรหัสจริง), เทียบแบบ timing-safe, หักโควตากรอกผิดแบบ atomic ก่อนเทียบ
+  (ยิงพร้อมกันกี่ request ก็เดาได้ไม่เกิน 5 ครั้งต่อรหัส) — ทดสอบด้วย `npm run test:auth` (ไม่ต้องเปิด API)
+- เดิม `forgot-password` คืน reset token ใน response **ทุก environment** → ใครรู้อีเมลคนอื่นก็ตั้งรหัสผ่านใหม่ยึดบัญชีได้
+  แก้แล้ว (ก.ย. 2569)
 
 ## Push Notification (FCM)
 

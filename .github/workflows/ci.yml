@@ -67,6 +67,10 @@ jobs:
         working-directory: apps/api
         run: npm run test:queue
 
+      - name: ทดสอบสมัคร/ล็อกอิน/รีเซ็ตรหัสผ่าน (ไม่ต้องเปิด server — สลับ env ในตัวสคริปต์เอง)
+        working-directory: apps/api
+        run: npm run test:auth
+
       - name: เปิด API server (พื้นหลัง) สำหรับชุดทดสอบที่ยิง HTTP จริง
         working-directory: apps/api
         run: |

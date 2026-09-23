@@ -12,7 +12,8 @@
     "prisma:seed": "node prisma/seed.js",
     "test:queue": "node scripts/test-queue.js",
     "test:suspension": "node scripts/test-suspension.js",
-    "test:payment": "node scripts/test-payment.js"
+    "test:payment": "node scripts/test-payment.js",
+    "test:auth": "node scripts/test-auth.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -27,6 +28,7 @@
     "firebase-admin": "^14.3.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
+    "nodemailer": "^7.0.13",
     "promptpay-qr": "^0.5.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.7.5"

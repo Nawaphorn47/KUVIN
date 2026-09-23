@@ -5,9 +5,13 @@ const ApiError = require("../utils/ApiError");
 const { suspendedMessage } = require("../utils/accountStatus");
 const { signToken } = require("../utils/jwt");
 const { isValidPromptPayId } = require("../utils/promptpay");
+const mail = require("./mail.service");
 
 const SALT_ROUNDS = 10;
-const RESET_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 นาที
+const RESET_CODE_TTL_MS = 15 * 60 * 1000; // 15 นาที
+// รหัส 6 หลักมีแค่ 1,000,000 แบบ — จำกัดครั้งที่กรอกผิดต่อรหัส (นอกเหนือจาก rate limit ต่อ IP) ไม่งั้นสุ่มเดาได้
+const RESET_CODE_MAX_ATTEMPTS = 5;
+const INVALID_RESET_CODE = "รหัสยืนยันไม่ถูกต้องหรือหมดอายุ กรุณาขอรหัสใหม่";
 
 function issueToken(id, role) {
   return signToken({ id, role });
@@ -19,10 +23,25 @@ function assertPassword(password) {
   }
 }
 
-function assertKuEmail(email) {
-  if (!email || !/^[^\s@]+@ku\.th$/i.test(email)) {
-    throw ApiError.badRequest("ต้องใช้อีเมลมหาวิทยาลัยที่ลงท้ายด้วย @ku.th เท่านั้น");
+// อีเมลไหนก็สมัครได้ (ไม่จำกัดแค่ @ku.th แล้ว — ผู้มาติดต่อ/บุคลากรบางส่วนไม่มีอีเมลมหาวิทยาลัย)
+// เก็บและค้นหาด้วยตัวพิมพ์เล็กเสมอ ไม่งั้น "A@gmail.com" กับ "a@gmail.com" กลายเป็นสองบัญชี/ล็อกอินไม่เจอ
+function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
+function assertEmail(email) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw ApiError.badRequest("รูปแบบอีเมลไม่ถูกต้อง");
   }
+}
+
+// บัญชีเก่าที่สมัครไว้ก่อนเริ่มเก็บเป็นตัวพิมพ์เล็กอาจมีตัวพิมพ์ใหญ่ปน — ค้นแบบไม่สนตัวพิมพ์
+function findUserByEmail(email) {
+  return prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
+}
+
+function hashResetCode(code) {
+  return crypto.createHash("sha256").update(code).digest("hex");
 }
 
 function assertThaiPhone(phone) {
@@ -38,11 +57,13 @@ function assertNumericVinNumber(vinNumber) {
   }
 }
 
-async function registerUser({ fullName, phone, email, password, studentId }) {
+async function registerUser({ fullName, phone, email: rawEmail, password, studentId }) {
   if (!fullName) throw ApiError.badRequest("fullName จำเป็นต้องระบุ");
+  const email = normalizeEmail(rawEmail);
   assertThaiPhone(phone);
-  assertKuEmail(email);
+  assertEmail(email);
   assertPassword(password);
+  if (await findUserByEmail(email)) throw ApiError.conflict("อีเมลนี้ถูกใช้สมัครไปแล้ว");
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const user = await prisma.user.create({
@@ -60,7 +81,7 @@ function assertLoginAllowed(account) {
 }
 
 async function loginUser({ email, password }) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await findUserByEmail(normalizeEmail(email));
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     throw ApiError.unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
@@ -68,38 +89,78 @@ async function loginUser({ email, password }) {
   return { user: sanitizeUser(user), token: issueToken(user.id, "user") };
 }
 
-// ยังไม่มี email service ต่ออยู่ — คืน resetToken ตรง ๆ ในโหมด dev เพื่อทดสอบได้ครบ flow
-// เมื่อมี SMTP/mail provider จริงค่อยเปลี่ยนไปส่งอีเมลแทนการคืนค่าตรง ๆ
-async function requestPasswordReset(email) {
-  const user = await prisma.user.findUnique({ where: { email } });
-  // ไม่บอกว่าอีเมลนี้มีอยู่ในระบบหรือไม่ (ป้องกัน user enumeration) — คืนผลลัพธ์เดียวกันเสมอ
-  if (!user) return { message: "หากอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปแล้ว" };
-
-  const resetToken = crypto.randomBytes(24).toString("hex");
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { resetToken, resetTokenExpiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
-  });
-
-  return {
-    message: "หากอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปแล้ว",
-    devResetToken: resetToken, // TODO: เอาออกเมื่อต่อ email service จริง
-  };
+// โชว์รหัสใน response แทนการส่งอีเมล — เฉพาะตอน dev ที่ตั้ง DEV_SHOW_RESET_CODE=1 เองเท่านั้น
+// (เดิมคืน token ใน response ทุกครั้งไม่ว่า environment ไหน = ใครรู้อีเมลคนอื่นก็ยึดบัญชีได้ทันที)
+function devShowsResetCode() {
+  return process.env.DEV_SHOW_RESET_CODE === "1" && process.env.NODE_ENV !== "production";
 }
 
-async function resetPassword({ token, newPassword }) {
-  if (!token) throw ApiError.badRequest("ต้องระบุ token");
-  assertPassword(newPassword);
+async function requestPasswordReset(rawEmail) {
+  const email = normalizeEmail(rawEmail);
+  if (!email) throw ApiError.badRequest("กรุณากรอกอีเมล");
 
-  const user = await prisma.user.findUnique({ where: { resetToken: token } });
-  if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
-    throw ApiError.badRequest("ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ");
+  const showCode = devShowsResetCode();
+  if (!mail.isConfigured() && !showCode) {
+    throw new ApiError(503, "ระบบส่งอีเมลยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ", "MAIL_NOT_CONFIGURED");
+  }
+
+  // ไม่บอกว่าอีเมลนี้มีอยู่ในระบบหรือไม่ (ป้องกัน user enumeration) — คืนข้อความเดียวกันเสมอ
+  const message = "หากอีเมลนี้อยู่ในระบบ เราได้ส่งรหัสยืนยัน 6 หลักไปแล้ว (หมดอายุใน 15 นาที)";
+  const user = await findUserByEmail(email);
+  if (!user) return { message };
+
+  const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resetToken: hashResetCode(code),
+      resetTokenExpiresAt: new Date(Date.now() + RESET_CODE_TTL_MS),
+      resetAttempts: 0,
+    },
+  });
+
+  if (mail.isConfigured()) {
+    try {
+      await mail.sendMail({
+        to: user.email,
+        subject: `KU VIN — รหัสรีเซ็ตรหัสผ่าน ${code}`,
+        text:
+          `รหัสยืนยันสำหรับตั้งรหัสผ่านใหม่ของคุณคือ ${code}\n\n` +
+          "รหัสนี้หมดอายุใน 15 นาที หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้ตามปกติ",
+      });
+    } catch (err) {
+      console.error("[mail] ส่งรหัสรีเซ็ตรหัสผ่านไม่สำเร็จ:", err.message);
+      throw new ApiError(502, "ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "MAIL_SEND_FAILED");
+    }
+  }
+
+  return showCode ? { message, devResetCode: code } : { message };
+}
+
+async function resetPassword({ email: rawEmail, code, newPassword }) {
+  assertPassword(newPassword); // ตรวจก่อน ไม่ให้รหัสผ่านใหม่ที่สั้นเกินไปมาเผาโควตาการกรอกรหัสยืนยัน
+  const email = normalizeEmail(rawEmail);
+  if (!email || !/^\d{6}$/.test(code ?? "")) throw ApiError.badRequest(INVALID_RESET_CODE);
+
+  const user = await findUserByEmail(email);
+  if (!user || !user.resetToken || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
+    throw ApiError.badRequest(INVALID_RESET_CODE);
+  }
+
+  // หักโควตาก่อนเทียบรหัส แบบ atomic (เงื่อนไข lt ใน updateMany) — ยิงพร้อมกันหลาย request ก็เดาเกินโควตาไม่ได้
+  const { count } = await prisma.user.updateMany({
+    where: { id: user.id, resetToken: user.resetToken, resetAttempts: { lt: RESET_CODE_MAX_ATTEMPTS } },
+    data: { resetAttempts: { increment: 1 } },
+  });
+  const matches = crypto.timingSafeEqual(Buffer.from(hashResetCode(code)), Buffer.from(user.resetToken));
+  if (count === 0 || !matches) {
+    throw ApiError.badRequest(count === 0 ? "กรอกรหัสผิดเกินจำนวนครั้งที่กำหนด กรุณาขอรหัสใหม่" : INVALID_RESET_CODE);
   }
 
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash, resetToken: null, resetTokenExpiresAt: null },
+    data: { passwordHash, resetToken: null, resetTokenExpiresAt: null, resetAttempts: 0 },
   });
 
   return { message: "เปลี่ยนรหัสผ่านสำเร็จ" };
@@ -161,7 +222,7 @@ async function getMe({ id, role }) {
 }
 
 function sanitizeUser(user) {
-  const { passwordHash, resetToken, resetTokenExpiresAt, ...rest } = user;
+  const { passwordHash, resetToken, resetTokenExpiresAt, resetAttempts, ...rest } = user;
   return rest;
 }
 

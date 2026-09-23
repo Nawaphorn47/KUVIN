@@ -139,7 +139,7 @@ export default function Register() {
         </div>
 
         {role === "user" ? (
-          <p className="text-sm text-slate-500">สมัครสมาชิกด้วยอีเมลมหาวิทยาลัย @ku.th เท่านั้น</p>
+          <p className="text-sm text-slate-500">สมัครสมาชิกด้วยอีเมลของคุณ (ใช้อีเมลไหนก็ได้)</p>
         ) : (
           <p className="text-sm text-slate-500">
             สมัครบัญชีคนขับด้วยเบอร์โทรศัพท์ พร้อมแนบเอกสารยืนยันตัวตนในขั้นตอนเดียว — แอดมินตรวจสอบและอนุมัติ
@@ -151,7 +151,7 @@ export default function Register() {
           <>
             <Button variant="outline" className="gap-3">
               <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-emerald-700 ring-1 ring-slate-200">G</span>
-              Register ด้วย Google (@ku.th)
+              Register ด้วย Google
             </Button>
             <div className="flex items-center gap-3 text-xs text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />
@@ -180,10 +180,10 @@ export default function Register() {
                 onChange={(e) => setStudentId(e.target.value)}
               />
               <Input
-                label="อีเมล (@ku.th)"
+                label="อีเมล"
                 icon={Mail}
                 type="email"
-                placeholder="name@ku.th"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

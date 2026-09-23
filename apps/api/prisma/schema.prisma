@@ -46,13 +46,16 @@ model User {
   id           String  @id @default(uuid())
   fullName     String
   phone        String  @unique
-  email        String  @unique // ล็อกอินด้วยอีเมลนี้ — ต้องเป็น @ku.th ตาม proposal (สมัครด้วยอีเมลมหาวิทยาลัยเท่านั้น)
+  email        String  @unique // ล็อกอินด้วยอีเมลนี้ (อีเมลไหนก็ได้ เก็บเป็นตัวพิมพ์เล็กเสมอ — ดู normalizeEmail)
   passwordHash String
   studentId    String?
   fcmToken     String?
 
-  resetToken          String?   @unique
+  // รีเซ็ตรหัสผ่าน: resetToken เก็บ sha256 ของรหัส 6 หลักที่ส่งทางอีเมล (ไม่เก็บรหัสจริง) — ไม่ unique เพราะ
+  // รหัส 6 หลักของสองคนชนกันได้; resetAttempts นับครั้งที่กรอกผิด ครบโควตาแล้วรหัสนั้นใช้ไม่ได้ (กันสุ่มเดา)
+  resetToken          String?
   resetTokenExpiresAt DateTime?
+  resetAttempts       Int       @default(0)
 
   // ระงับบัญชีโดย admin: login/เรียก API/ต่อ socket ไม่ได้จนกว่าจะปลดระงับ (ดู middlewares/auth.js)
   isSuspended     Boolean   @default(false)
