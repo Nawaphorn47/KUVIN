@@ -118,20 +118,7 @@ export default function Login() {
         </div>
       )}
 
-      {role === "user" && (
-        <Button variant="outline" className="gap-3">
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-emerald-700 ring-1 ring-slate-200">G</span>
-          เข้าสู่ระบบด้วย Google
-        </Button>
-      )}
-
-      {role === "user" && (
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" />
-          หรือ
-          <span className="h-px flex-1 bg-slate-200" />
-        </div>
-      )}
+      {/* ปุ่ม "เข้าสู่ระบบด้วย Google" เอาออกไว้ก่อน — เดิมกดแล้วไม่เกิดอะไร (ยังไม่ได้ต่อ Google OAuth ทั้งฝั่งแอปและ backend) */}
 
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         {role === "user" ? (
@@ -161,11 +148,8 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-slate-600">
-            <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-emerald-600" />
-            Remember Me
-          </label>
+        {/* ช่อง "Remember Me" เอาออกแล้ว — ไม่ได้ผูกกับอะไร (ระบบจำการล็อกอินไว้เสมอจนกว่าจะออกจากระบบ) */}
+        <div className="flex items-center justify-end text-sm">
           {role === "user" && (
             <button
               type="button"
