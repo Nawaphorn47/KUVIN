@@ -57,7 +57,8 @@ async function main() {
     throw new Error("production ต้องตั้ง SEED_ADMIN_PASSWORD (อย่างน้อย 12 ตัวอักษร) ก่อนรัน seed");
   }
 
-  if (!(await prisma.admin.findUnique({ where: { email: adminEmail } }))) {
+  const existingAdmin = await prisma.admin.findUnique({ where: { email: adminEmail } });
+  if (!existingAdmin) {
     await prisma.admin.create({
       data: {
         fullName: "ผู้ดูแลระบบ",
@@ -66,6 +67,14 @@ async function main() {
       },
     });
     console.log(`Seeded admin: ${adminEmail}${isProduction ? "" : " / admin1234 (เฉพาะ dev)"}`);
+  } else if (isProduction) {
+    // production: ตั้ง SEED_ADMIN_PASSWORD เมื่อไหร่ = รีเซ็ตรหัสผ่านแอดมินเป็นค่านั้นตอน deploy ครั้งถัดไป
+    // (ใช้กู้บัญชีเมื่อลืมรหัส หรือแก้ค่าตัวแปรหลัง seed ครั้งแรกไปแล้ว) — ตั้งเสร็จ ล็อกอินได้แล้วลบตัวแปรทิ้ง
+    await prisma.admin.update({
+      where: { id: existingAdmin.id },
+      data: { passwordHash: await bcrypt.hash(adminPassword, 10) },
+    });
+    console.log(`Reset admin password from SEED_ADMIN_PASSWORD: ${adminEmail}`);
   }
 
   if (isProduction) {

@@ -195,7 +195,10 @@ async function loginDriver({ phone, password }) {
 }
 
 async function loginAdmin({ email, password }) {
-  const admin = await prisma.admin.findUnique({ where: { email } });
+  // เหมือนฝั่งผู้ใช้: ไม่สนตัวพิมพ์เล็ก/ใหญ่และช่องว่าง (เดิมพิมพ์ตัวแรกเป็นตัวใหญ่ = ล็อกอินไม่ได้ทั้งที่รหัสถูก)
+  const admin = await prisma.admin.findFirst({
+    where: { email: { equals: normalizeEmail(email), mode: "insensitive" } },
+  });
   if (!admin || !(await bcrypt.compare(password, admin.passwordHash))) {
     throw ApiError.unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }

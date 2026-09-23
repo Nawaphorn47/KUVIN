@@ -4,6 +4,7 @@
 // validation 10 หลัก จึงใช้ prefix ตัวเลข 0997) แล้วลบทิ้งตอนจบด้วยอีเมลเฉพาะของรอบนี้
 require("dotenv").config();
 const assert = require("node:assert/strict");
+const bcrypt = require("bcrypt");
 const prisma = require("../src/config/prisma");
 const auth = require("../src/services/auth.service");
 
@@ -70,6 +71,14 @@ async function main() {
   await test("ล็อกอินได้ไม่ว่าพิมพ์อีเมลตัวเล็กหรือใหญ่", async () => {
     await auth.loginUser({ email: lower.toUpperCase(), password: "oldpass123" });
     await auth.loginUser({ email: `  ${lower}  `, password: "oldpass123" });
+  });
+
+  await test("แอดมินล็อกอินได้ไม่ว่าพิมพ์อีเมลตัวเล็ก/ใหญ่หรือมีช่องว่าง", async () => {
+    await prisma.admin.create({
+      data: { fullName: "T-admin", email: `admin.${lower}`, passwordHash: await bcrypt.hash("adminpass123", 4) },
+    });
+    await auth.loginAdmin({ email: ` ADMIN.${lower.toUpperCase()} `, password: "adminpass123" });
+    await expectReject(auth.loginAdmin({ email: `admin.${lower}`, password: "wrong-pass" }), /ไม่ถูกต้อง/);
   });
 
   console.log("ขอรหัสรีเซ็ต");
@@ -167,6 +176,7 @@ main()
   })
   .finally(async () => {
     await prisma.user.deleteMany({ where: { email: { contains: `kuvin.test.${stamp}`, mode: "insensitive" } } });
+    await prisma.admin.deleteMany({ where: { email: { contains: `kuvin.test.${stamp}`, mode: "insensitive" } } });
     await prisma.$disconnect();
     console.log(`\n${passed} tests passed`);
   });
