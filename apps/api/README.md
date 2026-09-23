@@ -70,7 +70,8 @@ docker exec docker-db-1 psql -U postgres -d kuvin -c "\dt"
 **Auth** (`/api/auth`)
 - `POST /user/register` `{ fullName, phone, email, password, studentId? }` — email รูปแบบถูกต้อง (เก็บเป็นตัวพิมพ์เล็ก), password ≥ 8 ตัวอักษร
 - `POST /user/login` `{ email, password }`
-- `POST /user/forgot-password` `{ email }` — ส่งรหัส 6 หลัก (หมดอายุ 15 นาที) ทางอีเมลผ่าน SMTP (ตั้งค่า `SMTP_*` ใน `.env`)
+- `POST /user/forgot-password` `{ email }` — ส่งรหัส 6 หลัก (หมดอายุ 15 นาที) ทางอีเมล ผ่าน Brevo (`BREVO_API_KEY` +
+  `MAIL_FROM` — ใช้บน Railway เพราะแผน Trial/Hobby บล็อก SMTP ขาออก) หรือ SMTP (`SMTP_*`) ดู `.env.example`
   ยังไม่ตั้ง SMTP = ตอบ 503 `MAIL_NOT_CONFIGURED`; ตอน dev ตั้ง `DEV_SHOW_RESET_CODE=1` จะได้ `devResetCode` ใน response แทน
   (ไม่มีผลเมื่อ `NODE_ENV=production`)
 - `POST /user/reset-password` `{ email, code, newPassword }` — กรอกรหัสผิดได้ 5 ครั้งต่อรหัส จากนั้นต้องขอรหัสใหม่

@@ -40,7 +40,13 @@ async function withEnv(vars, fn) {
   }
 }
 
-const noSmtp = { SMTP_HOST: undefined, SMTP_USER: undefined, SMTP_PASS: undefined };
+const noSmtp = {
+  SMTP_HOST: undefined,
+  SMTP_USER: undefined,
+  SMTP_PASS: undefined,
+  BREVO_API_KEY: undefined,
+  MAIL_FROM: undefined,
+};
 const devCodes = { ...noSmtp, DEV_SHOW_RESET_CODE: "1", NODE_ENV: undefined };
 
 async function expectReject(promise, pattern) {
@@ -108,6 +114,12 @@ async function main() {
       assert.notEqual(u.resetToken, devResetCode);
       assert.equal(u.resetToken.length, 64);
     })
+  );
+
+  await test("ตั้ง Brevo แล้วแต่ key ใช้ไม่ได้ → บอกผู้ใช้ว่าส่งอีเมลไม่สำเร็จ (ยิง API จริง ไม่ค้าง)", () =>
+    withEnv({ ...noSmtp, BREVO_API_KEY: "invalid-key-for-test", MAIL_FROM: "KU VIN <noreply@example.com>" }, () =>
+      expectReject(auth.requestPasswordReset(email), /ส่งอีเมลไม่สำเร็จ/)
+    )
   );
 
   console.log("ตั้งรหัสผ่านใหม่");
