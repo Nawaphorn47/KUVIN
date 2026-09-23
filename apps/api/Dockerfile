@@ -27,5 +27,6 @@ WORKDIR /app/apps/api
 RUN npx prisma generate
 
 EXPOSE 4000
-# apply migration ที่ค้างอยู่ก่อนเปิด server ทุกครั้ง (migrate deploy ไม่แตะข้อมูลเดิม และไม่ทำอะไรถ้าไม่มี migration ใหม่)
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+# ทุกครั้งที่เริ่ม container: apply migration ที่ค้าง (ไม่แตะข้อมูลเดิม) → ถ้าตั้ง SEED_ADMIN_PASSWORD ไว้ ให้ seed สถานที่ +
+# บัญชีแอดมิน (ข้ามของที่มีอยู่แล้ว รันซ้ำได้) → เปิด server; platform ที่ไม่มีช่องให้รันคำสั่งครั้งเดียวจะได้ไม่ต้อง seed เอง
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ -n \"$SEED_ADMIN_PASSWORD\" ]; then node prisma/seed.js; fi && node src/index.js"]
