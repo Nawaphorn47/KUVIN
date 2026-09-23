@@ -2,7 +2,10 @@
 // ต้องมี credentials จาก Firebase project ก่อนถึงจะส่ง push จริงได้ (ดูวิธีตั้งค่าใน apps/api/README.md)
 // ถ้ายังไม่มี credentials จะ fallback เป็นโหมด log-only โดยอัตโนมัติ ไม่ทำให้แอปพังหรือ crash
 
-const admin = require("firebase-admin");
+// firebase-admin v12+ เลิกใช้ API แบบ namespace (admin.credential.cert / admin.messaging()) — ใน v14 ไม่มีแล้ว
+// ถ้าใช้แบบเดิม init จะ throw แล้วตกไปโหมด stub เงียบ ๆ ตลอดไปแม้ตั้งค่า credentials ถูกต้อง
+const { initializeApp, cert, applicationDefault } = require("firebase-admin/app");
+const { getMessaging } = require("firebase-admin/messaging");
 
 let app = null;
 let initError = null;
@@ -16,15 +19,15 @@ function init() {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       // เหมาะกับ deploy platform ที่ mount ไฟล์ไม่ได้ (เช่น Railway/Render) — วาง JSON ทั้งก้อนใน env var
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      credential = admin.credential.cert(serviceAccount);
+      credential = cert(serviceAccount);
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       // ชี้ไปที่ไฟล์ service-account.json บนเครื่อง/เซิร์ฟเวอร์
-      credential = admin.credential.applicationDefault();
+      credential = applicationDefault();
     } else {
       return null; // ยังไม่ได้ตั้งค่า — ใช้โหมด stub
     }
 
-    app = admin.initializeApp({ credential });
+    app = initializeApp({ credential });
     console.log("[fcm] Firebase Admin initialized — push notifications are live");
     return app;
   } catch (err) {
@@ -44,7 +47,7 @@ async function sendPush({ token, title, body }) {
   }
 
   try {
-    const messageId = await admin.messaging().send({
+    const messageId = await getMessaging(firebaseApp).send({
       token,
       notification: { title, body },
       // high = ปลุกเครื่องที่อยู่ในโหมดประหยัดแบตให้ส่งถึงทันที (งานใหม่ของคนขับมีเวลาตอบรับจำกัด)

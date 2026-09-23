@@ -19,3 +19,8 @@ apps/api/uploads/
 
 # เอกสาร proposal เก็บไว้ในเครื่องเท่านั้น ไม่ขึ้น repo (public)
 Proposal-*.pdf
+
+# กุญแจลับ Firebase Admin (service account) — ห้ามขึ้น repo เด็ดขาด ใครได้ไปส่ง push ในนามแอปได้
+*firebase-adminsdk*.json
+*service-account*.json
+google-services.json
