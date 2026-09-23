@@ -6,6 +6,7 @@ import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
 import { useApp } from "../../context/AppContext";
 import { clearToken } from "../../lib/auth";
+import { unregisterPush } from "../../lib/push";
 
 const menu = [
   { icon: Heart, label: "สถานที่โปรด" },
@@ -17,10 +18,11 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, refreshMe } = useApp();
 
-  function handleLogout() {
+  function handleLogout(loginState) {
+    unregisterPush();
     clearToken();
     refreshMe();
-    navigate("/login");
+    navigate("/login", loginState && { state: loginState });
   }
 
   return (
@@ -48,11 +50,7 @@ export default function Profile() {
 
         <div className="flex flex-col gap-4 px-5 py-5">
           <button
-            onClick={() => {
-              clearToken();
-              refreshMe();
-              navigate("/login", { state: { role: "driver" } });
-            }}
+            onClick={() => handleLogout({ role: "driver" })}
             className="flex items-center gap-3 rounded-2xl bg-slate-900 p-4 text-left text-white"
           >
             <Bike className="h-6 w-6" />
@@ -88,7 +86,7 @@ export default function Profile() {
           </Card>
 
           <button
-            onClick={handleLogout}
+            onClick={() => handleLogout()}
             className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-red-600"
           >
             <LogOut className="h-4 w-4" /> ออกจากระบบ

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KU VIN</string>
+    <string name="title_activity_main">KU VIN</string>
+    <string name="package_name">com.kuvin.app</string>
+    <string name="custom_url_scheme">com.kuvin.app</string>
+</resources>

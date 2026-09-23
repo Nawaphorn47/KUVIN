@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { currentDriver, currentUser } from "../lib/mockData";
 import { api } from "../lib/api";
 import { getToken } from "../lib/auth";
+import { registerPush } from "../lib/push";
 
 const AppContext = createContext(null);
 
@@ -26,7 +27,10 @@ export function AppProvider({ children }) {
       // sync mode กับ role จริงของ session เสมอ — เดิม mode ตั้งแค่ตอน login/register/verify สำเร็จ พอ reload
       // เต็มหน้า (เช่น กด F5 หรือเปิดลิงก์ตรง) mode รีเซ็ตกลับเป็น "user" ค่าเริ่มต้น ทั้งที่ token จริงเป็นคนขับ
       // ทำให้ BottomNav โชว์เมนูผิด role (เช่น ไม่มีแท็บรายได้/แจ้งเตือนของคนขับ) จนกว่าจะ toggle เอง
-      if (data.role === "user" || data.role === "driver") setMode(data.role);
+      if (data.role === "user" || data.role === "driver") {
+        setMode(data.role);
+        registerPush(data.role); // ไม่ await — ขอสิทธิ์แจ้งเตือนอาจค้างรอผู้ใช้กด ไม่ควรบล็อกการโหลดโปรไฟล์
+      }
       if (data.role === "user") {
         const { data: trips } = await api
           .get("/service-requests/mine", { params: { status: "COMPLETED" } })

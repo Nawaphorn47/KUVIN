@@ -9,8 +9,8 @@ import { api } from "../../lib/api";
 import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
 
-// บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server (import.meta.env.DEV) เพื่อกดเข้าระบบ
-// ได้เร็ว ๆ ตอนทดสอบ ไม่โผล่ในเบื้องต้นเวลา build จริง (production build จะไม่มีปุ่มนี้)
+// บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server (import.meta.env.DEV) หรือ APK ทดสอบที่ build
+// ด้วย npm run android:dev (VITE_DEMO_LOGIN=1) เพื่อกดเข้าระบบได้เร็ว ๆ ไม่โผล่ใน build ที่จะแจกจริง
 const DEMO_ACCOUNTS = [
   { label: "ผู้ใช้บริการ (สมใจ)", role: "user", email: "somjai@ku.th", password: "user1234" },
   { label: "คนขับ เบอร์วิน 1", role: "driver", phone: "0800000002", password: "driver1234" },
@@ -97,7 +97,7 @@ export default function Login() {
         ))}
       </div>
 
-      {import.meta.env.DEV && (
+      {(import.meta.env.DEV || import.meta.env.VITE_DEMO_LOGIN === "1") && (
         <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
             <Zap className="h-3.5 w-3.5" /> เข้าสู่ระบบด่วน (เฉพาะ dev)

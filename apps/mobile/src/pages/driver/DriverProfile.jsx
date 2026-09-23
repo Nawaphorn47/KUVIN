@@ -6,6 +6,7 @@ import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
 import { useApp } from "../../context/AppContext";
 import { clearToken } from "../../lib/auth";
+import { unregisterPush } from "../../lib/push";
 
 const menu = [
   { icon: UserCog, label: "แก้ไขข้อมูลส่วนตัว" },
@@ -17,10 +18,11 @@ export default function DriverProfile() {
   const navigate = useNavigate();
   const { driver, refreshMe } = useApp();
 
-  function handleLogout() {
+  function handleLogout(loginState) {
+    unregisterPush();
     clearToken();
     refreshMe();
-    navigate("/login");
+    navigate("/login", loginState && { state: loginState });
   }
 
   return (
@@ -67,11 +69,7 @@ export default function DriverProfile() {
         </Card>
 
         <button
-          onClick={() => {
-            clearToken();
-            refreshMe();
-            navigate("/login", { state: { role: "user" } });
-          }}
+          onClick={() => handleLogout({ role: "user" })}
           className="flex items-center gap-3 rounded-2xl bg-emerald-600 p-4 text-left text-white"
         >
           <User2 className="h-6 w-6" />
@@ -96,7 +94,7 @@ export default function DriverProfile() {
         </Card>
 
         <button
-          onClick={handleLogout}
+          onClick={() => handleLogout()}
           className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-red-600"
         >
           <LogOut className="h-4 w-4" /> ออกจากระบบ

@@ -47,6 +47,9 @@ async function sendPush({ token, title, body }) {
     const messageId = await admin.messaging().send({
       token,
       notification: { title, body },
+      // high = ปลุกเครื่องที่อยู่ในโหมดประหยัดแบตให้ส่งถึงทันที (งานใหม่ของคนขับมีเวลาตอบรับจำกัด)
+      // channelId ต้องตรงกับ apps/mobile/src/lib/push.js — ถ้าเครื่องยังไม่มี channel นี้ Android ใช้ channel สำรองแทน
+      android: { priority: "high", notification: { channelId: "kuvin_alerts", sound: "default" } },
     });
     return { sent: true, messageId };
   } catch (err) {
