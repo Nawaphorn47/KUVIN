@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ShieldAlert, Phone, MessageCircle } from "lucide-react";
@@ -8,7 +8,7 @@ import SosPanel from "../../components/shared/SosPanel";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
-import { socket, connectWithAuth } from "../../lib/socket";
+import { useRequestStatus } from "../../lib/useRequestStatus";
 import { useDriverLocation } from "../../lib/useTripTracking";
 import { useRoute } from "../../lib/useRoute";
 
@@ -23,42 +23,24 @@ export default function DriverArriving() {
   const driverPos = useDriverLocation(request?.id, request?.driver);
   const route = useRoute(driverPos, pickupPoint, { precision: 3 });
 
-  useEffect(() => {
-    if (!request?.id) {
+  const done = useRef(false);
+
+  // สถานะใหม่มาทาง socket + ดึงซ้ำตอนต่อ socket ใหม่/ทุก 5 วิ (ดู useRequestStatus) — กันพลาดตอนคนขับกดเริ่มเดินทาง
+  // ในช่วงที่ socket หลุดพอดี (เดิมจะค้างหน้านี้ไปตลอดทั้งที่ทริปเริ่มแล้ว)
+  useRequestStatus(request?.id, (updated) => {
+    setRequest(updated);
+    if (done.current) return;
+    if (updated.status === "IN_PROGRESS") {
+      done.current = true;
+      navigate("/during-ride", { state: { request: updated } });
+    } else if (updated.status === "CANCELLED") {
+      done.current = true;
       navigate("/home");
-      return;
     }
+  });
 
-    let done = false;
-    function react(updated) {
-      setRequest(updated);
-      if (done) return;
-      if (updated.status === "IN_PROGRESS") {
-        done = true;
-        navigate("/during-ride", { state: { request: updated } });
-      } else if (updated.status === "CANCELLED") {
-        done = true;
-        navigate("/home");
-      }
-    }
-
-    connectWithAuth();
-    socket.emit("service-request:watch", request.id);
-
-    function handleStatus(updated) {
-      if (updated.id !== request.id) return;
-      react(updated);
-    }
-    socket.on("service-request:status", handleStatus);
-
-    // เช็คสถานะจริงทันทีตอน mount — กันพลาด event ที่อาจเกิดขึ้นไปแล้วก่อน join room ทัน
-    // (เช่น คนขับกดเริ่มเดินทางเร็วมากพอดีตอนหน้านี้กำลังเชื่อม socket)
-    api
-      .get(`/service-requests/${request.id}`)
-      .then(({ data }) => react(data))
-      .catch(() => {});
-
-    return () => socket.off("service-request:status", handleStatus);
+  useEffect(() => {
+    if (!request?.id) navigate("/home");
   }, [request?.id, navigate]);
 
   async function handleCancel() {

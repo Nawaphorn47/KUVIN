@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ShieldAlert } from "lucide-react";
@@ -7,8 +7,7 @@ import RouteSummary from "../../components/shared/RouteSummary";
 import SosPanel from "../../components/shared/SosPanel";
 import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
-import { socket, connectWithAuth } from "../../lib/socket";
-import { api } from "../../lib/api";
+import { useRequestStatus } from "../../lib/useRequestStatus";
 import { useDriverLocation } from "../../lib/useTripTracking";
 import { useRoute } from "../../lib/useRoute";
 
@@ -25,37 +24,20 @@ export default function DuringRide() {
   const originPoint = driverPos ?? pickupPoint;
   const route = useRoute(originPoint, destinationPoint, { precision: 3 });
 
+  const done = useRef(false);
+
+  // สถานะใหม่มาทาง socket + ดึงซ้ำตอนต่อ socket ใหม่/ทุก 5 วิ (ดู useRequestStatus) — กันค้างหน้านี้หลังจบทริปแล้ว
+  useRequestStatus(request?.id, (updated) => {
+    setRequest(updated);
+    if (done.current) return;
+    if (updated.status === "COMPLETED") {
+      done.current = true;
+      navigate("/ride-completed", { state: { request: updated } });
+    }
+  });
+
   useEffect(() => {
-    if (!request?.id) {
-      navigate("/home");
-      return;
-    }
-
-    let done = false;
-    function react(updated) {
-      setRequest(updated);
-      if (done) return;
-      if (updated.status === "COMPLETED") {
-        done = true;
-        navigate("/ride-completed", { state: { request: updated } });
-      }
-    }
-
-    connectWithAuth();
-    socket.emit("service-request:watch", request.id);
-
-    function handleStatus(updated) {
-      if (updated.id !== request.id) return;
-      react(updated);
-    }
-    socket.on("service-request:status", handleStatus);
-
-    // เช็คสถานะจริงทันทีตอน mount — กันพลาด event ที่อาจเกิดขึ้นไปแล้วก่อน join room ทัน
-    api
-      .get(`/service-requests/${request.id}`)
-      .then(({ data }) => react(data))
-      .catch(() => {});
-    return () => socket.off("service-request:status", handleStatus);
+    if (!request?.id) navigate("/home");
   }, [request?.id, navigate]);
 
   if (!request) return null;

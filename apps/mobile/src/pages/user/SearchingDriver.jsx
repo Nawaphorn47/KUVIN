@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, Route, BellRing, Bike, AlertTriangle } from "lucide-react";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
-import { socket, connectWithAuth } from "../../lib/socket";
+import { useRequestStatus } from "../../lib/useRequestStatus";
 
 const steps = [
   { icon: Search, label: "ค้นหาคนขับใกล้เคียง" },
@@ -19,49 +19,33 @@ export default function SearchingDriver() {
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
 
+  const done = useRef(false);
+
+  function react(updated) {
+    if (done.current) return;
+    if (updated.status === "ACCEPTED") {
+      done.current = true;
+      navigate("/driver-arriving", { state: { request: updated } });
+    } else if (updated.status === "CANCELLED") {
+      done.current = true;
+      setError(updated.cancelReason || "ไม่พบคนขับว่างในขณะนี้");
+    }
+  }
+
+  // สถานะใหม่มาทาง socket + ดึงซ้ำตอนต่อ socket ใหม่/ทุก 5 วิ (ดู useRequestStatus) — ครอบกรณี backend ยกเลิกคำขอ
+  // ทันทีตอนสร้างเพราะไม่มีคนขับว่างเลย และกรณี socket หลุดตอนคนขับกดรับงานพอดี
+  useRequestStatus(request?.id, react);
+
   useEffect(() => {
     if (!request?.id) {
       navigate("/home");
-      return;
+      return undefined;
     }
-
+    react(request); // คำขอที่ส่งมากับ navigation อาจถูกยกเลิกไปแล้วตั้งแต่ตอนสร้าง — ไม่ต้องรอ request แรกกลับมา
     const interval = setInterval(() => setSeconds((s) => s + 1), 1000);
-    let done = false;
-
-    function react(updated) {
-      if (done) return;
-      if (updated.status === "ACCEPTED") {
-        done = true;
-        navigate("/driver-arriving", { state: { request: updated } });
-      } else if (updated.status === "CANCELLED") {
-        done = true;
-        setError(updated.cancelReason || "ไม่พบคนขับว่างในขณะนี้");
-      }
-    }
-
-    connectWithAuth();
-    socket.emit("user:join");
-    socket.emit("service-request:watch", request.id);
-
-    function handleStatus(updated) {
-      if (updated.id !== request.id) return;
-      react(updated);
-    }
-    socket.on("service-request:status", handleStatus);
-
-    // เช็คสถานะจริงทันทีตอน mount — กันพลาด event ที่อาจเกิดขึ้นไปแล้วก่อนหน้านี้จะ join room ทัน
-    // (เช่น backend ยกเลิกคำขอทันทีตอนสร้างเพราะไม่มีคนขับว่างในคิวเลย ถ้าไม่เช็คซ้ำจะค้างหมุนตลอดไป)
-    react(request);
-    api
-      .get(`/service-requests/${request.id}`)
-      .then(({ data }) => react(data))
-      .catch(() => {});
-
-    return () => {
-      clearInterval(interval);
-      socket.off("service-request:status", handleStatus);
-    };
-  }, [request?.id, navigate]);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.id]);
 
   async function handleCancel() {
     if (request?.id) {
