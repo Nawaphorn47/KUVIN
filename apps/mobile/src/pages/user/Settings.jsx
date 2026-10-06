@@ -3,12 +3,15 @@ import { Globe, LifeBuoy, Phone, ChevronRight } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
 import Card from "../../components/ui/Card";
-import { emergencyContacts } from "../../lib/emergencyContacts";
+import { emergencyContactsFor } from "../../lib/emergencyContacts";
+import { useArea } from "../../context/AreaContext";
 
 // เดิมทุกเมนูในหน้านี้กดแล้วไม่เกิดอะไร (นโยบายความเป็นส่วนตัว / Help Center / เกี่ยวกับ) — เหลือเฉพาะที่ใช้งานได้จริง
 // นโยบายความเป็นส่วนตัวเอาออกไว้ก่อน: ต้องเป็นข้อความจริงตาม PDPA ที่เจ้าของโครงงานเขียนเอง ไม่ใช่ข้อความตัวอย่าง
 export default function Settings() {
   const navigate = useNavigate();
+  const { area } = useArea();
+  const emergencyContacts = emergencyContactsFor(area);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -38,7 +41,9 @@ export default function Settings() {
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">เบอร์ฉุกเฉิน</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            เบอร์ฉุกเฉิน{area ? ` · ${area.displayName}` : ""}
+          </p>
           <Card className="divide-y divide-slate-100 p-0 shadow-none ring-slate-100">
             {emergencyContacts.map((c) => (
               <a key={c.phone} href={`tel:${c.phone}`} className="flex items-center gap-3 px-4 py-3.5">
@@ -51,9 +56,9 @@ export default function Settings() {
         </div>
 
         <div className="pt-4 text-center text-xs leading-relaxed text-slate-400">
-          <p>KU VIN — ระบบเรียกวินมอเตอร์ไซค์ภายในมหาวิทยาลัย</p>
-          <p>โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ</p>
-          <p>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน</p>
+          <p>KU VIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์</p>
+          {area && <p>พื้นที่ให้บริการ: {area.name}</p>}
+          <p>โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ มก. กำแพงแสน</p>
         </div>
       </Screen>
     </div>

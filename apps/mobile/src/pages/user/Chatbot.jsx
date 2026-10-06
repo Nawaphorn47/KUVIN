@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Send, User2 } from "lucide-react";
 import TopBar from "../../components/layout/TopBar";
-import { emergencyContacts } from "../../lib/emergencyContacts";
+import { emergencyContactsFor } from "../../lib/emergencyContacts";
+import { useArea } from "../../context/AreaContext";
 
 // ผู้ช่วยตอบคำถามที่พบบ่อย (FAQ) — ตอบจากกติกาจริงของระบบเท่านั้น ไม่มีเจ้าหน้าที่อ่านข้อความนี้อยู่เบื้องหลัง
 // (เดิมตอบข้อความเดิมทุกครั้งว่า "จะประสานงานต่อให้" ทั้งที่ข้อความไม่ได้ส่งไปหาใครเลย = ผู้ใช้เข้าใจผิดว่าแจ้งเรื่องแล้ว)
-// ถ้าแก้อัตราค่าโดยสารใน apps/api/src/utils/geo.js ต้องแก้คำตอบ "ค่าโดยสาร" ตรงนี้ให้ตรงกันด้วย
-const security = emergencyContacts.find((c) => c.label.startsWith("รปภ."));
-const emergencyLine = emergencyContacts.map((c) => `${c.label} ${c.phone}`).join(" · ");
+// ค่าโดยสารและเบอร์ฉุกเฉินมาจากพื้นที่ที่เลือกอยู่ (แต่ละพื้นที่ตั้งเองในหน้าแอดมิน)
+function buildFaq(area) {
+  const contacts = emergencyContactsFor(area);
+  const security = contacts.find((c) => c.label.startsWith("รปภ.")) ?? contacts[0];
+  const emergencyLine = contacts.map((c) => `${c.label} ${c.phone}`).join(" · ");
+  const fares = area
+    ? `ในเขต${area.displayName}เหมาจ่าย ${area.flatFare} บาท ถ้าต้นทางหรือปลายทางอยู่นอกเขตคิด ${area.ratePerKm} บาทต่อกิโลเมตรตามระยะทางถนนจริง ขั้นต่ำ ${area.minFare} บาท`
+    : "ค่าโดยสารขึ้นกับพื้นที่ที่ใช้บริการ";
 
-const FAQ = [
+  const faq = [
   {
     topic: "วิธีเรียกวิน",
     keywords: ["เรียก", "จอง", "ใช้งาน", "ยังไง", "วิธี"],
@@ -19,8 +25,7 @@ const FAQ = [
   {
     topic: "ค่าโดยสาร",
     keywords: ["ค่าโดยสาร", "ราคา", "กี่บาท", "ค่ารถ", "แพง"],
-    answer:
-      "ในมหาวิทยาลัยเหมาจ่าย 20 บาท ถ้าต้นทางหรือปลายทางอยู่นอกมหาวิทยาลัยคิด 10 บาทต่อกิโลเมตรตามระยะทางถนนจริง ขั้นต่ำ 20 บาท ดูราคาก่อนยืนยันได้ที่หน้ายืนยันการเรียกวิน",
+    answer: `${fares} ดูราคาก่อนยืนยันได้ที่หน้ายืนยันการเรียกวิน`,
   },
   {
     topic: "ปัญหาการชำระเงิน",
@@ -44,23 +49,29 @@ const FAQ = [
     keywords: ["ฉุกเฉิน", "sos", "อุบัติเหตุ", "ช่วย", "อันตราย", "เจ็บ"],
     answer: `ระหว่างทริปกดปุ่ม SOS บนหน้าแผนที่ ระบบจะส่งตำแหน่งของคุณให้ผู้ดูแลระบบทันที หรือโทรเบอร์ฉุกเฉิน: ${emergencyLine}`,
   },
-];
+  ];
 
-const FALLBACK =
-  "ขออภัย ผู้ช่วยตอบได้เฉพาะคำถามที่พบบ่อยด้านล่าง และไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้ ถ้าเป็นเรื่องด่วนกรุณาโทร " +
-  `${security.label} ${security.phone}`;
+  const fallback =
+    "ขออภัย ผู้ช่วยตอบได้เฉพาะคำถามที่พบบ่อยด้านล่าง และไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้ ถ้าเป็นเรื่องด่วนกรุณาโทร " +
+    `${security.label} ${security.phone}`;
+
+  return { faq, fallback };
+}
 
 function now() {
   return new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 }
 
-function answerFor(text) {
+function answerFor({ faq, fallback }, text) {
   const q = text.toLowerCase();
-  const hit = FAQ.find((f) => f.topic === text) ?? FAQ.find((f) => f.keywords.some((k) => q.includes(k)));
-  return hit ? hit.answer : FALLBACK;
+  const hit = faq.find((f) => f.topic === text) ?? faq.find((f) => f.keywords.some((k) => q.includes(k)));
+  return hit ? hit.answer : fallback;
 }
 
 export default function Chatbot() {
+  const { area } = useArea();
+  const knowledge = buildFaq(area);
+  const FAQ = knowledge.faq;
   const [messages, setMessages] = useState(() => [
     {
       from: "bot",
@@ -77,7 +88,7 @@ export default function Chatbot() {
 
   function send(text) {
     if (!text.trim()) return;
-    setMessages((m) => [...m, { from: "user", text, time: now() }, { from: "bot", text: answerFor(text), time: now() }]);
+    setMessages((m) => [...m, { from: "user", text, time: now() }, { from: "bot", text: answerFor(knowledge, text), time: now() }]);
     setDraft("");
   }
 

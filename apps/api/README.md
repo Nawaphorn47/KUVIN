@@ -267,6 +267,34 @@ Error ทุกตัวตอบเป็น `{ error, code? }` (แอปม�
 `DELETE /admin/landmarks/:id` — ฟิลด์ `name`, `detail`, `lat`, `lng`, `isPopular`, `coordsVerified` (true = ตรวจพิกัดกับสถานที่จริงแล้ว)
 พิกัดต้องเป็นตัวเลขในช่วงประเทศไทย (lat 5–21, lng 97–106) กัน typo/สลับค่าที่ทำให้ค่าโดยสารเพี้ยน; ลบสถานที่ได้โดยประวัติทริปไม่กระทบ
 เพราะทริปเก็บพิกัดของตัวเองไว้ seed จะไม่เขียนทับสถานที่ที่มีอยู่แล้ว (กันทับพิกัดที่ admin แก้)
+สถานที่ผูกกับพื้นที่ — แอปผู้โดยสารดึงด้วย `GET /landmarks?areaId=` ส่วน super admin ที่สร้างสถานที่ต้องระบุพื้นที่ (header `X-Area-Id` หรือ `areaId` ใน body)
+
+## หลายพื้นที่ (multi-area platform)
+model `Area` = หนึ่งพื้นที่ให้บริการ (tenant): `slug`, `name`, `displayName`, `logoUrl`, จุดกลาง `centerLat/centerLng`,
+`flatRadiusKm` (เขตเหมาจ่าย), `serviceRadiusKm` (ระยะที่วินไปรับได้), `flatFare`, `ratePerKm`, `minFare`,
+`emergencyContacts` (`[{ label, phone }]`), `isActive` — คนขับ คำขอ สถานที่ และ SOS มี `areaId` ส่วนผู้โดยสารใช้ได้ทุกพื้นที่
+- **สาธารณะ:** `GET /areas` (พื้นที่ที่เปิดอยู่) · `GET /areas/resolve?lat&lng` (พื้นที่ใกล้สุดที่ครอบคลุมจุดนี้, 404 = นอกพื้นที่) · `GET /areas/:id`
+- **ทริป:** `estimate`/`create` เลือกพื้นที่จากจุดรับ (`areaId` ที่แอปส่งมาใช้ได้ถ้าจุดรับอยู่ในรัศมีของพื้นที่นั้น) นอกทุกพื้นที่ตอบ
+  422 `OUT_OF_SERVICE_AREA` — คิว FIFO แยกต่อพื้นที่ (`getNextDriverInQueue` กรอง `areaId`)
+- **สมัครคนขับ:** ต้องส่ง `areaId`; เบอร์วินไม่ซ้ำภายในพื้นที่เดียวกัน (`@@unique([areaId, vinNumber])`)
+- **แอดมิน 2 ระดับ** (`Admin.role`): `SUPER_ADMIN` เห็นทุกพื้นที่ (ส่ง header `X-Area-Id` เพื่อดูพื้นที่เดียว) /
+  `AREA_ADMIN` ถูกล็อกที่ `Admin.areaId` — ทุก route ใต้ `/admin` ผ่าน `middlewares/adminScope.js` ข้อมูลนอกขอบเขตตอบ 404
+  - `GET /admin/areas` · `GET /admin/areas/:id` · `PATCH /admin/areas/:id` (แอดมินพื้นที่แก้ของตัวเองได้ ยกเว้น `slug`/`isActive`) ·
+    `POST /admin/areas` (super)
+  - `GET|POST /admin/admins` · `PATCH|DELETE /admin/admins/:id` (super) — รหัสผ่านอย่างน้อย 12 ตัว, ต้องเหลือ super อย่างน้อย 1 คน,
+    ลด/ลบสิทธิ์ตัวเองไม่ได้
+  - socket: แอดมินเข้าห้อง `admin:super` หรือ `admin:area:<areaId>` — SOS ส่งเข้าห้องของพื้นที่นั้นและห้อง super
+- migration `20261006000000_multi_area_platform` สร้างพื้นที่ `area-ku-kps` (มก. กำแพงแสน) แล้วย้ายข้อมูลเดิมทั้งหมดเข้าพื้นที่นี้
+  และตั้งแอดมินเดิมทุกคนเป็น `SUPER_ADMIN` — ทดสอบด้วย `npm run test:platform` (18 เคส)
+
+## การเงินของคนขับ (`src/services/finance.service.js`)
+- `GET /drivers/me/finance?period=day|week|month` → ช่วงเวลา 7 วัน / 8 สัปดาห์ (เริ่มวันจันทร์) / 6 เดือน ตัดตามเวลาไทย (UTC+7)
+  แต่ละช่วงมี `income` (ค่าโดยสารทริปที่จบ), `fuelCost` + `fuelSource` (`recorded` = จดเติมจริง / `estimated` = ระยะทางทริป ×
+  บาทต่อกม.), `otherExpenses`, `profit` พร้อม `totals`, `byCategory` และ `fuel` (กม./ลิตร ที่ตั้งไว้กับที่วัดได้จริง, ราคา/ลิตร, บาท/กม.)
+- `PATCH /drivers/me/vehicle` `{ fuelKmPerLiter, fuelPricePerLiter }` (ส่ง `null` = ล้างค่า)
+- `GET|POST /drivers/me/expenses` · `PATCH|DELETE /drivers/me/expenses/:id` — `category`: `FUEL | TIRE | ENGINE_OIL | MAINTENANCE |
+  REPAIR | OTHER`, `amount`, `occurredAt`, `note`, และเฉพาะ `FUEL`: `liters`, `odometerKm`
+- กม./ลิตร จริง = ผลรวมระยะเลขไมล์ระหว่างการเติมสองครั้งติดกัน ÷ ลิตรที่เติมครั้งหลัง (ต้องเติมเต็มถังทุกครั้งถึงจะแม่น)
 
 ## เส้นทาง (`GET /api/routes`)
 `GET /routes?fromLat&fromLng&toLat&toLng` (user/driver) → `{ source, distanceKm, durationMin, coordinates: [[lat, lng], ...] }`

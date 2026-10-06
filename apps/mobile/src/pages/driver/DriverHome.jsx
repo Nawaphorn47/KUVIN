@@ -7,8 +7,10 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import MapView from "../../components/shared/MapView";
 import { useGeolocation } from "../../lib/useGeolocation";
-import { CAMPUS_CENTER, isNearCampus } from "../../lib/geo";
+import { areaCenter, isWithinService } from "../../lib/geo";
+import { useArea } from "../../context/AreaContext";
 import QueueRow from "../../components/shared/QueueRow";
+import AreaSwitcher from "../../components/shared/AreaSwitcher";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { useQueueOverview } from "../../lib/useQueueOverview";
@@ -48,8 +50,10 @@ export default function DriverHome() {
   // สถานะออนไลน์+การรอฟังงานใหม่ย้ายไปอยู่ระดับ App แล้ว (DriverPresenceContext) ทำงานได้ตลอดไม่ว่าจะเปิด
   // หน้าไหนอยู่ — หน้านี้แค่อ่านค่ามาโชว์/ใช้ปุ่มสลับเฉย ๆ
   const { online, notice, toggleOnline: setPresence } = useDriverPresence();
+  const { area } = useArea(); // พื้นที่ที่คนขับสังกัด
   const { position: gpsPos } = useGeolocation();
-  const myMapPos = gpsPos && isNearCampus(gpsPos) ? gpsPos : null; // นอกพื้นที่/ไม่มี GPS → แสดงแผนที่มหาวิทยาลัยเฉย ๆ
+  const myMapPos = isWithinService(area, gpsPos) ? gpsPos : null; // นอกพื้นที่/ไม่มี GPS → แสดงจุดกลางพื้นที่เฉย ๆ
+  const mapCenter = myMapPos ?? areaCenter(area);
   const { overview, error: queueError } = useQueueOverview(hasSession && online === true);
   // มีทริปที่รับไว้แล้วยังไม่จบ (หรือจบแล้วยังไม่ได้เงิน) ค้างอยู่ไหม — เช่นรีเฟรชหน้ากลางทริป — พาไปหน้านั้นเลย
   const checkingActiveTrip = useResumeActiveTrip("driver");
@@ -128,7 +132,13 @@ export default function DriverHome() {
           </p>
         )}
 
-        <MapView height="h-40" me={myMapPos} fit={[[(myMapPos ?? CAMPUS_CENTER).lat, (myMapPos ?? CAMPUS_CENTER).lng]]} />
+        {/* พื้นที่ที่สังกัด — คนขับรับงานได้เฉพาะคิวของพื้นที่นี้ เปลี่ยนเองไม่ได้ */}
+        <div className="flex items-center justify-between gap-2">
+          <AreaSwitcher readOnly />
+          {area && <span className="flex-none text-xs text-slate-400">เหมาจ่าย {area.flatFare} ฿</span>}
+        </div>
+
+        <MapView height="h-40" me={myMapPos} fit={[[mapCenter.lat, mapCenter.lng]]} />
       </Screen>
 
       <Screen className="gap-4 pt-2">
@@ -136,7 +146,7 @@ export default function DriverHome() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900">วันนี้</h2>
             <button onClick={() => navigate("/driver/earnings")} className="text-sm font-medium text-emerald-600">
-              ดูรายได้ →
+              ดูการเงิน →
             </button>
           </div>
           {/* เดิมเป็นตัวเลขตายตัว 320 ฿ / 12 เที่ยว / 5.5 ชม. — คนขับทุกคนเห็นเลขเดียวกันหมด */}

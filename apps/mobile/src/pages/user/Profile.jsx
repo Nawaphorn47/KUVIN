@@ -4,6 +4,7 @@ import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
+import AreaSwitcher from "../../components/shared/AreaSwitcher";
 import { useApp } from "../../context/AppContext";
 import { clearToken } from "../../lib/auth";
 import { unregisterPush } from "../../lib/push";
@@ -60,6 +61,12 @@ export default function Profile() {
             </div>
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">สลับ</span>
           </button>
+
+          {/* บัญชีเดียวใช้ได้ทุกพื้นที่ — เปลี่ยนพื้นที่ตรงนี้ได้ (ปกติระบบเลือกให้จาก GPS) */}
+          <Card className="flex flex-col items-start gap-2 shadow-none ring-slate-100">
+            <p className="text-xs text-slate-400">พื้นที่ให้บริการตอนนี้</p>
+            <AreaSwitcher />
+          </Card>
 
           <Card className="divide-y divide-slate-100 p-0 shadow-none ring-slate-100">
             {menu.map(({ icon: Icon, label, to }) => (

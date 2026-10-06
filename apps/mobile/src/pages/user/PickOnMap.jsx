@@ -5,13 +5,16 @@ import TopBar from "../../components/layout/TopBar";
 import Button from "../../components/ui/Button";
 import MapView from "../../components/shared/MapView";
 import { useApp } from "../../context/AppContext";
-import { CAMPUS_CENTER } from "../../lib/geo";
+import { useArea } from "../../context/AreaContext";
+import { areaCenter } from "../../lib/geo";
 
 // เลือกปลายทางด้วยการเลื่อนแผนที่ให้หมุดกลางจอตรงจุดที่ต้องการ (แบบแอปเรียกรถทั่วไป) — ใช้กับที่ที่ไม่อยู่ในรายชื่อสถานที่
 export default function PickOnMap() {
   const navigate = useNavigate();
   const { setBooking } = useApp();
-  const [center, setCenter] = useState(CAMPUS_CENTER);
+  const { area } = useArea();
+  const start = areaCenter(area); // เริ่มที่จุดกลางของพื้นที่ที่เลือกอยู่
+  const [center, setCenter] = useState(start);
 
   function confirm() {
     setBooking((b) => ({
@@ -27,7 +30,7 @@ export default function PickOnMap() {
       <MapView
         height="flex-1"
         className="min-h-[24rem] rounded-none"
-        fit={[[CAMPUS_CENTER.lat, CAMPUS_CENTER.lng]]}
+        fit={[[start.lat, start.lng]]}
         interactive
         onCenterChange={setCenter}
       >

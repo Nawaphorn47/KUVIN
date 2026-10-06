@@ -5,9 +5,11 @@ import { motion } from "framer-motion";
 import Button from "../components/Button";
 import { api } from "../services/api";
 import { setToken } from "../lib/auth";
+import { useAdminSession } from "../lib/adminSession";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const { reload } = useAdminSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,7 @@ export default function AdminLogin() {
     try {
       const { data } = await api.post("/auth/admin/login", { email, password });
       setToken(data.token);
+      await reload(); // โหลดบทบาท (super/พื้นที่) + รายการพื้นที่ก่อนเข้าแดชบอร์ด
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
@@ -43,7 +46,7 @@ export default function AdminLogin() {
             <Bike className="h-6 w-6" />
           </span>
           <h1 className="text-3xl font-bold text-emerald-900">KU VIN Admin</h1>
-          <p className="text-base text-stone-500">ระบบจัดการวินรถจักรยานยนต์รับจ้าง</p>
+          <p className="text-base text-stone-500">ระบบจัดการแพลตฟอร์มวินมอเตอร์ไซค์</p>
         </div>
 
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -89,7 +92,7 @@ export default function AdminLogin() {
         </form>
 
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-stone-200 pt-6 text-center">
-          <p className="text-base text-stone-500">มหาวิทยาลัยเกษตรศาสตร์</p>
+          <p className="text-sm text-stone-500">แอดมินพื้นที่เห็นเฉพาะข้อมูลพื้นที่ที่ตัวเองดูแล</p>
         </div>
       </motion.div>
     </div>

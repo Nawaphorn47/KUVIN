@@ -5,25 +5,30 @@ import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
 import { api } from "../../lib/api";
 import { useApp } from "../../context/AppContext";
+import { useArea } from "../../context/AreaContext";
 
 export default function SearchDestination() {
   const navigate = useNavigate();
   const { booking, setBooking } = useApp();
+  const { area } = useArea();
   const [query, setQuery] = useState("");
   const [landmarks, setLandmarks] = useState(null); // null = กำลังโหลด
   const [loadError, setLoadError] = useState(false);
 
   // รายชื่อสถานที่จริงจาก backend — เดิมถ้าโหลดไม่ได้จะโชว์รายการ mock แทน ซึ่งกดจองไม่ได้จริง (id ไม่ตรงกับ DB)
   // ผู้ใช้กดแล้วพังโดยไม่รู้สาเหตุ จึงบอกตรง ๆ ว่าโหลดไม่สำเร็จและให้ลองใหม่แทน
+  // สถานที่ของพื้นที่ที่เลือกอยู่เท่านั้น
   function load() {
+    if (!area) return;
     setLoadError(false);
     setLandmarks(null);
     api
-      .get("/landmarks")
+      .get("/landmarks", { params: { areaId: area.id } })
       .then(({ data }) => setLandmarks(data))
       .catch(() => setLoadError(true));
   }
-  useEffect(load, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(load, [area?.id]);
 
   const filtered = (landmarks ?? []).filter(
     (l) => l.name.includes(query) || l.detail?.includes(query)

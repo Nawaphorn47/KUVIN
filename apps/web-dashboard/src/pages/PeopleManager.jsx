@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Ban, Bike, Loader2, RotateCcw, Search, ShieldCheck, X } from "lucide-react";
+import { Ban, Loader2, RotateCcw, Search, ShieldCheck, X } from "lucide-react";
 import clsx from "clsx";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
 import { api } from "../services/api";
-import { getToken } from "../lib/auth";
+import { PageHeader } from "../components/AdminLayout";
+import { useAdminSession } from "../lib/adminSession";
 
 const TABS = [
   { key: "users", label: "ผู้ใช้บริการ" },
@@ -53,7 +53,8 @@ function formatDate(iso, withTime = false) {
 }
 
 export default function PeopleManager() {
-  const navigate = useNavigate();
+  const { isSuper, areaId, area } = useAdminSession();
+  const showArea = isSuper && !areaId;
   const [tab, setTab] = useState("users");
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -75,18 +76,13 @@ export default function PeopleManager() {
       setLoaded({ tab, data });
       setError("");
     } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) navigate("/login");
-      else setError("โหลดรายการไม่สำเร็จ");
+      setError(err.response?.data?.message || "โหลดรายการไม่สำเร็จ");
     }
-  }, [tab, debounced, status, navigate]);
+  }, [tab, debounced, status]);
 
   useEffect(() => {
-    if (!getToken()) {
-      navigate("/login");
-      return;
-    }
     load();
-  }, [load, navigate]);
+  }, [load]);
 
   const rows = loaded.tab === tab ? loaded.data : null;
 
@@ -98,17 +94,17 @@ export default function PeopleManager() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-stone-50">
-      <header className="flex h-16 flex-none items-center justify-between border-b border-stone-200 bg-white px-6 shadow-sm">
-        <h1 className="flex items-center gap-2 text-2xl text-emerald-900">
-          <Bike className="h-6 w-6" /> จัดการผู้ใช้และคนขับ
-        </h1>
-        <Link to="/dashboard" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
-          <ArrowLeft className="h-4 w-4" /> กลับแดชบอร์ด
-        </Link>
-      </header>
+    <div className="flex h-full flex-col">
+      <PageHeader
+        title="ผู้ใช้และคนขับ"
+        subtitle={
+          area
+            ? `คนขับของ ${area.displayName} และผู้โดยสารที่เคยใช้บริการในพื้นที่นี้`
+            : "ผู้โดยสารใช้บัญชีเดียวได้ทุกพื้นที่ ส่วนคนขับสังกัดพื้นที่เดียว"
+        }
+      />
 
-      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-4 px-6 py-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-4 px-6 py-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex rounded-lg bg-stone-200 p-1">
             {TABS.map((t) => (
@@ -163,6 +159,7 @@ export default function PeopleManager() {
               ) : (
                 <tr>
                   <th className="px-4 py-3">ชื่อ</th>
+                  {showArea && <th className="px-4 py-3">พื้นที่</th>}
                   <th className="px-4 py-3">เบอร์วิน</th>
                   <th className="px-4 py-3">เบอร์โทร</th>
                   <th className="px-4 py-3">ทะเบียนรถ</th>
@@ -174,14 +171,14 @@ export default function PeopleManager() {
             <tbody>
               {rows === null && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-stone-500">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </td>
                 </tr>
               )}
               {rows?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-stone-500">
                     ไม่พบรายการที่ตรงกับที่ค้นหา
                   </td>
                 </tr>
@@ -210,6 +207,7 @@ export default function PeopleManager() {
                     </>
                   ) : (
                     <>
+                      {showArea && <td className="px-4 py-3 text-stone-600">{r.area?.displayName ?? "-"}</td>}
                       <td className="px-4 py-3 text-stone-600">{r.vinNumber}</td>
                       <td className="px-4 py-3 text-stone-600">{r.phone}</td>
                       <td className="px-4 py-3 text-stone-600">{r.licensePlate}</td>
@@ -236,7 +234,7 @@ export default function PeopleManager() {
         {rows && rows.length >= 200 && (
           <p className="text-xs text-stone-500">แสดง 200 รายการล่าสุด ใช้ช่องค้นหาเพื่อกรองให้แคบลง</p>
         )}
-      </main>
+      </div>
 
       {selected && (
         <DetailDrawer
@@ -335,6 +333,7 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
               <Field label="เบอร์โทร" value={p.phone} />
               {isDriver ? (
                 <>
+                  <Field label="พื้นที่" value={p.area?.displayName ?? "-"} />
                   <Field label="สถานะการยืนยัน" value={VERIFICATION[p.verificationStatus].label} />
                   <Field label="รุ่นรถ" value={p.vehicleModel ?? "-"} />
                   <Field label="พร้อมเพย์" value={p.promptPayId ?? "ยังไม่ได้ตั้งค่า"} />

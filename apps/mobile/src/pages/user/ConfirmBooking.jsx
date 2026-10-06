@@ -10,7 +10,8 @@ import RouteSummary from "../../components/shared/RouteSummary";
 import { useApp } from "../../context/AppContext";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
-import { CAMPUS_CENTER, isNearCampus } from "../../lib/geo";
+import { areaCenter, isWithinService } from "../../lib/geo";
+import { useArea } from "../../context/AreaContext";
 
 // ปลายทางเป็นได้ทั้งสถานที่ในระบบ (landmarkId) หรือจุดที่ผู้ใช้ปักหมุดเอง (lat/lng)
 function destinationPayload(destination) {
@@ -22,6 +23,7 @@ function destinationPayload(destination) {
 export default function ConfirmBooking() {
   const navigate = useNavigate();
   const { booking } = useApp();
+  const { area } = useArea();
   const destination = booking.destination;
   const hasSession = Boolean(getToken());
 
@@ -29,30 +31,41 @@ export default function ConfirmBooking() {
   const [pickupLabel, setPickupLabel] = useState(booking.pickup);
   const [pickupNote, setPickupNote] = useState("");
   const [estimate, setEstimate] = useState(null);
+  const [estimateError, setEstimateError] = useState("");
   const [loadingEstimate, setLoadingEstimate] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // รอพื้นที่โหลดเสร็จก่อน — ใช้จุดกลาง/ระยะให้บริการของพื้นที่ที่เลือกเป็นค่าสำรองของจุดรับ
   useEffect(() => {
-    getPickupCoords().then(({ point, note }) => {
+    if (!area || pickupPoint) return;
+    getPickupCoords(area).then(({ point, note }) => {
       setPickupPoint(point);
       setPickupNote(note);
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [area?.id]);
 
   const destKey = destination ? (destination.landmarkId ?? `${destination.lat},${destination.lng}`) : null;
   useEffect(() => {
     if (!destination || !pickupPoint) return undefined;
     let cancelled = false;
     setLoadingEstimate(true);
+    setEstimateError("");
     api
       .post("/service-requests/estimate", {
         ...destinationPayload(destination),
+        areaId: area?.id,
         pickupLat: pickupPoint.lat,
         pickupLng: pickupPoint.lng,
       })
       .then(({ data }) => !cancelled && setEstimate(data))
-      .catch(() => !cancelled && setEstimate(null))
+      .catch((err) => {
+        if (cancelled) return;
+        setEstimate(null);
+        // เช่น จุดรับอยู่นอกพื้นที่ให้บริการ — บอกเหตุผลจาก server ให้ผู้ใช้ลากหมุดใหม่
+        setEstimateError(err.response?.data?.message || "");
+      })
       .finally(() => !cancelled && setLoadingEstimate(false));
     return () => {
       cancelled = true;
@@ -78,6 +91,7 @@ export default function ConfirmBooking() {
     try {
       const { data: request } = await api.post("/service-requests", {
         ...destinationPayload(destination),
+        areaId: area?.id,
         pickupLat: pickupPoint.lat,
         pickupLng: pickupPoint.lng,
         pickupAddress: pickupLabel,
@@ -152,11 +166,18 @@ export default function ConfirmBooking() {
               {loadingEstimate ? "..." : fare != null ? `${fare} ฿` : "-"}
             </span>
           </div>
-          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-            {isWithinCampus
-              ? "เส้นทางภายในมหาวิทยาลัย เหมาจ่าย 20 บาท"
-              : "เส้นทางออกนอกมหาวิทยาลัย คิดตามระยะทางบนถนนจริง"}
-          </p>
+          {estimateError ? (
+            <p className="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              <AlertTriangle className="h-4 w-4 flex-none" /> {estimateError}
+            </p>
+          ) : (
+            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+              {/* อัตราของพื้นที่ที่ให้บริการทริปนี้ (แต่ละพื้นที่ตั้งเองได้) */}
+              {isWithinCampus
+                ? `เส้นทางภายในเขต${estimate?.area?.displayName ? ` ${estimate.area.displayName}` : ""} เหมาจ่าย ${estimate?.area?.flatFare ?? "-"} บาท`
+                : `เส้นทางออกนอกเขตเหมาจ่าย คิดตามระยะทางบนถนนจริง ${estimate?.area?.ratePerKm ?? "-"} บาท/กม.`}
+            </p>
+          )}
         </Card>
 
         <Card className="flex items-center justify-between">
@@ -186,7 +207,7 @@ export default function ConfirmBooking() {
       </Screen>
 
       <div className="border-t border-slate-100 p-5">
-        <Button onClick={handleConfirm} disabled={submitting || loadingEstimate || !pickupPoint}>
+        <Button onClick={handleConfirm} disabled={submitting || loadingEstimate || !pickupPoint || Boolean(estimateError)}>
           {submitting ? "กำลังเรียกวิน..." : "เรียกวินมอเตอร์ไซค์"}
         </Button>
       </div>
@@ -194,10 +215,10 @@ export default function ConfirmBooking() {
   );
 }
 
-// พิกัดจุดรับเริ่มต้นจาก GPS — ถ้าใช้ GPS ไม่ได้ (ไม่อนุญาต/เปิดผ่าน HTTP ในวง LAN) หรืออยู่ไกลจากมหาวิทยาลัยมาก
-// จะใช้จุดกลางมหาวิทยาลัยแทน แล้วบอกผู้ใช้ให้ลากหมุดปรับเอง ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
-async function getPickupCoords() {
-  const fallback = (note) => ({ point: { ...CAMPUS_CENTER }, note });
+// พิกัดจุดรับเริ่มต้นจาก GPS — ถ้าใช้ GPS ไม่ได้ (ไม่อนุญาต/เปิดผ่าน HTTP ในวง LAN) หรืออยู่นอกระยะให้บริการของพื้นที่
+// ที่เลือก จะใช้จุดกลางของพื้นที่แทน แล้วบอกผู้ใช้ให้ลากหมุดปรับเอง ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
+async function getPickupCoords(area) {
+  const fallback = (note) => ({ point: areaCenter(area), note });
 
   if (!("geolocation" in navigator) || !window.isSecureContext) {
     return fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดสีเขียวไปยังจุดที่ต้องการให้รับ");
@@ -207,9 +228,9 @@ async function getPickupCoords() {
       (pos) => {
         const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         resolve(
-          isNearCampus(point)
+          isWithinService(area, point)
             ? { point, note: "" }
-            : fallback("ตำแหน่งของคุณอยู่ไกลจากมหาวิทยาลัย จึงใช้จุดกลางมหาวิทยาลัยแทน ลากหมุดเพื่อปรับ")
+            : fallback(`ตำแหน่งของคุณอยู่นอกพื้นที่ ${area.displayName} จึงใช้จุดกลางพื้นที่แทน ลากหมุดเพื่อปรับ`)
         );
       },
       () => resolve(fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดสีเขียวไปยังจุดที่ต้องการให้รับ")),

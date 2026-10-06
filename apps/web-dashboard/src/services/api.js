@@ -9,9 +9,16 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+// พื้นที่ที่ super admin เลือกดูอยู่ (null = ทุกพื้นที่) — ตั้งจาก AdminSessionProvider
+let scopeAreaId = null;
+export function setScopeAreaId(id) {
+  scopeAreaId = id;
+}
+
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (scopeAreaId) config.headers["X-Area-Id"] = scopeAreaId;
   return config;
 });
 

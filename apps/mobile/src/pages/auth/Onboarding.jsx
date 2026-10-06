@@ -22,10 +22,10 @@ export default function Onboarding() {
           <h2 className="text-3xl font-bold leading-snug">
             เรียกวินได้ทุกที่
             <br />
-            ในมหาวิทยาลัย
+            ในพื้นที่ให้บริการ
           </h2>
           <p className="mt-3 text-base text-emerald-100">
-            เลือกจุดรับ-ส่งบนแผนที่ได้เลย ครอบคลุมทุกพื้นที่ใน มก.กำแพงแสน
+            เลือกจุดรับ-ส่งบนแผนที่ได้เลย บัญชีเดียวใช้ได้ทุกพื้นที่ที่มี KU VIN
           </p>
         </div>
       </div>

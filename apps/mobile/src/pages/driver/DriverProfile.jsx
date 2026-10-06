@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Settings, LogOut, User2, ChevronRight } from "lucide-react";
+import { ShieldCheck, Settings, LogOut, User2, ChevronRight, Wallet } from "lucide-react";
 import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
 import Avatar from "../../components/ui/Avatar";
 import { useApp } from "../../context/AppContext";
+import { useArea } from "../../context/AreaContext";
 import { clearToken } from "../../lib/auth";
 import { unregisterPush } from "../../lib/push";
 
@@ -19,6 +20,7 @@ const VERIFY_ROUTE = {
 export default function DriverProfile() {
   const navigate = useNavigate();
   const { driver, refreshMe } = useApp();
+  const { area } = useArea();
   const menu = [
     {
       icon: ShieldCheck,
@@ -27,6 +29,7 @@ export default function DriverProfile() {
       to: VERIFY_ROUTE[driver.verificationStatus] ?? "/driver/verify/step-1",
       state: driver.verificationStatus === "REJECTED" ? { reason: driver.rejectionReason } : undefined,
     },
+    { icon: Wallet, label: "การเงินและต้นทุนรถ", to: "/driver/earnings" },
     { icon: Settings, label: "ตั้งค่า", to: "/settings" },
   ];
 
@@ -39,7 +42,7 @@ export default function DriverProfile() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Screen padded={false} className="gap-4 bg-gradient-to-b from-slate-800 to-slate-900 px-5 pb-6 pt-8 text-white">
+      <Screen padded={false} className="gap-4 bg-gradient-to-b from-emerald-600 to-emerald-700 px-5 pb-6 pt-8 text-white">
         <div className="flex flex-col items-center gap-2 text-center">
           <Avatar initial={driver.name[0]} size="xl" className="bg-white/15 text-white" />
           <p className="text-2xl font-bold">{driver.name}</p>
@@ -66,6 +69,10 @@ export default function DriverProfile() {
       <Screen className="gap-4 pt-4">
         <Card className="gap-2 shadow-none ring-slate-100">
           <p className="text-sm font-bold text-slate-700">ข้อมูลรถ</p>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-500">พื้นที่ให้บริการ</span>
+            <span className="font-semibold text-slate-900">{area?.displayName ?? "-"}</span>
+          </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-500">รุ่น</span>
             <span className="font-semibold text-slate-900">{driver.vehicleModel}</span>

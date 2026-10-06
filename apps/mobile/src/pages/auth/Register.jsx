@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User, IdCard, BookUser, Mail, Phone, Lock, Hash, Bike, Camera, QrCode, AlertTriangle } from "lucide-react";
+import { User, IdCard, BookUser, Mail, Phone, Lock, Hash, Bike, Camera, QrCode, AlertTriangle, MapPinned } from "lucide-react";
 import clsx from "clsx";
 import Screen from "../../components/layout/Screen";
 import TopBar from "../../components/layout/TopBar";
@@ -10,12 +10,19 @@ import PhotoPicker from "../../components/shared/PhotoPicker";
 import { api, uploadImage } from "../../lib/api";
 import { setToken } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
+import { useArea } from "../../context/AreaContext";
 
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setMode, refreshMe } = useApp();
+  const { areas, area } = useArea();
   const [role, setRole] = useState(location.state?.role ?? "user"); // "user" | "driver"
+  const [driverAreaId, setDriverAreaId] = useState("");
+  // ค่าเริ่มต้น = พื้นที่ที่แอปตรวจเจอจาก GPS (เปลี่ยนเองได้)
+  useEffect(() => {
+    if (!driverAreaId && area) setDriverAreaId(area.id);
+  }, [area, driverAreaId]);
 
   const [fullName, setFullName] = useState("");
   const [studentId, setStudentId] = useState("");
@@ -63,6 +70,10 @@ export default function Register() {
     }
 
     // role === "driver" — สมัครพร้อมแนบเอกสารยืนยันตัวตนในขั้นตอนเดียว ไม่ต้องแยกไปหน้าอื่นต่อ
+    if (!driverAreaId) {
+      setError("กรุณาเลือกพื้นที่ที่จะรับงาน");
+      return;
+    }
     if (!/^\d+$/.test(vinNumber)) {
       setError("หมายเลขวินต้องเป็นตัวเลขล้วนเท่านั้น (ใช้กำหนดลำดับคิวรับงาน)");
       return;
@@ -82,6 +93,7 @@ export default function Register() {
         fullName,
         phone,
         password,
+        areaId: driverAreaId,
         vinNumber,
         licensePlate,
         vehicleModel,
@@ -117,7 +129,7 @@ export default function Register() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <TopBar title="Register" />
+      <TopBar title="สมัครสมาชิก" />
       <Screen className="gap-4 pt-2">
         <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
           {[
@@ -185,6 +197,25 @@ export default function Register() {
             </>
           ) : (
             <>
+              {/* คนขับสังกัดพื้นที่เดียว: คิวรับงาน + แอดมินที่อนุมัติเป็นของพื้นที่นั้น */}
+              <label className="flex w-full flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-700">พื้นที่ที่รับงาน</span>
+                <span className="relative flex items-center">
+                  <MapPinned className="pointer-events-none absolute left-4 h-5 w-5 text-slate-400" />
+                  <select
+                    value={driverAreaId}
+                    onChange={(e) => setDriverAreaId(e.target.value)}
+                    className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="">เลือกพื้นที่</option>
+                    {areas.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
               <Input
                 label="เบอร์โทรศัพท์"
                 icon={Phone}

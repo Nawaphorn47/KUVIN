@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { ArrowLeft, Bike, Check, Loader2, MapPin, Plus, Search, Trash2 } from "lucide-react";
+import { Check, Loader2, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import Button from "../components/Button";
 import { api } from "../services/api";
-import { getToken } from "../lib/auth";
+import { PageHeader } from "../components/AdminLayout";
+import { useAdminSession } from "../lib/adminSession";
 
-// จุดกลางมหาวิทยาลัย (OSM way 259034448) — ต้องตรงกับ CAMPUS_CENTER ใน apps/api/src/utils/geo.js
-const CAMPUS_CENTER = [14.023, 99.9739];
-const FAR_FROM_CAMPUS_KM = 6; // ไกลกว่านี้ให้เตือน (ตลาดกำแพงแสนอยู่ ~3.5 กม. ถือว่าปกติ)
+// จุดกลางสำรองตอนยังไม่มีพื้นที่ (มก. กำแพงแสน) — ปกติใช้จุดกลางของพื้นที่ที่กำลังดู
+const FALLBACK_CENTER = [14.023, 99.9739];
 
 const pin = (color, size, ring) =>
   L.divIcon({
@@ -52,12 +51,12 @@ function ClickToPlace({ enabled, onPlace }) {
   return null;
 }
 
-const emptyDraft = () => ({
+const emptyDraft = (center) => ({
   id: null,
   name: "",
   detail: "",
-  lat: CAMPUS_CENTER[0],
-  lng: CAMPUS_CENTER[1],
+  lat: center[0],
+  lng: center[1],
   isPopular: false,
   coordsVerified: false,
 });
@@ -73,7 +72,10 @@ const toDraft = (l) => ({
 });
 
 export default function LandmarkManager() {
-  const navigate = useNavigate();
+  const { isSuper, areaId, area, areas } = useAdminSession();
+  const viewArea = area ?? (areas.length === 1 ? areas[0] : null);
+  const center = viewArea ? [viewArea.centerLat, viewArea.centerLng] : FALLBACK_CENTER;
+  const canCreate = !isSuper || Boolean(areaId); // super ต้องเลือกพื้นที่ก่อนว่าจะเพิ่มสถานที่ให้พื้นที่ไหน
   const [landmarks, setLandmarks] = useState(null);
   const [draft, setDraft] = useState(null); // null = ยังไม่ได้เลือก/สร้าง
   const [flyKey, setFlyKey] = useState(0);
@@ -87,18 +89,13 @@ export default function LandmarkManager() {
       const { data } = await api.get("/admin/landmarks");
       setLandmarks(data);
     } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) navigate("/login");
-      else setError("โหลดรายการสถานที่ไม่สำเร็จ");
+      setError(err.response?.data?.message || "โหลดรายการสถานที่ไม่สำเร็จ");
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
-    if (!getToken()) {
-      navigate("/login");
-      return;
-    }
     load();
-  }, [load, navigate]);
+  }, [load]);
 
   const estimatedCount = (landmarks ?? []).filter((l) => !l.coordsVerified).length;
   const visible = useMemo(
@@ -117,7 +114,7 @@ export default function LandmarkManager() {
 
   function startNew() {
     setError("");
-    setDraft(emptyDraft());
+    setDraft(emptyDraft(center));
     setFlyKey((k) => k + 1);
   }
 
@@ -167,18 +164,16 @@ export default function LandmarkManager() {
 
   const draftPos = draft ? [Number(draft.lat), Number(draft.lng)] : null;
   const validPos = draftPos && Number.isFinite(draftPos[0]) && Number.isFinite(draftPos[1]);
-  const farKm = validPos ? distanceKm(CAMPUS_CENTER, draftPos) : 0;
+  // เตือนเมื่อหมุดอยู่นอกรัศมีให้บริการของพื้นที่ (ผู้โดยสารเรียกวินไปที่นั่นไม่ได้)
+  const serviceKm = viewArea?.serviceRadiusKm ?? 6;
+  const farKm = validPos ? distanceKm(center, draftPos) : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-stone-50">
-      <header className="flex h-16 flex-none items-center justify-between border-b border-stone-200 bg-white px-6 shadow-sm">
-        <h1 className="flex items-center gap-2 text-2xl text-emerald-900">
-          <Bike className="h-6 w-6" /> จัดการสถานที่
-        </h1>
-        <Link to="/dashboard" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
-          <ArrowLeft className="h-4 w-4" /> กลับแดชบอร์ด
-        </Link>
-      </header>
+    <div className="flex h-full flex-col">
+      <PageHeader
+        title="สถานที่"
+        subtitle={viewArea ? `จุดรับ-ส่งยอดนิยมของ ${viewArea.displayName}` : "ทุกพื้นที่ — เลือกพื้นที่ทางซ้ายเพื่อเพิ่มสถานที่"}
+      />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[380px_1fr]">
         {/* ---- รายการ + ฟอร์ม ---- */}
@@ -198,7 +193,7 @@ export default function LandmarkManager() {
                 <input type="checkbox" checked={onlyEstimated} onChange={(e) => setOnlyEstimated(e.target.checked)} />
                 เฉพาะพิกัดที่ยังเป็นค่าประมาณ ({estimatedCount})
               </label>
-              <Button onClick={startNew} className="px-3 py-1.5">
+              <Button onClick={startNew} disabled={!canCreate} title={canCreate ? undefined : "เลือกพื้นที่ก่อน"} className="px-3 py-1.5">
                 <Plus className="h-3.5 w-3.5" /> เพิ่ม
               </Button>
             </div>
@@ -259,9 +254,9 @@ export default function LandmarkManager() {
                 />
               </div>
               <p className="text-xs text-stone-500">ลากหมุดสีน้ำเงินบนแผนที่ หรือคลิกตำแหน่งที่ถูกต้อง เพื่อย้ายพิกัด</p>
-              {farKm > FAR_FROM_CAMPUS_KM && (
+              {viewArea && farKm > serviceKm && (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  พิกัดนี้อยู่ห่างจากมหาวิทยาลัย {farKm.toFixed(1)} กม. ตรวจให้แน่ใจว่าถูกต้อง เพราะมีผลกับค่าโดยสาร
+                  พิกัดนี้อยู่ห่างจากจุดกลางพื้นที่ {farKm.toFixed(1)} กม. เกินรัศมีให้บริการ ({serviceKm} กม.) ตรวจให้แน่ใจว่าถูกต้อง
                 </p>
               )}
               <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -301,7 +296,7 @@ export default function LandmarkManager() {
 
         {/* ---- แผนที่ ---- */}
         <div className="relative isolate min-h-[24rem]">
-          <MapContainer center={CAMPUS_CENTER} zoom={16} style={{ position: "absolute", inset: 0 }} zoomControl>
+          <MapContainer center={center} zoom={viewArea ? 15 : 12} style={{ position: "absolute", inset: 0 }} zoomControl>
             <TileLayer
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

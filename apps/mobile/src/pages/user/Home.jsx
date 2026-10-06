@@ -5,6 +5,8 @@ import Screen from "../../components/layout/Screen";
 import BottomNav from "../../components/layout/BottomNav";
 import Card from "../../components/ui/Card";
 import { useApp } from "../../context/AppContext";
+import { useArea } from "../../context/AreaContext";
+import AreaSwitcher from "../../components/shared/AreaSwitcher";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { useUnreadCount } from "../../lib/useUnreadCount";
@@ -40,6 +42,7 @@ function recentDestinations(trips) {
 export default function Home() {
   const navigate = useNavigate();
   const { user, setBooking } = useApp();
+  const { area, loading: areaLoading, loadError: areaError, reload: reloadAreas } = useArea();
   const hasSession = Boolean(getToken());
   const [landmarks, setLandmarks] = useState(null); // null = กำลังโหลด
   const [recent, setRecent] = useState(null); // null = กำลังโหลด / ไม่มี session
@@ -49,12 +52,15 @@ export default function Home() {
 
   // เดิม "จุดหมายยอดนิยม" และ "ล่าสุด" เป็นรายการ mock ตายตัว (เที่ยวล่าสุดของทุกคนเหมือนกันหมด) — ตอนนี้ใช้ข้อมูลจริง:
   // ยอดนิยม = สถานที่ที่แอดมินติ๊ก "ยอดนิยม" ในหน้าจัดการสถานที่, ล่าสุด = เที่ยวที่จบแล้วของบัญชีนี้
+  // สถานที่ของพื้นที่ที่เลือกอยู่ — เปลี่ยนพื้นที่แล้วโหลดใหม่
   useEffect(() => {
+    if (!area) return;
+    setLandmarks(null);
     api
-      .get("/landmarks")
+      .get("/landmarks", { params: { areaId: area.id } })
       .then(({ data }) => setLandmarks(data))
       .catch(() => setLandmarks([]));
-  }, []);
+  }, [area?.id]);
 
   useEffect(() => {
     if (!hasSession) return;
@@ -92,35 +98,52 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Screen padded={false} className="gap-5 px-5 pb-4 pt-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400">สวัสดี</p>
-            <p className="text-lg font-bold text-slate-900">{user.name}</p>
-          </div>
+      {/* หัวหน้าจอ: พื้นที่ให้บริการ (กดเปลี่ยนได้) + คำทักทาย + ค้นหาปลายทาง */}
+      <div className="flex flex-none flex-col gap-4 rounded-b-[2rem] bg-gradient-to-b from-emerald-600 to-emerald-700 px-5 pb-6 pt-5 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <AreaSwitcher tone="dark" />
           <button
             onClick={() => navigate("/notifications")}
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-card"
+            className="relative flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/15"
+            aria-label="แจ้งเตือน"
           >
-            <Bell className="h-5 w-5 text-emerald-700" />
+            <Bell className="h-5 w-5" />
             {unread > 0 && (
-              <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
+              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-emerald-700 bg-red-500" />
             )}
           </button>
         </div>
-
+        <div>
+          <p className="text-sm text-emerald-100">{user.name ? `สวัสดี ${user.name}` : "สวัสดี"}</p>
+          <h1 className="text-2xl font-bold">วันนี้จะไปไหนดี?</h1>
+        </div>
         <button
           onClick={() => navigate("/search-destination")}
-          className="flex h-14 items-center gap-3 rounded-3xl bg-white px-4 shadow-card"
+          disabled={!area}
+          className="flex h-14 items-center gap-3 rounded-2xl bg-white px-4 text-left shadow-floating disabled:opacity-70"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white">
             <Search className="h-4 w-4" />
           </span>
-          <span className="text-sm text-slate-400">ไปไหน? ค้นหาปลายทาง...</span>
+          <span className="text-sm text-slate-400">ค้นหาปลายทาง หรือปักหมุดบนแผนที่</span>
         </button>
-      </Screen>
+      </div>
 
-      <Screen className="gap-6 pt-2">
+      {areaError && (
+        <div className="mx-5 mt-4 flex items-center justify-between rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          โหลดพื้นที่ให้บริการไม่สำเร็จ
+          <button onClick={reloadAreas} className="font-semibold underline">
+            ลองใหม่
+          </button>
+        </div>
+      )}
+      {!areaLoading && !areaError && !area && (
+        <p className="mx-5 mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          ยังไม่มีพื้นที่ที่เปิดให้บริการในขณะนี้
+        </p>
+      )}
+
+      <Screen className="gap-6 pt-5">
         <div>
           <h2 className="mb-3 text-base font-bold text-slate-900">จุดหมายยอดนิยม</h2>
           {landmarks === null ? (

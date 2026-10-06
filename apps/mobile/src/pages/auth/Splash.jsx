@@ -2,9 +2,11 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Bike } from "lucide-react";
+import { useArea } from "../../context/AreaContext";
 
 export default function Splash() {
   const navigate = useNavigate();
+  const { area } = useArea();
 
   useEffect(() => {
     const t = setTimeout(() => navigate("/onboarding"), 1600);
@@ -27,16 +29,19 @@ export default function Splash() {
         transition={{ delay: 0.15 }}
       >
         <h1 className="text-4xl font-bold tracking-tight">KU VIN</h1>
-        <p className="mt-1 text-sm text-emerald-100">บริการวินมอเตอร์ไซค์ภายในมหาวิทยาลัย</p>
+        <p className="mt-1 text-sm text-emerald-100">เรียกวินมอเตอร์ไซค์ใกล้คุณ</p>
       </motion.div>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="absolute bottom-14 text-sm font-medium text-emerald-100"
-      >
-        มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน
-      </motion.p>
+      {/* ชื่อพื้นที่ที่ตรวจเจอจาก GPS / เลือกไว้ (แพลตฟอร์มใช้ได้หลายพื้นที่) */}
+      {area && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="absolute bottom-14 text-sm font-medium text-emerald-100"
+        >
+          {area.name}
+        </motion.p>
+      )}
     </div>
   );
 }

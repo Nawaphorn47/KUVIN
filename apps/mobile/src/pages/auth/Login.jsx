@@ -8,6 +8,7 @@ import Input from "../../components/ui/Input";
 import { api } from "../../lib/api";
 import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
+import { useArea } from "../../context/AreaContext";
 
 // บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server หรือ APK ทดสอบที่ build ด้วย npm run android:dev
 // __DEMO_LOGIN__ เป็นค่าคงที่ตอน build (ดู vite.config.js) build จริงจึงตัดทั้งปุ่มและรายการนี้ทิ้งไปเลย ไม่หลุดไปใน bundle
@@ -22,6 +23,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setMode, refreshMe } = useApp();
+  const { area } = useArea();
   const [role, setRole] = useState(location.state?.role ?? "user"); // "user" | "driver"
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -70,7 +72,7 @@ export default function Login() {
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white">
           <Bike className="h-7 w-7" />
         </div>
-        <p className="text-xs font-medium text-slate-400">มก. กำแพงแสน</p>
+        <p className="text-xs font-medium text-slate-400">{area?.displayName ?? "KU VIN"}</p>
       </div>
 
       <div>

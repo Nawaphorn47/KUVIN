@@ -72,6 +72,7 @@ export function AppProvider({ children }) {
           yearsActive: Math.max(0, Math.floor((Date.now() - new Date(full.createdAt).getTime()) / (365 * 24 * 3600 * 1000))),
           verificationStatus: full.verificationStatus,
           rejectionReason: full.rejectionReason,
+          areaId: full.areaId,
         });
       } else {
         setMe(null);

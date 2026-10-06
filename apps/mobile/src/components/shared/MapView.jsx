@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import clsx from "clsx";
-import { CAMPUS_CENTER } from "../../lib/geo";
+import { areaCenter } from "../../lib/geo";
+import { useArea } from "../../context/AreaContext";
 
 // หมุดวาดด้วย divIcon (HTML/Tailwind) ไม่ใช้รูป marker เริ่มต้นของ Leaflet ที่พังกับ bundler
 const dot = (color, size = 16) =>
@@ -101,7 +102,10 @@ export default function MapView({
     return [pickup, destination, driver, me].filter(Boolean).map((p) => [p.lat, p.lng]);
   }, [fit, pickup, destination, driver, me]);
 
-  const initialCenter = fitPoints[0] ?? [CAMPUS_CENTER.lat, CAMPUS_CENTER.lng];
+  // ไม่มีหมุดให้จัดมุมมอง → เริ่มที่จุดกลางของพื้นที่ที่เลือกอยู่
+  const { area } = useArea();
+  const center = areaCenter(area);
+  const initialCenter = fitPoints[0] ?? [center.lat, center.lng];
 
   return (
     <div className={clsx("relative isolate w-full overflow-hidden rounded-2xl bg-emerald-50", height, className)}>

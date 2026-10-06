@@ -1,10 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import {
-  LogOut,
   UserCheck,
   AlertCircle,
-  Bike,
   Siren,
   Phone,
   MapPin,
@@ -13,15 +10,14 @@ import {
   Check,
   Loader2,
   RefreshCw,
-  Map as MapIcon,
-  Users,
 } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
 import Card from "../components/Card";
+import { PageHeader } from "../components/AdminLayout";
 import { api } from "../services/api";
-import { getToken, clearToken } from "../lib/auth";
 import { socket, connectWithAuth } from "../lib/socket";
+import { useAdminSession } from "../lib/adminSession";
 
 const STATUS_LABEL = {
   PENDING: "รอคนขับ",
@@ -32,7 +28,8 @@ const STATUS_LABEL = {
 };
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
+  const { isSuper, areaId, area } = useAdminSession();
+  const showArea = isSuper && !areaId; // super ดูทุกพื้นที่ → โชว์คอลัมน์พื้นที่
   const [stats, setStats] = useState(null);
   const [pendingDrivers, setPendingDrivers] = useState(null);
   const [trips, setTrips] = useState(null);
@@ -41,36 +38,29 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
 
   const loadAll = useCallback(() => {
-    api.get("/admin/stats").then(({ data }) => setStats(data)).catch(() => {});
-    api.get("/admin/drivers/pending").then(({ data }) => setPendingDrivers(data)).catch(() => {});
-    api.get("/admin/trips").then(({ data }) => setTrips(data)).catch(() => {});
-    api.get("/admin/sos").then(({ data }) => setSosAlerts(data)).catch(() => {});
+    setError("");
+    const fail = (err) => setError(err.response?.data?.message || "โหลดข้อมูลบางส่วนไม่สำเร็จ");
+    api.get("/admin/stats").then(({ data }) => setStats(data)).catch(fail);
+    api.get("/admin/drivers/pending").then(({ data }) => setPendingDrivers(data)).catch(fail);
+    api.get("/admin/trips").then(({ data }) => setTrips(data)).catch(fail);
+    api.get("/admin/sos").then(({ data }) => setSosAlerts(data)).catch(fail);
   }, []);
 
   useEffect(() => {
-    if (!getToken()) {
-      navigate("/login");
-      return;
-    }
     loadAll();
-  }, [loadAll, navigate]);
+  }, [loadAll]);
 
-  // ฟัง SOS ใหม่แบบ real-time — ตรงตามที่ backend ออกแบบไว้ (io.to("admin").emit("sos:new", ...)) แต่ก่อนหน้านี้
-  // ไม่มีหน้าไหนใน web-dashboard ฟัง event นี้เลยสักที่ ทั้งที่ backend ทำงานถูกต้องมาตลอด
+  // SOS ใหม่แบบ real-time — backend ส่งเข้าห้องของพื้นที่ (admin:area:<id>) และห้อง super (admin:super)
+  // super ที่เลือกดูพื้นที่เดียวอยู่จะได้รับของทุกพื้นที่ จึงกรองซ้ำฝั่งนี้
   useEffect(() => {
     connectWithAuth();
     function handleNewSos(alert) {
+      if (areaId && alert.areaId && alert.areaId !== areaId) return;
       setSosAlerts((prev) => [alert, ...(prev ?? [])]);
     }
     socket.on("sos:new", handleNewSos);
     return () => socket.off("sos:new", handleNewSos);
-  }, []);
-
-  function handleLogout() {
-    clearToken();
-    navigate("/login");
-  }
-
+  }, [areaId]);
   async function approveDriver(id) {
     await api.post(`/admin/drivers/${id}/approve`);
     setPendingDrivers((prev) => prev.filter((d) => d.id !== id));
@@ -98,28 +88,17 @@ export default function AdminDashboard() {
   const openSosCount = (sosAlerts ?? []).filter((a) => a.status === "OPEN").length;
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="flex h-16 items-center justify-between border-b border-stone-200 bg-white px-6 shadow-sm">
-        <h1 className="flex items-center gap-2 text-2xl text-emerald-900">
-          <Bike className="h-6 w-6" /> KU VIN Admin
-        </h1>
-        <div className="flex items-center gap-4">
-          <Link to="/people" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
-            <Users className="h-4 w-4" /> ผู้ใช้และคนขับ
-          </Link>
-          <Link to="/landmarks" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
-            <MapIcon className="h-4 w-4" /> จัดการสถานที่
-          </Link>
+    <div>
+      <PageHeader
+        title="ภาพรวม"
+        subtitle={area ? `พื้นที่ ${area.displayName}` : isSuper ? "ทุกพื้นที่ในแพลตฟอร์ม" : undefined}
+        actions={
           <button onClick={loadAll} className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
             <RefreshCw className="h-4 w-4" /> รีเฟรช
           </button>
-          <Button variant="danger" onClick={handleLogout}>
-            <LogOut className="h-3.5 w-3.5" /> Logout
-          </Button>
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10">
+        }
+      />
+      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-8 py-8">
         {error && <p className="text-red-600">{error}</p>}
 
         <StatsGrid stats={stats} openSosCount={openSosCount} />
@@ -154,6 +133,7 @@ export default function AdminDashboard() {
                   <div>
                     <p className="text-2xl text-stone-900">{d.fullName}</p>
                     <p className="text-lg text-stone-500">เบอร์วิน {d.vinNumber}</p>
+                    {showArea && d.area && <p className="text-sm text-emerald-700">{d.area.displayName}</p>}
                   </div>
                 </div>
                 <Button className="flex-none" onClick={() => setReviewDriver(d)}>
@@ -175,6 +155,7 @@ export default function AdminDashboard() {
                 <thead className="bg-stone-200 text-base text-stone-900">
                   <tr>
                     <th className="px-6 py-4 font-medium">วันที่/เวลา</th>
+                    {showArea && <th className="px-6 py-4 font-medium">พื้นที่</th>}
                     <th className="px-6 py-4 font-medium">คนขับ</th>
                     <th className="px-6 py-4 font-medium">เส้นทาง</th>
                     <th className="px-6 py-4 text-right font-medium">ค่าโดยสาร</th>
@@ -187,6 +168,7 @@ export default function AdminDashboard() {
                   {trips.map((t) => (
                     <tr key={t.id} className={t.paymentStatus === "DISPUTED" ? "bg-rose-50" : ""}>
                       <td className="px-6 py-5 text-lg text-stone-900">{formatDateTime(t.requestedAt)}</td>
+                      {showArea && <td className="px-6 py-5 text-base text-stone-600">{t.area?.displayName ?? "-"}</td>}
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2">
                           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-xs text-green-950">
@@ -233,7 +215,7 @@ export default function AdminDashboard() {
             </div>
           )}
         </section>
-      </main>
+      </div>
 
       {reviewDriver && (
         <DriverReviewModal

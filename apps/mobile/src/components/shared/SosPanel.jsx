@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldAlert, Phone, CheckCircle2, AlertTriangle, X, Loader2 } from "lucide-react";
 import TopBar from "../layout/TopBar";
-import { emergencyContacts } from "../../lib/emergencyContacts";
+import { emergencyContactsFor } from "../../lib/emergencyContacts";
+import { useArea } from "../../context/AreaContext";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 
@@ -14,6 +15,7 @@ const LOGGABLE_NUMBERS = ["1669", "191"]; // ต้องตรงกับ VALI
 // tripContext (เฉพาะ sheet): { pickup, dropoff, driverName? } โชว์ให้เห็นว่ายังอยู่ในบริบททริปเดิม ไม่ได้หลุดไปไหน
 export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
   const hasSession = Boolean(getToken());
+  const emergencyContacts = emergencyContactsFor(useArea().area); // เบอร์ของพื้นที่ที่อยู่ + เบอร์ระดับประเทศ
   const [phase, setPhase] = useState("idle"); // idle | holding | sending | sent | error
   const [alertId, setAlertId] = useState(null);
   const [error, setError] = useState("");
@@ -137,7 +139,7 @@ export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">ติดต่อฉุกเฉิน</p>
         <div className="flex flex-col divide-y divide-white/10 rounded-2xl bg-white/5">
           {emergencyContacts.map((c) => (
-            <div key={c.label} className="flex items-center justify-between px-4 py-3.5">
+            <div key={`${c.label}-${c.phone}`} className="flex items-center justify-between px-4 py-3.5">
               <span className="text-sm font-medium">{c.label}</span>
               <a
                 href={`tel:${c.phone}`}

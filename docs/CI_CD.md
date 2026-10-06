@@ -14,7 +14,7 @@
 1. push ขึ้น `main` ที่ [github.com/Nawaphorn47/KUVIN](https://github.com/Nawaphorn47/KUVIN)
 2. **CI** (`.github/workflows/ci.yml`) รันอัตโนมัติ:
    - `apps/api`: เปิด Postgres ใน CI → `prisma migrate deploy` → seed → ชุดทดสอบ `test:queue`, `test:auth`,
-     `test:suspension`, `test:payment` (ตั้ง `SLIP_PROVIDER=mock` ให้เอง ไม่เปลืองโควตา EasySlip)
+     `test:platform`, `test:suspension`, `test:payment` (ตั้ง `SLIP_PROVIDER=mock` ให้เอง ไม่เปลืองโควตา EasySlip)
    - `apps/mobile`, `apps/web-dashboard`: `vite build`
 3. **CD**: ทุก service บน Railway เปิด "Wait for CI" ไว้ — CI ผ่านแล้ว Railway build Docker image ใหม่และ deploy ให้เอง
    (CI ไม่ผ่าน = ไม่ deploy) แต่ละ service build ใหม่เฉพาะเมื่อไฟล์ใน `watchPatterns` ของตัวเองเปลี่ยน

@@ -42,7 +42,8 @@ async function estimateFare(payload) {
   const route = await getRoute(pickup, destination);
   const fareInfo = calculateFare(area, { pickup, destination, routeDistanceKm: route.distanceKm });
   return {
-    area: { id: area.id, displayName: area.displayName },
+    // พื้นที่ที่ server เลือกจริงจากจุดรับ (อาจไม่ใช่พื้นที่ที่แอปเลือกไว้ ถ้าจุดรับอยู่ในพื้นที่อื่น) พร้อมอัตราที่ใช้คิด
+    area: { id: area.id, displayName: area.displayName, flatFare: area.flatFare, ratePerKm: area.ratePerKm },
     isWithinCampus: fareInfo.isWithinCampus,
     distanceKm: Number(fareInfo.distanceKm.toFixed(2)),
     fare: fareInfo.fare,
