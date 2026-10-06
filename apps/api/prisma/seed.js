@@ -10,6 +10,9 @@ const prisma = new PrismaClient();
 const BASE_LAT = 14.023;
 const BASE_LNG = 99.9739;
 
+// พื้นที่แรก (มก. กำแพงแสน) — migration 20261006000000_multi_area_platform สร้างไว้ด้วย id คงที่นี้
+const DEFAULT_AREA_ID = "area-ku-kps";
+
 const landmarks = [
   { name: "สำนักหอสมุด", detail: "อาคารสำนักหอสมุด", pos: [14.02543, 99.97459], isPopular: true },
   { name: "โรงอาหารกลาง", detail: "โรงอาหารกลาง", offset: [-0.001, 0.0012], isPopular: true },
@@ -35,15 +38,26 @@ const landmarks = [
 ];
 
 async function main() {
+  const area = await prisma.area.findUnique({ where: { id: DEFAULT_AREA_ID } });
+  if (!area) throw new Error(`ไม่พบพื้นที่ ${DEFAULT_AREA_ID} — ต้องรัน prisma migrate deploy ก่อน seed`);
+
   for (const l of landmarks) {
     const [lat, lng] = l.pos ?? [BASE_LAT + l.offset[0], BASE_LNG + l.offset[1]];
-    const exists = await prisma.landmark.findFirst({ where: { name: l.name } });
+    const exists = await prisma.landmark.findFirst({ where: { areaId: DEFAULT_AREA_ID, name: l.name } });
 
     // สถานที่ที่มีอยู่แล้วไม่แตะ — พิกัดอาจถูก admin ปักหมุดแก้ไว้ (หน้า "จัดการสถานที่") ห้าม seed เขียนทับ
     if (exists) continue;
 
     await prisma.landmark.create({
-      data: { name: l.name, detail: l.detail, lat, lng, isPopular: Boolean(l.isPopular), coordsVerified: Boolean(l.pos) },
+      data: {
+        areaId: DEFAULT_AREA_ID,
+        name: l.name,
+        detail: l.detail,
+        lat,
+        lng,
+        isPopular: Boolean(l.isPopular),
+        coordsVerified: Boolean(l.pos),
+      },
     });
   }
   console.log(`Seeded ${landmarks.length} landmarks.`);
@@ -59,11 +73,13 @@ async function main() {
 
   const existingAdmin = await prisma.admin.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
+    // แอดมินที่ seed สร้าง = super admin ของทั้งแพลตฟอร์ม (สร้างพื้นที่/แอดมินพื้นที่อื่นต่อจากหน้าแดชบอร์ด)
     await prisma.admin.create({
       data: {
         fullName: "ผู้ดูแลระบบ",
         email: adminEmail,
         passwordHash: await bcrypt.hash(adminPassword, 10),
+        role: "SUPER_ADMIN",
       },
     });
     console.log(`Seeded admin: ${adminEmail}${isProduction ? "" : " / admin1234 (เฉพาะ dev)"}`);
@@ -112,6 +128,7 @@ async function main() {
         fullName: d.fullName,
         phone: d.phone,
         passwordHash: await bcrypt.hash("driver1234", 10),
+        areaId: DEFAULT_AREA_ID,
         vinNumber: d.vinNumber,
         licensePlate: d.licensePlate,
         vehicleModel: "Honda Wave 125",

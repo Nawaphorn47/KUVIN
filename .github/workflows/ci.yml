@@ -71,6 +71,10 @@ jobs:
         working-directory: apps/api
         run: npm run test:auth
 
+      - name: ทดสอบหลายพื้นที่ + สิทธิ์แอดมิน + การเงินคนขับ (ไม่ต้องเปิด server)
+        working-directory: apps/api
+        run: npm run test:platform
+
       - name: เปิด API server (พื้นหลัง) สำหรับชุดทดสอบที่ยิง HTTP จริง
         working-directory: apps/api
         run: |

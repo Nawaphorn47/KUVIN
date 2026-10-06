@@ -34,12 +34,14 @@ const includeParties = {
 //  - SKIP LOCKED: แถวที่ transaction อื่นกำลังจัดการอยู่ (กำลังเสนองานให้ / กำลังรับงาน) จะถูกข้าม ไม่รอ
 //  - NOT EXISTS : คนที่มีข้อเสนอค้างอยู่กับคำขออื่นแล้ว ห้ามถูกเสนองานซ้อน (ครอบคลุมช่วงที่ transaction ก่อนหน้า commit แล้ว)
 //  - excludeDriverIds: คนที่ถูกเสนองานนี้ไปแล้ว (ปฏิเสธ/หมดเวลา) ไม่วนกลับมาในคำขอเดียวกัน
+//  - areaId: คิวแยกตามพื้นที่ — เสนองานให้เฉพาะคนขับที่สังกัดพื้นที่ของคำขอ
 // ---------------------------------------------------------------------------
-async function getNextDriverInQueue(tx, excludeDriverIds = []) {
+async function getNextDriverInQueue(tx, areaId, excludeDriverIds = []) {
   const rows = await tx.$queryRaw`
     SELECT d."id"
     FROM "drivers" d
-    WHERE d."isOnline"
+    WHERE d."areaId" = ${areaId}
+      AND d."isOnline"
       AND d."isAvailable"
       AND d."verificationStatus" = 'APPROVED'
       AND d."queueJoinedAt" IS NOT NULL
@@ -56,7 +58,7 @@ async function getNextDriverInQueue(tx, excludeDriverIds = []) {
 
 // เสนองานให้หัวคิวคนถัดไป (หรือยกเลิกคำขอถ้าไม่เหลือใครแล้ว) — ผู้เรียกต้องถือล็อกแถวคำขอนี้อยู่แล้ว
 async function dispatchInTx(tx, request, triedDriverIds) {
-  const nextId = await getNextDriverInQueue(tx, triedDriverIds);
+  const nextId = await getNextDriverInQueue(tx, request.areaId, triedDriverIds);
 
   if (!nextId) {
     const cancelled = await tx.serviceRequest.update({
@@ -102,7 +104,7 @@ async function publishDispatch(io, result) {
 async function dispatchRequest(requestId, io) {
   const result = await prisma.$transaction(async (tx) => {
     const [req] = await tx.$queryRaw`
-      SELECT "id", "status", "offeredDriverId", "triedDriverIds"
+      SELECT "id", "areaId", "status", "offeredDriverId", "triedDriverIds"
       FROM "service_requests" WHERE "id" = ${requestId} FOR UPDATE`;
     if (!req) return null;
     if (req.status !== "PENDING" || req.offeredDriverId) {
@@ -139,7 +141,8 @@ async function settleTimedOutDrivers(tx, anchorDriverId, timedOutIds) {
       FROM "drivers" a,
       LATERAL (
         SELECT MIN(x."queueJoinedAt") AS q FROM "drivers" x
-        WHERE x."isOnline" AND x."isAvailable" AND x."queueJoinedAt" > a."queueJoinedAt" AND x."id" <> ${id}
+        WHERE x."areaId" = a."areaId" AND x."isOnline" AND x."isAvailable"
+          AND x."queueJoinedAt" > a."queueJoinedAt" AND x."id" <> ${id}
       ) nxt
       WHERE t."id" = ${id} AND a."id" = ${anchor}
         AND t."isOnline" AND t."isAvailable" AND t."queueJoinedAt" IS NOT NULL`;
@@ -160,7 +163,7 @@ async function handleDriverResponse(driverId, response, io, { requestId } = {}) 
   const outcome = await prisma.$transaction(async (tx) => {
     // 1) ล็อกคำขอที่กำลังเสนอให้คนขับคนนี้ (ล็อกคำขอก่อนคนขับเสมอ)
     const rows = await tx.$queryRaw`
-      SELECT "id", "userId", "triedDriverIds", "timedOutDriverIds", "offerExpiresAt"
+      SELECT "id", "areaId", "userId", "triedDriverIds", "timedOutDriverIds", "offerExpiresAt"
       FROM "service_requests"
       WHERE "status" = 'PENDING' AND "offeredDriverId" = ${driverId}
         ${requestId ? Prisma.sql`AND "id" = ${requestId}` : Prisma.empty}
@@ -327,7 +330,7 @@ async function goOffline(driverId, io) {
   const result = await prisma.$transaction(async (tx) => {
     // ล็อกคำขอที่เสนอให้คนนี้อยู่ก่อน (ลำดับล็อกเดียวกับ handleDriverResponse) แล้วค่อยล็อกคนขับ
     const [req] = await tx.$queryRaw`
-      SELECT "id", "triedDriverIds" FROM "service_requests"
+      SELECT "id", "areaId", "triedDriverIds" FROM "service_requests"
       WHERE "status" = 'PENDING' AND "offeredDriverId" = ${driverId} FOR UPDATE`;
 
     await tx.$executeRaw`
@@ -346,14 +349,19 @@ async function goOffline(driverId, io) {
 // ภาพรวมคิว (หน้าคนขับ) + sweeper
 // ---------------------------------------------------------------------------
 async function getQueueOverview(driverId) {
+  // คิวของพื้นที่ที่คนขับคนนี้สังกัดเท่านั้น
+  const self = await prisma.driver.findUnique({ where: { id: driverId }, select: { areaId: true } });
+  if (!self) throw ApiError.notFound("Driver not found");
+  const { areaId } = self;
+
   const drivers = await prisma.driver.findMany({
-    where: { isOnline: true, isAvailable: true, verificationStatus: "APPROVED", queueJoinedAt: { not: null } },
+    where: { areaId, isOnline: true, isAvailable: true, verificationStatus: "APPROVED", queueJoinedAt: { not: null } },
     orderBy: [{ queueJoinedAt: "asc" }, { id: "asc" }],
     select: { id: true, fullName: true, vinNumber: true },
   });
 
   const activeOffer = await prisma.serviceRequest.findFirst({
-    where: { status: "PENDING", offeredDriverId: { not: null } },
+    where: { areaId, status: "PENDING", offeredDriverId: { not: null } },
     orderBy: { requestedAt: "asc" },
     select: { id: true, offeredDriverId: true, offerExpiresAt: true },
   });

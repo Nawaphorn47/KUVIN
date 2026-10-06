@@ -1,5 +1,26 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
+const { areaWhere, assertInScope } = require("../middlewares/adminScope");
+const { findForPoint } = require("./area.service");
+
+// room ของแอดมินที่ต้องเห็นเหตุในพื้นที่นี้ (ดู sockets/index.js) — super เห็นทุกพื้นที่เสมอ
+const adminRooms = (areaId) => (areaId ? ["admin:super", `admin:area:${areaId}`] : ["admin:super"]);
+
+// พื้นที่ของเหตุ: ทริปที่กำลังวิ่ง > พื้นที่ที่คนขับสังกัด > พื้นที่ที่ครอบคลุมพิกัด
+async function resolveAlertArea(actorType, actorId, { serviceRequestId, lat, lng }) {
+  if (serviceRequestId) {
+    const request = await prisma.serviceRequest.findUnique({ where: { id: serviceRequestId }, select: { areaId: true } });
+    if (request) return request.areaId;
+  }
+  if (actorType === "DRIVER") {
+    const driver = await prisma.driver.findUnique({ where: { id: actorId }, select: { areaId: true } });
+    if (driver) return driver.areaId;
+  }
+  if (typeof lat === "number" && typeof lng === "number") {
+    return (await findForPoint({ lat, lng }))?.id ?? null;
+  }
+  return null;
+}
 
 async function getActorProfile(actorType, actorId) {
   if (actorType === "USER") {
@@ -25,10 +46,13 @@ async function createAlert(actor, { lat, lng, note, serviceRequestId, contactedE
     throw ApiError.badRequest("contactedEmergencyNumber ต้องเป็น 1669 หรือ 191");
   }
 
+  const areaId = await resolveAlertArea(actorType, actor.id, { serviceRequestId, lat, lng });
+
   const alert = await prisma.sosAlert.create({
     data: {
       actorType,
       actorId: actor.id,
+      areaId,
       lat: typeof lat === "number" ? lat : null,
       lng: typeof lng === "number" ? lng : null,
       note: note || null,
@@ -38,7 +62,7 @@ async function createAlert(actor, { lat, lng, note, serviceRequestId, contactedE
   });
 
   const payload = await withActorInfo(alert);
-  io?.to("admin").emit("sos:new", payload);
+  io?.to(adminRooms(areaId)).emit("sos:new", payload);
 
   return payload;
 }
@@ -73,9 +97,9 @@ async function cancelOwnAlert(id, actor) {
   return withActorInfo(updated);
 }
 
-async function listAlerts({ status } = {}) {
+async function listAlerts(scope, { status } = {}) {
   const alerts = await prisma.sosAlert.findMany({
-    where: status ? { status } : {},
+    where: { ...areaWhere(scope), ...(status ? { status } : {}) },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -83,9 +107,10 @@ async function listAlerts({ status } = {}) {
   return Promise.all(alerts.map(withActorInfo));
 }
 
-async function resolveAlert(id, resolvedNote) {
+async function resolveAlert(scope, id, resolvedNote) {
   const alert = await prisma.sosAlert.findUnique({ where: { id } });
   if (!alert) throw ApiError.notFound("ไม่พบรายการแจ้งเหตุนี้");
+  assertInScope(scope, alert.areaId, "ไม่พบรายการแจ้งเหตุนี้");
   if (alert.status === "RESOLVED") throw ApiError.conflict("รายการนี้ถูกจัดการไปแล้ว");
 
   const updated = await prisma.sosAlert.update({

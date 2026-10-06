@@ -3,6 +3,7 @@ const { Router } = require("express");
 const router = Router();
 
 router.use("/auth", require("./auth.routes"));
+router.use("/areas", require("./area.routes"));
 router.use("/users", require("./user.routes"));
 router.use("/landmarks", require("./landmark.routes"));
 router.use("/routes", require("./route.routes"));

@@ -7,6 +7,7 @@ const { generatePaymentQr } = require("../utils/promptpay");
 
 const queue = require("./queue.service");
 const slip = require("./slip");
+const areaService = require("./area.service");
 
 const { includeParties } = queue;
 
@@ -24,7 +25,7 @@ async function resolvePoint({ landmarkId, lat, lng, address }) {
 
 const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "IN_PROGRESS"];
 
-// พรีวิวระยะทาง/ค่าโดยสารก่อนกดยืนยันจริง (ไม่เขียนลง DB)
+// พรีวิวระยะทาง/ค่าโดยสารก่อนกดยืนยันจริง (ไม่เขียนลง DB) — คิดตามอัตราของพื้นที่ที่ให้บริการจุดรับนี้
 async function estimateFare(payload) {
   const pickup = await resolvePoint({
     landmarkId: payload.pickupLandmarkId,
@@ -36,10 +37,12 @@ async function estimateFare(payload) {
     lat: payload.destinationLat,
     lng: payload.destinationLng,
   });
+  const area = await areaService.resolveForPickup(pickup, payload.areaId);
 
   const route = await getRoute(pickup, destination);
-  const fareInfo = calculateFare({ pickup, destination, routeDistanceKm: route.distanceKm });
+  const fareInfo = calculateFare(area, { pickup, destination, routeDistanceKm: route.distanceKm });
   return {
+    area: { id: area.id, displayName: area.displayName },
     isWithinCampus: fareInfo.isWithinCampus,
     distanceKm: Number(fareInfo.distanceKm.toFixed(2)),
     fare: fareInfo.fare,
@@ -70,13 +73,17 @@ async function createRequest(userId, payload, io) {
     address: payload.destinationAddress,
   });
 
-  // ค่าโดยสารนอกมหาวิทยาลัยคิดจากระยะทางตามถนนจริง (fallback เป็นเส้นตรงถ้าบริการแผนที่ไม่ตอบ)
+  // พื้นที่ที่ให้บริการ (เลือกจากจุดรับ) กำหนดทั้งอัตราค่าโดยสารและคิวคนขับที่จะเสนองาน
+  const area = await areaService.resolveForPickup(pickup, payload.areaId);
+
+  // ค่าโดยสารนอกเขตเหมาจ่ายคิดจากระยะทางตามถนนจริง (fallback เป็นเส้นตรงถ้าบริการแผนที่ไม่ตอบ)
   const route = await getRoute(pickup, destination);
-  const fareInfo = calculateFare({ pickup, destination, routeDistanceKm: route.distanceKm });
+  const fareInfo = calculateFare(area, { pickup, destination, routeDistanceKm: route.distanceKm });
 
   const request = await prisma.serviceRequest.create({
     data: {
       userId,
+      areaId: area.id,
       pickupLat: pickup.lat,
       pickupLng: pickup.lng,
       pickupAddress: pickup.address,
@@ -282,8 +289,8 @@ async function getById(requestId, actor) {
   });
   if (!request) throw ApiError.notFound("ไม่พบคำขอนี้");
 
+  // แอดมินดูรายละเอียดทริปผ่าน /api/admin/* ที่กรองตามพื้นที่แล้ว — ตรงนี้ให้เฉพาะคู่กรณีของทริป
   const allowed =
-    actor.role === "admin" ||
     (actor.role === "user" && request.userId === actor.id) ||
     (actor.role === "driver" && request.driverId === actor.id);
   if (!allowed) throw ApiError.forbidden("ไม่มีสิทธิ์เข้าถึงคำขอนี้");
@@ -310,8 +317,11 @@ async function listForDriver(driverId, { status } = {}) {
 // polling fallback (นอกเหนือจาก push ผ่าน socket) — ใช้ดูภาพรวมคิวทั้งหมดเฉย ๆ, "isMyTurn" บอกว่าอันไหน
 // ถึงตาตัวเองแล้วจริง ๆ (กดรับ/ปฏิเสธได้) ส่วนอันอื่นแค่รอดูสถานะ ยังกดรับไม่ได้จนกว่าจะถึงคิว
 async function listPending(driverId) {
+  const driver = driverId
+    ? await prisma.driver.findUnique({ where: { id: driverId }, select: { areaId: true } })
+    : null;
   const requests = await prisma.serviceRequest.findMany({
-    where: { status: "PENDING" },
+    where: { status: "PENDING", ...(driver ? { areaId: driver.areaId } : {}) },
     include: includeParties,
     orderBy: { requestedAt: "asc" },
   });

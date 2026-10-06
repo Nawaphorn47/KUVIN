@@ -1,5 +1,6 @@
 const asyncHandler = require("../utils/asyncHandler");
 const driverService = require("../services/driver.service");
+const financeService = require("../services/finance.service");
 
 exports.getById = asyncHandler(async (req, res) => {
   const driver = await driverService.getPublicDriver(req.params.id);
@@ -38,4 +39,29 @@ exports.updateFcmToken = asyncHandler(async (req, res) => {
 exports.updateProfile = asyncHandler(async (req, res) => {
   const driver = await driverService.updateProfile(req.auth.id, req.body);
   res.json(driver);
+});
+
+exports.finance = asyncHandler(async (req, res) => {
+  res.json(await financeService.getSummary(req.auth.id, req.query.period || "day"));
+});
+
+exports.updateVehicle = asyncHandler(async (req, res) => {
+  res.json(await financeService.updateVehicle(req.auth.id, req.body));
+});
+
+exports.expenses = asyncHandler(async (req, res) => {
+  res.json(await financeService.listExpenses(req.auth.id, { limit: req.query.limit }));
+});
+
+exports.createExpense = asyncHandler(async (req, res) => {
+  res.status(201).json(await financeService.createExpense(req.auth.id, req.body));
+});
+
+exports.updateExpense = asyncHandler(async (req, res) => {
+  res.json(await financeService.updateExpense(req.auth.id, req.params.id, req.body));
+});
+
+exports.deleteExpense = asyncHandler(async (req, res) => {
+  await financeService.deleteExpense(req.auth.id, req.params.id);
+  res.status(204).end();
 });

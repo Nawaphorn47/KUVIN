@@ -6,7 +6,7 @@ const { assertNotSuspended } = require("../utils/accountStatus");
 // - "drivers:available"        — คนขับที่ออนไลน์ทุกคน รับ event "service-request:new"
 // - "service-request:<id>"     — ผู้ใช้และคนขับของคำขอนั้นๆ รับ event "service-request:status"
 // - "user:<id>" / "driver:<id>" — ใช้โดย notification.service สำหรับ "notification:new"
-// - "admin"                     — admin ทุกคนที่ login แล้ว รับ event "sos:new" (เข้า room อัตโนมัติตอน connect)
+// - "admin:super" / "admin:area:<areaId>" — แอดมินรับ event "sos:new" ตามพื้นที่ที่ดูแล (เข้า room อัตโนมัติตอน connect)
 //
 // ทุก socket ต้องส่ง JWT ตอน connect ผ่าน `io(url, { auth: { token } })`
 // (token เดียวกับที่ใช้ใน Authorization header ของ REST API) — ห้ามให้ client
@@ -39,7 +39,17 @@ function registerSockets(io) {
   io.on("connection", (socket) => {
     const { id: authId, role } = socket.auth;
 
-    if (role === "admin") socket.join("admin");
+    // แอดมินเห็นเหตุ SOS เฉพาะพื้นที่ที่ดูแล — super อยู่ room รวม, แอดมินพื้นที่อยู่ room ของพื้นที่ตัวเอง
+    // (ไม่ await: handler ต้องผูก listener ด้านล่างทันที ไม่งั้น event ที่ client ส่งมาทันทีหลัง connect จะหาย)
+    if (role === "admin") {
+      prisma.admin
+        .findUnique({ where: { id: authId }, select: { role: true, areaId: true } })
+        .then((admin) => {
+          if (admin?.role === "SUPER_ADMIN") socket.join("admin:super");
+          else if (admin?.areaId) socket.join(`admin:area:${admin.areaId}`);
+        })
+        .catch((err) => console.error("admin room join failed:", err.message));
+    }
 
     socket.on("driver:online", () => {
       if (role !== "driver") return;

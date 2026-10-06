@@ -86,22 +86,27 @@ async function submitVerification(driverId, payload) {
   }
   if (vinNumber) assertNumericVinNumber(vinNumber);
 
-  const driver = await prisma.driver.update({
-    where: { id: driverId },
-    data: {
-      ...(vinNumber && { vinNumber }),
-      ...(licensePlate && { licensePlate }),
-      ...(vehicleModel && { vehicleModel }),
-      photoUrl,
-      idCardPhotoUrl,
-      driverLicensePhotoUrl,
-      vehiclePhotoUrl,
-      platePhotoUrl,
-      verificationStatus: "PENDING",
-      rejectionReason: null,
-    },
-  });
-  return sanitizeDriver(driver);
+  try {
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        ...(vinNumber && { vinNumber }),
+        ...(licensePlate && { licensePlate }),
+        ...(vehicleModel && { vehicleModel }),
+        photoUrl,
+        idCardPhotoUrl,
+        driverLicensePhotoUrl,
+        vehiclePhotoUrl,
+        platePhotoUrl,
+        verificationStatus: "PENDING",
+        rejectionReason: null,
+      },
+    });
+    return sanitizeDriver(driver);
+  } catch (err) {
+    if (err?.code === "P2002") throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้`);
+    throw err;
+  }
 }
 
 async function updateFcmToken(driverId, fcmToken) {

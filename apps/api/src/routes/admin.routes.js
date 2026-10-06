@@ -1,10 +1,12 @@
 const { Router } = require("express");
 const requireAuth = require("../middlewares/auth");
+const { adminScope, requireSuper } = require("../middlewares/adminScope");
 const ctrl = require("../controllers/admin.controller");
 
 const router = Router();
 
-router.use(requireAuth(["admin"]));
+// ทุก route ต้องเป็นแอดมิน และถูกจำกัดข้อมูลตามพื้นที่ที่ดูแล (ดู middlewares/adminScope.js)
+router.use(requireAuth(["admin"]), adminScope);
 
 router.get("/stats", ctrl.stats);
 router.get("/users", ctrl.users);
@@ -28,5 +30,17 @@ router.delete("/landmarks/:id", ctrl.deleteLandmark);
 
 router.get("/sos", ctrl.sosList);
 router.post("/sos/:id/resolve", ctrl.resolveSos);
+
+// พื้นที่: แอดมินพื้นที่ดู/แก้ค่าพื้นที่ตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ ขอบเขต) สร้างใหม่ได้เฉพาะ super
+router.get("/areas", ctrl.areas);
+router.get("/areas/:id", ctrl.area);
+router.post("/areas", requireSuper, ctrl.createArea);
+router.patch("/areas/:id", ctrl.updateArea);
+
+// บัญชีแอดมิน: super เท่านั้น
+router.get("/admins", requireSuper, ctrl.admins);
+router.post("/admins", requireSuper, ctrl.createAdmin);
+router.patch("/admins/:id", requireSuper, ctrl.updateAdmin);
+router.delete("/admins/:id", requireSuper, ctrl.deleteAdmin);
 
 module.exports = router;

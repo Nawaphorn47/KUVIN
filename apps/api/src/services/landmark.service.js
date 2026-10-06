@@ -1,9 +1,12 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
+const { areaWhere, assertInScope, targetArea } = require("../middlewares/adminScope");
 
-async function listLandmarks({ popularOnly = false, query } = {}) {
+// สถานที่ของพื้นที่เดียว (แอปส่ง areaId ของพื้นที่ที่เลือกอยู่) — ไม่ส่ง areaId = ทุกพื้นที่ที่เปิดให้บริการ
+async function listLandmarks({ areaId, popularOnly = false, query } = {}) {
   return prisma.landmark.findMany({
     where: {
+      ...(areaId ? { areaId } : { area: { isActive: true } }),
       ...(popularOnly ? { isPopular: true } : {}),
       ...(query
         ? { OR: [{ name: { contains: query } }, { detail: { contains: query } }] }
@@ -13,7 +16,7 @@ async function listLandmarks({ popularOnly = false, query } = {}) {
   });
 }
 
-// ---- admin: จัดการสถานที่ ----
+// ---- admin: จัดการสถานที่ (เฉพาะพื้นที่ในขอบเขตของแอดมินคนนั้น) ----
 // พิกัดต้องอยู่ในช่วงที่เป็นไปได้ในไทย (กันพิมพ์สลับ lat/lng หรือ typo ที่ทำให้คำนวณค่าโดยสารเพี้ยนทั้งระบบ)
 const LAT_RANGE = [5, 21];
 const LNG_RANGE = [97, 106];
@@ -42,21 +45,33 @@ function cleanInput(body, { partial }) {
   return out;
 }
 
-async function createLandmark(body) {
-  return prisma.landmark.create({ data: cleanInput(body, { partial: false }) });
+async function listForAdmin(scope) {
+  return prisma.landmark.findMany({ where: areaWhere(scope), orderBy: { name: "asc" } });
 }
 
-async function updateLandmark(id, body) {
+async function createLandmark(scope, body) {
+  const areaId = targetArea(scope, body.areaId);
+  const area = await prisma.area.findUnique({ where: { id: areaId }, select: { id: true } });
+  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก");
+  return prisma.landmark.create({ data: { ...cleanInput(body, { partial: false }), areaId } });
+}
+
+async function findInScope(scope, id) {
   const existing = await prisma.landmark.findUnique({ where: { id } });
   if (!existing) throw ApiError.notFound("ไม่พบสถานที่นี้");
+  assertInScope(scope, existing.areaId, "ไม่พบสถานที่นี้");
+  return existing;
+}
+
+async function updateLandmark(scope, id, body) {
+  await findInScope(scope, id);
   return prisma.landmark.update({ where: { id }, data: cleanInput(body, { partial: true }) });
 }
 
 // คำขอที่เคยจองแล้วเก็บพิกัดของตัวเองไว้ในแถวคำขอ (ไม่ได้อ้างอิงตาราง landmarks) จึงลบสถานที่ได้โดยประวัติไม่กระทบ
-async function deleteLandmark(id) {
-  const existing = await prisma.landmark.findUnique({ where: { id } });
-  if (!existing) throw ApiError.notFound("ไม่พบสถานที่นี้");
+async function deleteLandmark(scope, id) {
+  await findInScope(scope, id);
   await prisma.landmark.delete({ where: { id } });
 }
 
-module.exports = { listLandmarks, createLandmark, updateLandmark, deleteLandmark };
+module.exports = { listLandmarks, listForAdmin, createLandmark, updateLandmark, deleteLandmark };

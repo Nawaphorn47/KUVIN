@@ -1,15 +1,6 @@
-// MVP geo helpers.
-// NOTE: proposal บทที่ 3.2 ระบุให้ตรวจขอบเขตมหาวิทยาลัยด้วย PostGIS (polygon จริง) —
-// ตอนนี้ยังไม่มีข้อมูลขอบเขตแคมปัสจริง จึงใช้ "ระยะทางจากจุดศูนย์กลางแคมปัส" เป็นค่าประมาณไปก่อน
-// ค่อยเปลี่ยนเป็น ST_Contains กับ polygon จริงทีหลังโดยไม่ต้องแก้ signature ของฟังก์ชันนี้
-
-// พิกัดจริงของ มก. กำแพงแสนจาก OpenStreetMap (way 259034448) — ค่าเดิม 14.0206, 99.9679 คลาดจากของจริงราว 650 ม.
-const CAMPUS_CENTER = { lat: 14.023, lng: 99.9739 };
-const CAMPUS_RADIUS_KM = 2; // รัศมีโดยประมาณของพื้นที่ มก. กำแพงแสน
-
-const FLAT_CAMPUS_FARE = 20; // บาท เหมาจ่ายในมหาวิทยาลัย ตาม proposal 3.1.1.1 ข้อ 6
-const OUT_OF_CAMPUS_RATE_PER_KM = 10; // บาท/กม. — ค่าเริ่มต้น (ของจริงผู้ให้บริการกำหนดเองตาม proposal)
-const OUT_OF_CAMPUS_MIN_FARE = 20;
+// geo helpers — ค่าโดยสารและขอบเขตพื้นที่มาจากแถว Area ของแต่ละพื้นที่ (เดิมฝังค่า มก. กำแพงแสนไว้ในไฟล์นี้)
+// NOTE: proposal บทที่ 3.2 ระบุให้ตรวจขอบเขตด้วย PostGIS (polygon จริง) — ตอนนี้ใช้ "รัศมีจากจุดกลางของพื้นที่"
+// เป็นค่าประมาณ เพราะยังไม่มีข้อมูลขอบเขตจริง ค่อยเปลี่ยนเป็น ST_Contains กับ polygon ทีหลังได้ที่ isWithinFlatZone จุดเดียว
 
 function toRad(deg) {
   return (deg * Math.PI) / 180;
@@ -28,21 +19,29 @@ function distanceKm(a, b) {
   return R * 2 * Math.asin(Math.sqrt(h));
 }
 
-function isWithinCampus(point) {
-  return distanceKm(CAMPUS_CENTER, point) <= CAMPUS_RADIUS_KM;
+const areaCenter = (area) => ({ lat: area.centerLat, lng: area.centerLng });
+
+// อยู่ในเขตเหมาจ่ายของพื้นที่ (เช่น ในมหาวิทยาลัย)
+function isWithinFlatZone(area, point) {
+  return distanceKm(areaCenter(area), point) <= area.flatRadiusKm;
+}
+
+// จุดนี้อยู่ในระยะที่วินของพื้นที่นี้ไปรับได้
+function isWithinService(area, point) {
+  return distanceKm(areaCenter(area), point) <= area.serviceRadiusKm;
 }
 
 // routeDistanceKm = ระยะทางตามถนนจริงจาก OSRM (ดู routing.js) ถ้าไม่ส่งมาจะใช้ระยะเส้นตรง
-function calculateFare({ pickup, destination, routeDistanceKm }) {
-  const withinCampus = isWithinCampus(pickup) && isWithinCampus(destination);
+function calculateFare(area, { pickup, destination, routeDistanceKm }) {
+  const withinFlatZone = isWithinFlatZone(area, pickup) && isWithinFlatZone(area, destination);
   const distance = routeDistanceKm ?? distanceKm(pickup, destination);
 
-  if (withinCampus) {
-    return { isWithinCampus: true, distanceKm: distance, fare: FLAT_CAMPUS_FARE };
+  if (withinFlatZone) {
+    return { isWithinCampus: true, distanceKm: distance, fare: area.flatFare };
   }
 
-  const fare = Math.max(OUT_OF_CAMPUS_MIN_FARE, Math.round(distance * OUT_OF_CAMPUS_RATE_PER_KM));
+  const fare = Math.max(area.minFare, Math.round(distance * area.ratePerKm));
   return { isWithinCampus: false, distanceKm: distance, fare };
 }
 
-module.exports = { distanceKm, isWithinCampus, calculateFare, CAMPUS_CENTER };
+module.exports = { distanceKm, areaCenter, isWithinFlatZone, isWithinService, calculateFare };

@@ -9,6 +9,7 @@ const q = require("../src/services/queue.service");
 
 const B = `http://localhost:${process.env.PORT || 4000}/api`;
 const PREFIX = "0998TEST";
+const AREA = "area-ku-kps"; // พื้นที่แรกที่ migration สร้างไว้
 let passed = 0;
 
 async function call(method, path, token, body) {
@@ -56,7 +57,7 @@ async function main() {
   });
   const mkDriver = (n) =>
     prisma.driver.create({
-      data: { fullName: `T-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, vinNumber: `S${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED" },
+      data: { fullName: `T-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, areaId: AREA, vinNumber: `S${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED" },
     });
   const [d1, d2] = [await mkDriver(1), await mkDriver(2)];
 
@@ -131,7 +132,7 @@ async function main() {
     await test("ผู้ใช้ที่กำลังมีทริปวิ่งอยู่ระงับไม่ได้ (409)", async () => {
       await q.goOnline(d1.id);
       const r = await prisma.serviceRequest.create({
-        data: { userId: user.id, driverId: d1.id, status: "IN_PROGRESS", pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
+        data: { userId: user.id, driverId: d1.id, areaId: AREA, status: "IN_PROGRESS", pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
       });
       const s = await call("POST", `/admin/users/${user.id}/suspend`, A, { reason: "x" });
       assert.equal(s.status, 409);
@@ -142,7 +143,7 @@ async function main() {
 
     await test("ผู้ใช้ที่มีคำขอ PENDING: ระงับแล้วคำขอถูกยกเลิกให้อัตโนมัติ", async () => {
       const r = await prisma.serviceRequest.create({
-        data: { userId: user2.id, status: "PENDING", pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
+        data: { userId: user2.id, areaId: AREA, status: "PENDING", pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
       });
       assert.equal((await call("POST", `/admin/users/${user2.id}/suspend`, A, { reason: "ทดสอบ" })).status, 200);
       const cur = await prisma.serviceRequest.findUnique({ where: { id: r.id } });
@@ -193,7 +194,7 @@ async function main() {
       await q.goOnline(d1.id);
       await q.goOnline(d2.id);
       const r = await prisma.serviceRequest.create({
-        data: { userId: user.id, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
+        data: { userId: user.id, areaId: AREA, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
       });
       const offered = await q.dispatchRequest(r.id, null);
       assert.equal(offered.offeredDriverId, d1.id);

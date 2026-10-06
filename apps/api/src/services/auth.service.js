@@ -166,7 +166,7 @@ async function resetPassword({ email: rawEmail, code, newPassword }) {
   return { message: "เปลี่ยนรหัสผ่านสำเร็จ" };
 }
 
-async function registerDriver({ fullName, phone, password, vinNumber, licensePlate, vehicleModel, promptPayId }) {
+async function registerDriver({ fullName, phone, password, areaId, vinNumber, licensePlate, vehicleModel, promptPayId }) {
   if (!fullName || !vinNumber || !licensePlate) {
     throw ApiError.badRequest("fullName, vinNumber, licensePlate จำเป็นต้องระบุ");
   }
@@ -176,11 +176,26 @@ async function registerDriver({ fullName, phone, password, vinNumber, licensePla
   if (promptPayId && !isValidPromptPayId(promptPayId)) {
     throw ApiError.badRequest("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
   }
+  // คนขับสังกัดพื้นที่เดียว (คิวรับงาน + แอดมินที่อนุมัติ) — เลือกจากพื้นที่ที่เปิดให้บริการอยู่
+  if (!areaId) throw ApiError.badRequest("กรุณาเลือกพื้นที่ที่จะรับงาน");
+  const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
+  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  const driver = await prisma.driver.create({
-    data: { fullName, phone, passwordHash, vinNumber, licensePlate, vehicleModel, promptPayId },
-  });
+  let driver;
+  try {
+    driver = await prisma.driver.create({
+      data: { fullName, phone, passwordHash, areaId, vinNumber, licensePlate, vehicleModel, promptPayId },
+    });
+  } catch (err) {
+    // ชนกับ unique (เบอร์โทรทั้งระบบ / เบอร์วินภายในพื้นที่) — บอกให้ชัดว่าซ้ำตรงไหน
+    if (err?.code === "P2002") {
+      const target = String(err.meta?.target ?? "");
+      if (target.includes("vinNumber")) throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้`);
+      if (target.includes("phone")) throw ApiError.conflict("เบอร์โทรศัพท์นี้สมัครเป็นคนขับไปแล้ว");
+    }
+    throw err;
+  }
 
   return { driver: sanitizeDriver(driver), token: issueToken(driver.id, "driver") };
 }
@@ -202,7 +217,15 @@ async function loginAdmin({ email, password }) {
   if (!admin || !(await bcrypt.compare(password, admin.passwordHash))) {
     throw ApiError.unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
-  return { admin: { id: admin.id, fullName: admin.fullName, email: admin.email }, token: issueToken(admin.id, "admin") };
+  return { admin: await adminProfile(admin), token: issueToken(admin.id, "admin") };
+}
+
+// โปรไฟล์แอดมินที่หน้าแดชบอร์ดใช้ตัดสินว่าจะโชว์เมนู super (จัดการพื้นที่/แอดมิน) และตัวเลือกพื้นที่หรือไม่
+async function adminProfile(admin) {
+  const area = admin.areaId
+    ? await prisma.area.findUnique({ where: { id: admin.areaId }, select: { id: true, displayName: true } })
+    : null;
+  return { id: admin.id, fullName: admin.fullName, email: admin.email, role: admin.role, area };
 }
 
 async function getMe({ id, role }) {
@@ -219,7 +242,8 @@ async function getMe({ id, role }) {
   if (role === "admin") {
     const admin = await prisma.admin.findUnique({ where: { id } });
     if (!admin) throw ApiError.notFound("Admin not found");
-    return { role, id: admin.id, fullName: admin.fullName, email: admin.email };
+    const { role: adminRole, ...profile } = await adminProfile(admin);
+    return { role, adminRole, ...profile };
   }
   throw ApiError.badRequest("Unknown role");
 }

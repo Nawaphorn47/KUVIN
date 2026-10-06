@@ -6,6 +6,7 @@ const prisma = require("../src/config/prisma");
 const q = require("../src/services/queue.service");
 
 const PREFIX = "0999TEST";
+const AREA = "area-ku-kps"; // พื้นที่แรกที่ migration สร้างไว้ (คิวแยกตามพื้นที่)
 let passed = 0;
 async function test(name, fn) {
   try {
@@ -25,6 +26,7 @@ async function mkDriver(name) {
       fullName: `T-${name}`,
       phone: `${PREFIX}${name}`,
       passwordHash: "x",
+      areaId: AREA,
       vinNumber: `T${name}${Date.now() % 100000}`,
       licensePlate: "T",
       verificationStatus: "APPROVED",
@@ -59,7 +61,7 @@ async function mkRequest() {
     data: { fullName: "T-user", phone: `${PREFIX}U${++userSeq}`, email: `t${userSeq}-${Date.now()}@ku.th`, passwordHash: "x" },
   });
   const r = await prisma.serviceRequest.create({
-    data: { userId: user.id, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
+    data: { userId: user.id, areaId: AREA, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1, fare: 20 },
   });
   return q.dispatchRequest(r.id, null);
 }

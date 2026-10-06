@@ -222,12 +222,12 @@ async function main() {
       prisma.user.create({ data: { fullName: `P-user${n}`, phone: `${PREFIX}U${n}`, email: `pay-u${n}-${Date.now()}@ku.th`, passwordHash } });
     const mkDriver = (n, promptPayId) =>
       prisma.driver.create({
-        data: { fullName: `P-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, vinNumber: `P${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED", promptPayId },
+        data: { fullName: `P-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, areaId: "area-ku-kps", vinNumber: `P${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED", promptPayId },
       });
     const mkTrip = (user, driver, overrides = {}) =>
       prisma.serviceRequest.create({
         data: {
-          userId: user.id, driverId: driver?.id, status: "COMPLETED", fare: 20, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1,
+          userId: user.id, driverId: driver?.id, areaId: "area-ku-kps", status: "COMPLETED", fare: 20, pickupLat: 14, pickupLng: 99, destinationLat: 14.1, destinationLng: 99.1,
           acceptedAt: new Date(Date.now() - 20 * 60 * 1000), completedAt: new Date(), ...overrides,
         },
       });
