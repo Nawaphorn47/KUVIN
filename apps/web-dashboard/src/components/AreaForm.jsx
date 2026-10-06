@@ -196,13 +196,13 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
         <Section title="ค่าโดยสาร" hint="ทริปที่จุดรับและปลายทางอยู่ในเขตเหมาจ่ายคิดราคาเดียว นอกเขตคิดตามระยะทาง">
           <div className="grid grid-cols-3 gap-3">
             <Field label="เหมาจ่ายในเขต (บาท)">
-              <input type="number" min="0" step="1" value={form.flatFare} onChange={(e) => set({ flatFare: e.target.value })} className={inputCls} />
+              <input type="number" min="0" step="any" value={form.flatFare} onChange={(e) => set({ flatFare: e.target.value })} className={inputCls} />
             </Field>
             <Field label="นอกเขต (บาท/กม.)">
-              <input type="number" min="0" step="0.5" value={form.ratePerKm} onChange={(e) => set({ ratePerKm: e.target.value })} className={inputCls} />
+              <input type="number" min="0" step="any" value={form.ratePerKm} onChange={(e) => set({ ratePerKm: e.target.value })} className={inputCls} />
             </Field>
             <Field label="ขั้นต่ำนอกเขต (บาท)">
-              <input type="number" min="0" step="1" value={form.minFare} onChange={(e) => set({ minFare: e.target.value })} className={inputCls} />
+              <input type="number" min="0" step="any" value={form.minFare} onChange={(e) => set({ minFare: e.target.value })} className={inputCls} />
             </Field>
           </div>
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
@@ -296,10 +296,10 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
               <input value={form.centerLng} onChange={(e) => set({ centerLng: e.target.value })} inputMode="decimal" className={inputCls} />
             </Field>
             <Field label="รัศมีเขตเหมาจ่าย (กม.)">
-              <input type="number" min="0.1" step="0.1" value={form.flatRadiusKm} onChange={(e) => set({ flatRadiusKm: e.target.value })} className={inputCls} />
+              <input type="number" min="0.1" step="any" value={form.flatRadiusKm} onChange={(e) => set({ flatRadiusKm: e.target.value })} className={inputCls} />
             </Field>
             <Field label="รัศมีให้บริการ (กม.)">
-              <input type="number" min="0.1" step="0.5" value={form.serviceRadiusKm} onChange={(e) => set({ serviceRadiusKm: e.target.value })} className={inputCls} />
+              <input type="number" min="0.1" step="any" value={form.serviceRadiusKm} onChange={(e) => set({ serviceRadiusKm: e.target.value })} className={inputCls} />
             </Field>
           </div>
         </Section>

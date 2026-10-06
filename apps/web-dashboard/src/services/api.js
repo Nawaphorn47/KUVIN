@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getToken } from "../lib/auth";
+import { getToken, clearToken } from "../lib/auth";
 
 // fallback ใช้ hostname เดียวกับที่เปิดหน้าเว็บอยู่ (ไม่ hardcode "localhost") — รองรับเข้าจากเครื่องอื่นในวง
 // LAN เดียวกันผ่าน IP เครื่อง dev ได้โดยไม่ต้องตั้งค่าอะไรเพิ่ม (ดูเหตุผลเดียวกันใน apps/mobile/src/lib/api.js)
@@ -29,6 +29,11 @@ api.interceptors.response.use(
   (error) => {
     const data = error.response?.data;
     if (data && typeof data === "object" && data.error && !data.message) data.message = data.error;
+    // token หมดอายุ/ถูกลบบัญชีระหว่างใช้งาน → กลับหน้าล็อกอิน (ยกเว้นตอนกำลังล็อกอินเอง ให้หน้า login แสดง error)
+    if (error.response?.status === 401 && !error.config?.url?.includes("/auth/admin/login")) {
+      clearToken();
+      if (window.location.pathname !== "/login") window.location.assign("/login");
+    }
     return Promise.reject(error);
   }
 );

@@ -554,7 +554,7 @@ function ExpenseSheet({ expense, onClose }) {
             type="number"
             inputMode="decimal"
             min="0"
-            step="0.01"
+            step="any"
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -570,7 +570,7 @@ function ExpenseSheet({ expense, onClose }) {
                 type="number"
                 inputMode="decimal"
                 min="0"
-                step="0.01"
+                step="any"
                 placeholder="ไม่บังคับ"
                 value={liters}
                 onChange={(e) => setLiters(e.target.value)}
@@ -580,6 +580,7 @@ function ExpenseSheet({ expense, onClose }) {
                 type="number"
                 inputMode="numeric"
                 min="0"
+                step="any"
                 placeholder="ไม่บังคับ"
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
@@ -648,7 +649,7 @@ function VehicleSheet({ fuel, onClose }) {
           inputMode="decimal"
           min="5"
           max="150"
-          step="0.1"
+          step="any"
           placeholder="เช่น 45"
           value={kmpl}
           onChange={(e) => setKmpl(e.target.value)}
@@ -659,7 +660,7 @@ function VehicleSheet({ fuel, onClose }) {
           inputMode="decimal"
           min="1"
           max="200"
-          step="0.01"
+          step="any"
           placeholder="เช่น 35.50"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
