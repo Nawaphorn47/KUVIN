@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Bike, Power, Hash, LogIn, AlertTriangle, Loader2 } from "lucide-react";
-import Screen from "../../components/layout/Screen";
+import { AlertTriangle, Loader2, LogIn, Power, Star } from "lucide-react";
+import clsx from "clsx";
 import BottomNav from "../../components/layout/BottomNav";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import MapView from "../../components/shared/MapView";
-import { useGeolocation } from "../../lib/useGeolocation";
-import { areaCenter, isWithinService } from "../../lib/geo";
-import { useArea } from "../../context/AreaContext";
+import StopNumber from "../../components/ui/StopNumber";
 import QueueRow from "../../components/shared/QueueRow";
+import QueueSummary from "../../components/shared/QueueSummary";
 import AreaSwitcher from "../../components/shared/AreaSwitcher";
 import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { useQueueOverview } from "../../lib/useQueueOverview";
 import { useDriverPresence } from "../../context/DriverPresenceContext";
 import { useResumeActiveTrip } from "../../lib/useResumeActiveTrip";
-import clsx from "clsx";
 
 const PREVIEW_ROWS = 4;
 
@@ -47,18 +42,13 @@ export default function DriverHome() {
   const [today, setToday] = useState(null); // { income, trips, minutes } ของวันนี้ (null = ยังโหลดไม่เสร็จ/ไม่มี session)
   const [toggleError, setToggleError] = useState("");
   const hasSession = Boolean(getToken());
-  // สถานะออนไลน์+การรอฟังงานใหม่ย้ายไปอยู่ระดับ App แล้ว (DriverPresenceContext) ทำงานได้ตลอดไม่ว่าจะเปิด
-  // หน้าไหนอยู่ — หน้านี้แค่อ่านค่ามาโชว์/ใช้ปุ่มสลับเฉย ๆ
+  // สถานะออนไลน์+การรอฟังงานใหม่อยู่ระดับ App (DriverPresenceContext) ทำงานได้ตลอดไม่ว่าจะเปิดหน้าไหนอยู่
+  // หน้านี้แค่อ่านค่ามาโชว์/ใช้ปุ่มสลับ
   const { online, notice, toggleOnline: setPresence } = useDriverPresence();
-  const { area } = useArea(); // พื้นที่ที่คนขับสังกัด
-  const { position: gpsPos } = useGeolocation();
-  const myMapPos = isWithinService(area, gpsPos) ? gpsPos : null; // นอกพื้นที่/ไม่มี GPS → แสดงจุดกลางพื้นที่เฉย ๆ
-  const mapCenter = myMapPos ?? areaCenter(area);
   const { overview, error: queueError } = useQueueOverview(hasSession && online === true);
   // มีทริปที่รับไว้แล้วยังไม่จบ (หรือจบแล้วยังไม่ได้เงิน) ค้างอยู่ไหม — เช่นรีเฟรชหน้ากลางทริป — พาไปหน้านั้นเลย
   const checkingActiveTrip = useResumeActiveTrip("driver");
 
-  // ดึงโปรไฟล์คนขับจริงตอนมี session (แทนข้อมูล mock) — จะได้เบอร์วิน/คะแนนจริงตามบัญชีที่ login อยู่
   useEffect(() => {
     if (!hasSession) return;
     api
@@ -80,164 +70,159 @@ export default function DriverHome() {
     }
   }
 
-  // ไม่ fallback เป็นข้อมูล mock — คนขับที่ยังไม่มีคะแนนต้องเห็น "-" ไม่ใช่คะแนนปลอม 4.8
-  const displayName = profile?.fullName ?? "";
-  const vinNumber = profile?.vinNumber ?? "-";
+  // ไม่ fallback เป็นข้อมูล mock — คนขับที่ยังไม่มีคะแนนต้องเห็น "-" ไม่ใช่คะแนนปลอม
+  const vinNumber = profile?.vinNumber;
   const rating = profile?.ratingAvg;
 
   if (checkingActiveTrip) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      <div className="flex flex-1 items-center justify-center bg-slate-50">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-600" aria-label="กำลังโหลด" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <Screen padded={false} className="gap-4 px-5 pb-4 pt-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <Bike className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-xs text-slate-400">{displayName}</p>
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <span className="flex items-center gap-1">
-                  <Hash className="h-3 w-3 text-slate-400" /> {vinNumber}
-                </span>
-                <span className="flex items-center gap-0.5 text-amber-500">
-                  <Star className="h-3.5 w-3.5 fill-amber-400" /> {rating ?? "-"}
-                </span>
-              </div>
-            </div>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      {/* แผ่นป้ายหัว: ตัวฉัน (เสื้อวิน/คะแนน) → ปุ่มออนไลน์ใหญ่ → ลำดับคิวเป็นเลขใหญ่ */}
+      <header className="flex-none bg-brand-600 px-4 pb-5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
+        <div className="flex items-center gap-3">
+          {vinNumber ? <StopNumber n={vinNumber} size="lg" className="border-white" /> : <span className="h-12 w-12" />}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-bold leading-tight">{profile?.fullName ?? "คนขับ"}</p>
+            <p className="tabular flex items-center gap-1 text-sm text-brand-100">
+              <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" aria-hidden="true" />
+              {rating ?? "-"} · เสื้อวินเบอร์ {vinNumber ?? "-"}
+            </p>
           </div>
-          <button
-            onClick={toggleOnline}
-            disabled={!hasSession || online === null}
-            className={clsx(
-              "flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold disabled:opacity-40",
-              online ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
-            )}
-          >
-            <Power className="h-3.5 w-3.5" />
-            {online === null ? "กำลังโหลด..." : online ? "ออนไลน์" : "ออฟไลน์"}
-          </button>
+        </div>
+        <div className="mt-3">
+          <AreaSwitcher readOnly tone="dark" />
         </div>
 
+        {hasSession && (
+          <button
+            type="button"
+            onClick={toggleOnline}
+            disabled={online === null}
+            aria-pressed={online === true}
+            className={clsx(
+              "mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl text-lg font-bold transition-all active:scale-[0.98] disabled:opacity-60",
+              online ? "bg-white text-brand-800 shadow-sticker" : "bg-brand-800 text-white ring-2 ring-white/40"
+            )}
+          >
+            {online ? (
+              <>
+                <span className="relative flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand-600" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-brand-600" />
+                </span>
+                ออนไลน์อยู่ · แตะเพื่อปิดรับงาน
+              </>
+            ) : (
+              <>
+                <Power className="h-5 w-5" aria-hidden="true" />
+                {online === null ? "กำลังโหลด..." : "แตะเพื่อเริ่มรับงาน"}
+              </>
+            )}
+          </button>
+        )}
+
         {(toggleError || notice) && (
-          <p className="flex items-start gap-1.5 text-xs text-red-600">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none" /> {toggleError || notice}
+          <p role="alert" className="mt-3 flex items-start gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-here">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" /> {toggleError || notice}
           </p>
         )}
 
-        {/* พื้นที่ที่สังกัด — คนขับรับงานได้เฉพาะคิวของพื้นที่นี้ เปลี่ยนเองไม่ได้ */}
-        <div className="flex items-center justify-between gap-2">
-          <AreaSwitcher readOnly />
-          {area && <span className="flex-none text-xs text-slate-400">เหมาจ่าย {area.flatFare} ฿</span>}
-        </div>
+        {online && overview && (
+          <div className="mt-4 border-t border-white/20 pt-4">
+            <QueueSummary overview={overview} />
+          </div>
+        )}
+      </header>
 
-        <MapView height="h-40" me={myMapPos} fit={[[mapCenter.lat, mapCenter.lng]]} />
-      </Screen>
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        {!hasSession && (
+          <button
+            type="button"
+            onClick={() => navigate("/login", { state: { role: "driver" } })}
+            className="flex w-full items-center gap-3 rounded-xl bg-slate-900 p-4 text-left text-white shadow-floating active:scale-[0.98]"
+          >
+            <LogIn className="h-6 w-6 flex-none" aria-hidden="true" />
+            <span>
+              <span className="block text-base font-bold">เข้าสู่ระบบเพื่อรับงาน</span>
+              <span className="block text-sm text-slate-300">ต้องล็อกอินก่อนถึงจะเข้าคิวได้</span>
+            </span>
+          </button>
+        )}
 
-      <Screen className="gap-4 pt-2">
-        <Card className="gap-4">
+        <section aria-labelledby="today-title" className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900">วันนี้</h2>
-            <button onClick={() => navigate("/driver/earnings")} className="text-sm font-medium text-emerald-600">
+            <h2 id="today-title" className="text-base font-bold text-slate-900">
+              วันนี้
+            </h2>
+            <button type="button" onClick={() => navigate("/driver/earnings")} className="h-9 text-sm font-bold text-brand-700">
               ดูการเงิน →
             </button>
           </div>
-          {/* เดิมเป็นตัวเลขตายตัว 320 ฿ / 12 เที่ยว / 5.5 ชม. — คนขับทุกคนเห็นเลขเดียวกันหมด */}
-          <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
-            <div>
-              <p className="text-lg font-bold text-emerald-600">{today ? `${today.income} ฿` : "-"}</p>
-              <p className="text-xs text-slate-400">รายได้</p>
+          <dl className="mt-1 grid grid-cols-3 gap-2 text-center">
+            <div className="flex flex-col-reverse">
+              <dt className="text-sm text-slate-600">รายได้</dt>
+              <dd className="tabular text-2xl font-bold text-slate-900">{today ? `${today.income} ฿` : "-"}</dd>
             </div>
-            <div>
-              <p className="text-lg font-bold text-slate-700">{today ? today.trips : "-"}</p>
-              <p className="text-xs text-slate-400">เที่ยว</p>
+            <div className="flex flex-col-reverse">
+              <dt className="text-sm text-slate-600">เที่ยว</dt>
+              <dd className="tabular text-2xl font-bold text-slate-900">{today ? today.trips : "-"}</dd>
             </div>
-            <div>
-              <p className="text-lg font-bold text-orange-500">{today ? formatDuration(today.minutes) : "-"}</p>
-              <p className="text-xs text-slate-400">เวลาวิ่งงาน</p>
+            <div className="flex flex-col-reverse">
+              <dt className="text-sm text-slate-600">เวลาวิ่งงาน</dt>
+              <dd className="tabular text-2xl font-bold text-slate-900">{today ? formatDuration(today.minutes) : "-"}</dd>
             </div>
-          </div>
-        </Card>
+          </dl>
+        </section>
 
-        {!hasSession ? (
-          <button
-            onClick={() => navigate("/login", { state: { role: "driver" } })}
-            className="flex h-28 flex-col items-center justify-center gap-1.5 rounded-3xl bg-slate-900 text-white"
-          >
-            <LogIn className="h-6 w-6" />
-            <span className="text-base font-bold">เข้าสู่ระบบเพื่อรับงาน</span>
-            <span className="text-xs text-white/60">ต้องล็อกอินก่อนถึงจะเข้าคิวรับงานได้</span>
-          </button>
-        ) : online === null ? (
-          <div className="h-28 animate-pulse rounded-3xl bg-slate-100" />
-        ) : online ? (
-          <QueuePreview overview={overview} error={queueError} navigate={navigate} />
-        ) : (
-          <div className="flex h-28 flex-col items-center justify-center gap-1 rounded-3xl bg-slate-100 text-slate-400">
-            <span className="text-lg font-bold">ปิดรับงาน</span>
-            <span className="text-xs">แตะปุ่มออนไลน์เพื่อเข้าคิวรับงาน</span>
-          </div>
+        {hasSession && (
+          <section aria-labelledby="queue-title" className="mt-4">
+            <h2 id="queue-title" className="mb-2 text-sm font-semibold text-slate-600">
+              คิวรับงานตอนนี้
+            </h2>
+            {online === false ? (
+              <p className="rounded-xl bg-white px-4 py-5 text-center text-[15px] text-slate-600 ring-1 ring-slate-200">
+                ปิดรับงานอยู่ แตะปุ่มด้านบนเพื่อเข้าคิว
+              </p>
+            ) : queueError ? (
+              <p role="alert" className="rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
+                {queueError}
+              </p>
+            ) : !overview ? (
+              <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
+            ) : (
+              <>
+                <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+                  {overview.queue.slice(0, PREVIEW_ROWS).map((row) => (
+                    <QueueRow key={row.driverId} row={row} activeOffer={overview.activeOffer} />
+                  ))}
+                </ul>
+                {overview.queue.length > PREVIEW_ROWS && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/driver/queue")}
+                    className="mt-2 h-11 w-full text-center text-sm font-bold text-brand-700"
+                  >
+                    ดูคิวทั้งหมด ({overview.queue.length} คน) →
+                  </button>
+                )}
+              </>
+            )}
+          </section>
         )}
 
-        <Card className="gap-2 shadow-none ring-slate-100">
-          <div className="flex items-center gap-2">
-            <Badge tone="info">วิธีทำงานของคิว</Badge>
-          </div>
-          <p className="text-xs leading-relaxed text-slate-500">
-            ระบบเสนองานให้คนขับ<b>ทีละคนตามลำดับที่เข้าคิว</b> มีเวลาตอบรับ 15 วินาที กดปฏิเสธจะถูกเลื่อนไปท้ายคิว
-            ส่วนการปล่อยให้หมดเวลาติดกัน 3 ครั้ง ระบบจะปรับสถานะเป็นออฟไลน์ให้อัตโนมัติ
-          </p>
-        </Card>
-      </Screen>
+        <p className="mt-4 text-sm leading-relaxed text-slate-600">
+          ระบบเสนองานทีละคนตามลำดับคิว มีเวลาตอบรับ 15 วินาที กดปฏิเสธจะถูกเลื่อนไปท้ายคิว ปล่อยหมดเวลาติดกัน 3 ครั้งระบบจะปรับเป็นออฟไลน์ให้
+        </p>
+      </main>
 
       <BottomNav />
-    </div>
-  );
-}
-
-// การ์ดคิวสด ๆ อยู่หน้าแรกเลย ไม่ต้องกดเข้าไปหน้าอื่น — โชว์สรุปสถานะตัวเอง + คิวสองสามอันดับแรก
-function QueuePreview({ overview, error, navigate }) {
-  if (error) {
-    return <p className="text-sm text-red-600">{error}</p>;
-  }
-  if (!overview) {
-    return <div className="h-28 animate-pulse rounded-3xl bg-slate-100" />;
-  }
-
-  const summary =
-    overview.myPosition == null
-      ? { tone: "bg-slate-900", text: "ยังไม่พบคุณในคิว (รอสักครู่)" }
-      : overview.queue.find((q) => q.isMe)?.isActiveOffer
-        ? { tone: "bg-emerald-600", text: "ถึงคิวของคุณแล้ว รอตอบรับงาน" }
-        : overview.aheadOfMe === 0
-          ? { tone: "bg-amber-500", text: "คุณอยู่หัวคิว มีงานเข้ามาเสนอให้คุณก่อนเลย" }
-          : { tone: "bg-slate-900", text: `อีก ${overview.aheadOfMe} คิวถึงตาคุณ (ลำดับที่ ${overview.myPosition})` };
-
-  const rows = overview.queue.slice(0, PREVIEW_ROWS);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className={clsx("rounded-2xl p-3 text-center text-sm font-bold text-white shadow-card", summary.tone)}>
-        {summary.text}
-      </div>
-      {rows.map((row) => (
-        <QueueRow key={row.driverId} row={row} activeOffer={overview.activeOffer} />
-      ))}
-      {overview.queue.length > PREVIEW_ROWS && (
-        <button
-          onClick={() => navigate("/driver/queue")}
-          className="text-center text-sm font-medium text-emerald-600"
-        >
-          ดูคิวทั้งหมด ({overview.queue.length} คน) →
-        </button>
-      )}
     </div>
   );
 }

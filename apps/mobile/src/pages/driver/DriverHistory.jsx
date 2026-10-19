@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Calendar } from "lucide-react";
-import Screen from "../../components/layout/Screen";
+import { Loader2, Star } from "lucide-react";
 import BottomNav from "../../components/layout/BottomNav";
 import { api } from "../../lib/api";
 
@@ -25,53 +24,50 @@ export default function DriverHistory() {
   const totalTrips = trips?.length ?? 0;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <Screen padded={false} className="gap-2 bg-gradient-to-b from-emerald-700 to-emerald-800 px-5 pb-6 pt-6 text-white">
-        <h1 className="text-xl font-bold">ประวัติการขับ</h1>
-        <p className="text-sm text-emerald-100">สรุปทุกทริปที่เสร็จสิ้นแล้ว</p>
-        <p className="text-5xl font-bold">{totalEarnings.toLocaleString()} ฿</p>
-        <div className="mt-4 grid grid-cols-2 divide-x divide-white/15 rounded-2xl bg-white/10 py-3 text-center">
-          <div>
-            <p className="text-2xl font-bold text-emerald-300">{totalTrips}</p>
-            <p className="text-xs text-white/60">เที่ยวรวม</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-sky-300">{rating != null ? `${rating} ★` : "-"}</p>
-            <p className="text-xs text-white/60">คะแนนเฉลี่ย</p>
-          </div>
-        </div>
-      </Screen>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <header className="flex-none bg-brand-600 px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] text-white">
+        <h1 className="text-2xl font-bold tracking-tight">ประวัติการขับ</h1>
+        <p className="tabular mt-2 text-fare">
+          {totalEarnings.toLocaleString()}
+          <span className="ml-1 text-2xl font-bold">฿</span>
+        </p>
+        <p className="tabular mt-1 flex items-center gap-3 text-brand-100">
+          <span>
+            <span className="font-bold text-white">{totalTrips}</span> เที่ยวที่เสร็จ
+          </span>
+          <span className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-amber-300 text-amber-300" aria-hidden="true" />
+            <span className="font-bold text-white">{rating ?? "-"}</span> คะแนนเฉลี่ย
+          </span>
+        </p>
+      </header>
 
-      <Screen className="gap-3 pt-4">
-        <h2 className="text-sm font-bold text-slate-900">รายการรายวัน</h2>
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">รายวัน</h2>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        {!trips && !error && (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
-            <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...
-          </div>
+        {error && (
+          <p role="alert" className="rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
+            {error}
+          </p>
         )}
+        {!trips && !error && <Loader2 className="mx-auto my-10 h-6 w-6 animate-spin text-brand-600" aria-label="กำลังโหลด" />}
+        {trips && days.length === 0 && <p className="py-10 text-center text-[15px] text-slate-600">ยังไม่มีทริปที่เสร็จสิ้น</p>}
 
-        {trips && days.length === 0 && (
-          <p className="py-10 text-center text-sm text-slate-400">ยังไม่มีทริปที่เสร็จสิ้น</p>
+        {days.length > 0 && (
+          <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+            {days.map((d) => (
+              <li key={d.date} className="flex items-center gap-3 border-b border-slate-200 px-4 py-3.5 last:border-b-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-bold text-slate-900">{d.label}</p>
+                  <p className="tabular text-sm text-slate-600">{d.trips} เที่ยว</p>
+                </div>
+                <p className="tabular flex-none text-xl font-bold text-slate-900">{d.earnings} ฿</p>
+              </li>
+            ))}
+          </ul>
         )}
+      </main>
 
-        <div className="flex flex-col divide-y divide-slate-100">
-          {days.map((d) => (
-            <div key={d.date} className="flex items-center gap-3 py-3.5">
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                <Calendar className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-slate-900">{d.label}</p>
-                <p className="text-xs text-slate-400">{d.trips} เที่ยว</p>
-              </div>
-              <p className="flex-none text-lg font-bold text-emerald-600">{d.earnings} ฿</p>
-            </div>
-          ))}
-        </div>
-      </Screen>
       <BottomNav />
     </div>
   );

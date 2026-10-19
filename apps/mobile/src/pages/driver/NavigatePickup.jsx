@@ -1,74 +1,92 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { Phone, Navigation } from "lucide-react";
+import { useState } from "react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { Phone } from "lucide-react";
 import MapView from "../../components/shared/MapView";
 import Avatar from "../../components/ui/Avatar";
 import Button from "../../components/ui/Button";
 import ChatButton from "../../components/shared/ChatButton";
+import RouteSummary from "../../components/shared/RouteSummary";
+import SosPanel from "../../components/shared/SosPanel";
+import TripHeader from "../../components/shared/TripHeader";
 import { useDriverTracking } from "../../lib/useTripTracking";
 import { useRoute } from "../../lib/useRoute";
 import { gpsMessage } from "../../lib/gpsMessage";
 
+// ไปรับผู้โดยสาร — เวลาที่จะถึงเป็นเลขใหญ่หัวจอ (หน้าเดียวกับทริปฝั่งผู้โดยสาร: หัวป้ายสีแบรนด์ + แผนที่ + ปุ่มหลักด้านล่าง)
 export default function NavigatePickup() {
   const navigate = useNavigate();
   const location = useLocation();
   const request = location.state?.request;
+  const [sosOpen, setSosOpen] = useState(false);
 
   // GPS ของคนขับ (ส่งให้ผู้โดยสารเห็นสดด้วย) + เส้นทางถนนจริงไปจุดรับ
   const { position: myPos, error: gpsError } = useDriverTracking(request?.id);
   const pickupPoint = request ? { lat: request.pickupLat, lng: request.pickupLng } : null;
   const route = useRoute(myPos, pickupPoint, { precision: 3 });
 
-  if (!request) {
-    navigate("/driver/home");
-    return null;
-  }
+  if (!request) return <Navigate to="/driver/home" replace />;
   const user = request.user;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <MapView height="h-72" className="rounded-none" pickup={pickupPoint} me={myPos} route={route?.coordinates} interactive>
-        <div className="absolute left-0 right-0 top-0 p-4">
-          <div className="rounded-xl bg-white/95 p-3 shadow backdrop-blur">
-            <p className="flex items-center gap-1 text-xs text-slate-500">
-              <Navigation className="h-3.5 w-3.5" /> นำทางไปรับผู้โดยสาร
-            </p>
-            <p className="text-base font-bold text-slate-900">{request.pickupAddress ?? "จุดนัดพบ"}</p>
-            <p className="text-xs text-slate-500">
-              {route
-                ? `อีกประมาณ ${route.durationMin} นาที · ${route.distanceKm} กม.`
-                : gpsError
-                  ? gpsMessage(gpsError)
-                  : "กำลังหาตำแหน่งของคุณ..."}
-            </p>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <TripHeader
+        status={`ไปรับ ${user.fullName.split(" ")[0]}`}
+        value={route?.durationMin}
+        unit="นาที"
+        fallback={gpsError ? gpsMessage(gpsError) : "กำลังหาตำแหน่งของคุณ..."}
+        onSos={() => setSosOpen(true)}
+      >
+        {route && (
+          <p className="tabular mt-1 text-sm text-brand-100">
+            อีก {route.distanceKm} กม. · {request.pickupAddress ?? "จุดนัดพบ"}
+          </p>
+        )}
+      </TripHeader>
+
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        <MapView height="h-52" pickup={pickupPoint} me={myPos} hereLabel="คุณ" route={route?.coordinates} interactive />
+
+        <section aria-label="ผู้โดยสาร" className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <div className="flex items-center gap-3">
+            <Avatar initial={user.fullName[0]} size="lg" />
+            <p className="min-w-0 flex-1 truncate text-lg font-bold text-slate-900">{user.fullName}</p>
           </div>
-        </div>
-      </MapView>
-
-      <div className="flex flex-1 flex-col gap-4 rounded-t-3xl bg-white p-5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-3">
-          <Avatar initial={user.fullName[0]} size="lg" />
-          <div>
-            <p className="text-xl font-bold text-slate-900">{user.fullName}</p>
-            <a href={`tel:${user.phone}`} className="flex items-center gap-1 text-sm text-slate-500">
-              <Phone className="h-3.5 w-3.5" /> {user.phone}
-            </a>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {user.phone && (
+              <a
+                href={`tel:${user.phone}`}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-800 active:bg-slate-200"
+              >
+                <Phone className="h-4 w-4" /> โทร
+              </a>
+            )}
+            <ChatButton request={request} label="แชต" />
           </div>
-        </div>
+        </section>
 
-        <ChatButton request={request} label="แชตกับผู้โดยสาร" />
+        <section className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <RouteSummary pickup={request.pickupAddress ?? "จุดนัดพบ"} destination={request.destinationAddress ?? "-"} />
+          <p className="tabular mt-3 flex items-baseline justify-between border-t border-slate-200 pt-3">
+            <span className="text-sm text-slate-600">ค่าวิน</span>
+            <span className="text-2xl font-bold text-slate-900">{request.fare} ฿</span>
+          </p>
+        </section>
+      </main>
 
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-          <div>
-            <p className="text-xs text-slate-400">ส่งที่</p>
-            <p className="text-base font-bold text-slate-900">{request.destinationAddress ?? "-"}</p>
-          </div>
-          <p className="text-xl font-bold text-emerald-600">{request.fare} ฿</p>
-        </div>
-
-        <Button onClick={() => navigate("/driver/arrived-pickup", { state: { request } })}>
-          ถึงจุดรับแล้ว
-        </Button>
+      <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
+        <Button onClick={() => navigate("/driver/arrived-pickup", { state: { request } })}>ถึงจุดรับแล้ว</Button>
       </div>
+
+      <AnimatePresence>
+        {sosOpen && (
+          <SosPanel
+            variant="sheet"
+            onClose={() => setSosOpen(false)}
+            tripContext={{ pickup: request.pickupAddress ?? "จุดนัดพบ", dropoff: request.destinationAddress ?? "-" }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

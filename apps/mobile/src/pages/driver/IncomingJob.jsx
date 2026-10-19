@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Navigation2, Flag, Ruler, Coins } from "lucide-react";
-import Avatar from "../../components/ui/Avatar";
+import RouteSummary from "../../components/shared/RouteSummary";
+import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
 
 function normalizeJob(raw) {
@@ -18,6 +18,8 @@ function normalizeJob(raw) {
   };
 }
 
+// งานที่เสนอเข้ามาเต็มจอ ทีละงาน — ค่าวินเป็นตัวเลขใหญ่สุด เวลานับถอยหลังเป็นแถบหมดไปทางซ้าย ปุ่มรับ/ปฏิเสธใหญ่กดมือเดียวได้
+// (คนขับมีเวลาตอบรับจำกัด จึงไม่มีอะไรอื่นให้ต้องอ่านนอกจากต้นทาง ปลายทาง ราคา)
 export default function IncomingJob() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,6 +51,7 @@ export default function IncomingJob() {
 
   const remainingS = Math.ceil(remainingMs / 1000);
   const progress = totalMs > 0 ? remainingMs / totalMs : 0;
+  const urgent = progress < 0.35;
 
   async function handleDecline() {
     setBusy(true);
@@ -75,81 +78,57 @@ export default function IncomingJob() {
   }
 
   return (
-    <div className="flex flex-1 flex-col justify-end bg-slate-900/95">
-      <motion.div
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 220, damping: 22 }}
-        className="flex flex-col gap-5 rounded-t-3xl bg-white p-6"
-      >
-        <div className="flex items-center justify-between">
+    <div className="flex min-h-0 flex-1 flex-col bg-brand-700 text-white">
+      <header className="flex-none px-5 pb-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-emerald-600">ถึงคิวคุณแล้ว!</p>
-            <p className="text-3xl font-bold text-slate-900">งานใหม่เข้า</p>
+            <p className="text-sm font-semibold text-brand-100">ถึงคิวคุณแล้ว</p>
+            <h1 className="text-[1.75rem] font-bold leading-tight">งานใหม่เข้า</h1>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-3xl font-bold tabular-nums text-slate-900">{remainingS}</span>
-            <span className="text-xs text-slate-400">วินาที</span>
-          </div>
+          <p className="tabular text-right" aria-live="off">
+            <span className={urgent ? "text-fare text-amber-300" : "text-fare"}>{remainingS}</span>
+            <span className="ml-1 text-base font-bold">วิ</span>
+          </p>
         </div>
-
-        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+        {/* แถบเวลา: หมดไปทางซ้าย ช่วงท้ายเปลี่ยนเป็นสีเหลือง (ไม่ใช้แดง — แดงสงวนไว้ให้ตำแหน่งตัวเองกับ SOS) */}
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label="เวลาที่เหลือในการตอบรับ">
           <motion.div
-            className={progress < 0.25 ? "h-1.5 rounded-full bg-red-500" : "h-1.5 rounded-full bg-emerald-500"}
+            className={urgent ? "h-2 rounded-full bg-amber-300" : "h-2 rounded-full bg-white"}
             animate={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.2, ease: "linear" }}
           />
         </div>
+      </header>
 
-        <div className="flex items-center gap-3">
-          <Avatar initial={job.passengerName[0]} size="lg" />
-          <p className="text-lg font-bold text-slate-900">{job.passengerName}</p>
-        </div>
+      <main className="min-h-0 flex-1 overflow-y-auto rounded-t-2xl bg-slate-50 px-4 pb-4 pt-5 text-slate-900">
+        <p className="tabular flex items-baseline justify-between gap-3">
+          <span className="text-base font-semibold text-slate-600">{job.passengerName}</span>
+          <span>
+            <span className="text-fare text-slate-900">{job.fare ?? "-"}</span>
+            <span className="ml-1 text-2xl font-bold">฿</span>
+          </span>
+        </p>
+        <p className="tabular -mt-1 text-right text-sm text-slate-600">{job.distanceKm != null ? `${job.distanceKm} กม.` : ""}</p>
 
-        <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
-          <div className="flex flex-col items-center pt-1">
-            <Navigation2 className="h-4 w-4 text-emerald-600" />
-            <span className="my-1 h-6 w-px border-l border-dashed border-slate-300" />
-            <Flag className="h-4 w-4 text-slate-900" />
-          </div>
-          <div className="flex-1">
-            <p className="text-xs text-slate-400">รับที่</p>
-            <p className="text-base font-semibold text-slate-900">{job.pickup}</p>
-            <p className="mt-3 text-xs text-slate-400">ส่งที่</p>
-            <p className="text-base font-semibold text-slate-900">{job.dropoff}</p>
-          </div>
-        </div>
+        <section aria-label="เส้นทาง" className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <RouteSummary pickup={job.pickup} destination={job.dropoff} />
+        </section>
 
-        <div className="grid grid-cols-2 divide-x divide-slate-100 rounded-2xl bg-slate-50 py-3 text-center">
-          <div className="flex flex-col items-center gap-0.5">
-            <Ruler className="h-4 w-4 text-slate-400" />
-            <p className="text-base font-bold text-slate-900">{job.distanceKm ?? "-"} กม.</p>
-          </div>
-          <div className="flex flex-col items-center gap-0.5">
-            <Coins className="h-4 w-4 text-amber-500" />
-            <p className="text-xl font-bold text-amber-500">{job.fare ?? "-"} ฿</p>
-          </div>
-        </div>
+        {error && (
+          <p role="alert" className="mt-4 rounded-xl bg-here-soft px-3 py-2.5 text-center text-sm font-medium text-here">
+            {error}
+          </p>
+        )}
+      </main>
 
-        {error && <p className="text-center text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-3">
-          <button
-            onClick={handleDecline}
-            disabled={busy}
-            className="h-14 flex-1 rounded-2xl bg-slate-100 text-lg font-bold text-slate-700 disabled:opacity-50"
-          >
-            ปฏิเสธ
-          </button>
-          <button
-            onClick={handleAccept}
-            disabled={busy}
-            className="h-14 flex-1 rounded-2xl bg-emerald-600 text-lg font-bold text-white shadow-floating disabled:opacity-50"
-          >
-            รับงาน
-          </button>
-        </div>
-      </motion.div>
+      <div className="flex flex-none gap-3 bg-slate-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+        <Button variant="secondary" onClick={handleDecline} disabled={busy} className="!h-16 flex-[2] !text-lg">
+          ปฏิเสธ
+        </Button>
+        <Button onClick={handleAccept} disabled={busy} className="!h-16 flex-[3] !text-xl">
+          รับงาน
+        </Button>
+      </div>
     </div>
   );
 }

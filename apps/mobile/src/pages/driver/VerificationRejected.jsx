@@ -1,45 +1,35 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { XCircle, AlertTriangle, ImageOff } from "lucide-react";
-import TopBar from "../../components/layout/TopBar";
+import { ImageOff, XCircle } from "lucide-react";
 import Button from "../../components/ui/Button";
+import StatusScreen from "../../components/shared/StatusScreen";
 
 export default function VerificationRejected() {
   const navigate = useNavigate();
   const location = useLocation();
-  const reason = location.state?.reason || "รูปบัตรประชาชนไม่ชัดเจน กรุณาอัพโหลดใหม่";
+  const reason = location.state?.reason || "แอดมินไม่ได้ระบุเหตุผล ติดต่อแอดมินของพื้นที่เพื่อสอบถาม";
 
   return (
-    <div className="flex flex-1 flex-col bg-emerald-50">
-      <TopBar title="ยืนยันตัวตนคนขับ" onBack={() => navigate("/driver/profile")} />
-      <div className="flex flex-1 flex-col items-center gap-6 px-6 pt-8 text-center">
-        <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-rose-100">
-          <XCircle className="h-9 w-9 text-red-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl text-slate-900">ข้อมูลไม่ผ่านการตรวจสอบ</h1>
-          <p className="mt-2 text-base text-slate-500">
-            ขออภัย ระบบไม่สามารถยืนยันข้อมูลของคุณได้ โปรดตรวจสอบสาเหตุด้านล่าง
-          </p>
-        </div>
-
-        <div className="w-full rounded-xl border border-rose-200 bg-white p-5 text-left shadow-card">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 flex-none text-red-600" />
-            <div>
-              <p className="text-xs text-red-600">สาเหตุที่ปฏิเสธ</p>
-              <p className="text-base text-slate-900">{reason}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500">
-            <ImageOff className="h-3.5 w-3.5" />
-            กรุณาใช้แสงสว่างที่เพียงพอและตรวจสอบความคมชัด
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2 p-5 pb-10">
-        <Button onClick={() => navigate("/driver/verify/step-1")}>แก้ไขข้อมูล</Button>
-        <p className="text-center text-xs text-slate-500">หากมีข้อสงสัย ติดต่อศูนย์ช่วยเหลือคนขับ</p>
-      </div>
-    </div>
+    <StatusScreen
+      tone="bad"
+      icon={XCircle}
+      title="เอกสารยังไม่ผ่าน"
+      text="แก้ตามเหตุผลด้านล่างแล้วส่งใหม่ได้เลย"
+      actions={
+        <>
+          <Button onClick={() => navigate("/driver/verify/step-1")}>แก้ไขและส่งใหม่</Button>
+          <Button variant="ghost" onClick={() => navigate("/driver/profile")}>
+            กลับไปหน้าบัญชี
+          </Button>
+        </>
+      }
+    >
+      <section aria-label="เหตุผลที่ไม่ผ่าน" className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+        <h2 className="text-sm font-semibold text-slate-600">เหตุผลจากแอดมิน</h2>
+        <p className="mt-1 text-lg font-bold text-slate-900">{reason}</p>
+        <p className="mt-3 flex items-center gap-2 border-t border-slate-200 pt-3 text-sm text-slate-600">
+          <ImageOff className="h-4 w-4 flex-none" aria-hidden="true" /> ถ่ายในที่สว่างและให้ตัวอักษรชัด ส่งเฉพาะใบที่ต้องแก้ใหม่ก็ได้
+        </p>
+      </section>
+    </StatusScreen>
   );
 }

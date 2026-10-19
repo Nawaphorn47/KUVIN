@@ -1,30 +1,25 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Hash, Zap, Clock } from "lucide-react";
-import Card from "../ui/Card";
-import Avatar from "../ui/Avatar";
+import { Clock, Zap } from "lucide-react";
+import clsx from "clsx";
+import StopNumber from "../ui/StopNumber";
 
+// แถวในคิวรับงาน: ลำดับเป็นเลขสติกเกอร์ (ชุดเดียวกับหมุดเลขบนแผนผังฝั่งผู้โดยสาร) แถวของตัวเองเด่นด้วยพื้นสีแบรนด์
 export default function QueueRow({ row, activeOffer }) {
   return (
-    <Card
-      className={`flex flex-col gap-2 shadow-none ${row.isMe ? "ring-2 ring-emerald-500" : "ring-slate-100"}`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
-          {row.position}
-        </span>
-        <Avatar initial={row.fullName[0]} size="sm" />
+    <li className={clsx("border-b border-slate-200 last:border-b-0", row.isMe && "bg-brand-50")}>
+      <div className="flex items-center gap-3 px-3 py-3">
+        <StopNumber n={row.position} selected={row.isMe} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">
-            {row.fullName} {row.isMe && <span className="text-emerald-600">(คุณ)</span>}
+          <p className="truncate text-[15px] font-bold text-slate-900">
+            {row.fullName}
+            {row.isMe && <span className="ml-1.5 text-brand-700">(คุณ)</span>}
           </p>
-          <p className="flex items-center gap-1 text-xs text-slate-400">
-            <Hash className="h-3 w-3" /> เบอร์วิน {row.vinNumber}
-          </p>
+          <p className="tabular text-sm text-slate-600">เสื้อวินเบอร์ {row.vinNumber}</p>
         </div>
+        {row.isActiveOffer && <OfferBadge offerExpiresAt={activeOffer?.offerExpiresAt} />}
       </div>
-      {row.isActiveOffer && <OfferBadge offerExpiresAt={activeOffer?.offerExpiresAt} />}
-    </Card>
+    </li>
   );
 }
 
@@ -38,14 +33,14 @@ function OfferBadge({ offerExpiresAt }) {
 
   return (
     <motion.span
-      animate={{ opacity: [1, 0.6, 1] }}
+      animate={{ scale: [1, 1.05, 1] }}
       transition={{ repeat: Infinity, duration: 1.2 }}
-      className="flex w-fit items-center gap-1 self-start rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600"
+      className="tabular flex flex-none items-center gap-1 rounded-md bg-here-soft px-2 py-1 text-sm font-bold text-here"
     >
-      <Zap className="h-3 w-3" /> กำลังเสนองาน
+      <Zap className="h-4 w-4" aria-hidden="true" /> กำลังเสนองาน
       {remaining != null && (
-        <span className="flex items-center gap-0.5 text-red-500">
-          <Clock className="h-3 w-3" /> {remaining}s
+        <span className="flex items-center gap-0.5">
+          <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {remaining}
         </span>
       )}
     </motion.span>
