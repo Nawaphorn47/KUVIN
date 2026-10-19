@@ -1,7 +1,7 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const crypto = require("crypto");
+const path = require("node:path");
+const fs = require("node:fs");
+const crypto = require("node:crypto");
 const ApiError = require("../utils/ApiError");
 
 // ไฟล์ส่วนตัว (เอกสารคนขับ/เซลฟี่ผู้โดยสาร) — เปิดดูได้ผ่านลิงก์ที่เซ็นแล้วเท่านั้น (ดู utils/privateFiles.js)

@@ -14,10 +14,10 @@ import { useArea } from "../../context/AreaContext";
 // บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server หรือ APK ทดสอบที่ build ด้วย npm run android:dev
 // __DEMO_LOGIN__ เป็นค่าคงที่ตอน build (ดู vite.config.js) build จริงจึงตัดทั้งปุ่มและรายการนี้ทิ้งไปเลย ไม่หลุดไปใน bundle
 const DEMO_ACCOUNTS = __DEMO_LOGIN__ && [
-  { label: "ผู้โดยสาร สมใจ", role: "user", email: "somjai@ku.th", password: "user1234" },
-  { label: "คนขับ วิน 1", role: "driver", phone: "0800000002", password: "driver1234" },
-  { label: "คนขับ วิน 2", role: "driver", phone: "0800000003", password: "driver1234" },
-  { label: "คนขับ วิน 3", role: "driver", phone: "0800000004", password: "driver1234" },
+  { label: "ผู้โดยสาร สมใจ", role: "user", email: "somjai@ku.th", pass: "user1234" },
+  { label: "คนขับ วิน 1", role: "driver", phone: "0800000002", pass: "driver1234" },
+  { label: "คนขับ วิน 2", role: "driver", phone: "0800000003", pass: "driver1234" },
+  { label: "คนขับ วิน 3", role: "driver", phone: "0800000004", pass: "driver1234" },
 ];
 
 const errorText = (err, fallback) => err.response?.data?.message || fallback;
@@ -279,7 +279,7 @@ export default function Login() {
                     key={acc.label}
                     type="button"
                     disabled={loading}
-                    onClick={() => passwordLogin(acc)}
+                    onClick={() => passwordLogin({ ...acc, password: acc.pass })}
                     className="h-10 rounded-lg bg-white px-2 text-sm font-semibold text-slate-800 ring-1 ring-amber-200 active:bg-amber-100 disabled:text-slate-500"
                   >
                     {acc.label}

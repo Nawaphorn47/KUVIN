@@ -121,7 +121,7 @@ export default function OtpForm({ fixedPhone, onSubmit, submitLabel = "ยืน
       </p>
 
       {testCode && (
-        <div role="status" className="flex items-center gap-3 rounded-xl bg-amber-100 px-3 py-2.5 text-amber-950">
+        <output className="flex items-center gap-3 rounded-xl bg-amber-100 px-3 py-2.5 text-amber-950">
           <FlaskConical className="h-5 w-5 flex-none" aria-hidden="true" />
           <p className="min-w-0 flex-1 text-sm">
             <span className="font-bold">โหมดทดสอบ</span> ยังไม่ส่ง SMS จริง รหัสคือ{" "}
@@ -134,7 +134,7 @@ export default function OtpForm({ fixedPhone, onSubmit, submitLabel = "ยืน
           >
             ใส่ให้
           </button>
-        </div>
+        </output>
       )}
 
       <DigitBoxes length={CODE_LENGTH} label="รหัส OTP 6 หลัก" value={code} onChange={changeCode} disabled={busy} />

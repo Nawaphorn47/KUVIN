@@ -6,9 +6,10 @@ export default function RatingStars({ value, onChange, size = 32 }) {
   const [hover, setHover] = useState(0);
   const interactive = typeof onChange === "function";
   const active = hover || value || 0;
+  const Wrapper = interactive ? "fieldset" : "div";
 
   return (
-    <div className="flex items-center gap-1" role={interactive ? "group" : "img"} aria-label={`${value ?? 0} จาก 5 ดาว`}>
+    <Wrapper className="m-0 flex min-w-0 items-center gap-1 border-0 p-0" role={interactive ? undefined : "img"} aria-label={`${value ?? 0} จาก 5 ดาว`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
@@ -31,6 +32,6 @@ export default function RatingStars({ value, onChange, size = 32 }) {
           />
         </button>
       ))}
-    </div>
+    </Wrapper>
   );
 }

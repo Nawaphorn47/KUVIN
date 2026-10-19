@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { sanitizeDriver, assertNumericVinNumber } = require("./auth.service");
 const { DRIVER_TYPES, DOC_LABELS } = require("../utils/driverTypes");
-const fs = require("fs");
+const fs = require("node:fs");
 const privateUpload = require("../middlewares/privateUpload");
 const { fileOf, toRef, signedPath } = require("../utils/privateFiles");
 const { isValidPromptPayId } = require("../utils/promptpay");
@@ -71,14 +71,8 @@ async function updateAvailability(driverId, isOnline, io) {
 
 // คนขับส่งเอกสารยืนยันตัวตนครั้งเดียวตอนกด "ส่งตรวจสอบ" — เอกสารที่ต้องแนบขึ้นกับประเภทคนขับ (utils/driverTypes.js)
 // อัปโหลดรูปแต่ละใบผ่าน POST /api/uploads ก่อน แล้วค่อยส่ง url มาที่นี่ ส่งแล้วกลับไปรอแอดมินตรวจ (PENDING)
-async function submitVerification(driverId, payload) {
-  const current = await prisma.driver.findUnique({ where: { id: driverId } });
-  if (!current) throw ApiError.notFound("ไม่พบบัญชีคนขับ");
-  const { vinNumber, licensePlate, vehicleModel, winGroupName } = payload;
-  const required = DRIVER_TYPES[current.driverType].docs;
-
-  // เอกสารใหม่ต้องเป็นไฟล์ที่คนขับคนนี้อัปโหลดเองผ่าน POST /drivers/me/documents เท่านั้น (รับ URL ภายนอกไม่ได้
-  // กันชี้ไปรูปของคนอื่น/ลิงก์ติดตามตัวแอดมิน) — ไม่ส่งมา = ใช้ใบเดิมที่ส่งไว้แล้ว
+// เก็บเอกสารที่ส่งมาในรอบนี้ — ทุกใบต้องเป็นไฟล์ของคนขับคนนี้ที่มีอยู่จริงในโฟลเดอร์ส่วนตัว
+function collectOwnDocuments(driverId, required, payload) {
   const owner = privateUpload.ownerPrefix("driver", driverId);
   const docs = {};
   for (const k of required) {
@@ -91,6 +85,18 @@ async function submitVerification(driverId, payload) {
     }
     docs[k] = toRef(file);
   }
+  return docs;
+}
+
+async function submitVerification(driverId, payload) {
+  const current = await prisma.driver.findUnique({ where: { id: driverId } });
+  if (!current) throw ApiError.notFound("ไม่พบบัญชีคนขับ");
+  const { vinNumber, licensePlate, vehicleModel, winGroupName } = payload;
+  const required = DRIVER_TYPES[current.driverType].docs;
+
+  // เอกสารใหม่ต้องเป็นไฟล์ที่คนขับคนนี้อัปโหลดเองผ่าน POST /drivers/me/documents เท่านั้น (รับ URL ภายนอกไม่ได้
+  // กันชี้ไปรูปของคนอื่น/ลิงก์ติดตามตัวแอดมิน) — ไม่ส่งมา = ใช้ใบเดิมที่ส่งไว้แล้ว
+  const docs = collectOwnDocuments(driverId, required, payload);
   const missing = required.filter((k) => !docs[k] && !current[k]);
   if (missing.length) {
     throw ApiError.badRequest(`ต้องแนบรูปให้ครบ: ${missing.map((k) => DOC_LABELS[k]).join(", ")}`);

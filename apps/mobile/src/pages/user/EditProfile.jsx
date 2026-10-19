@@ -84,9 +84,9 @@ export default function EditProfile() {
               </p>
             )}
             {saved && (
-              <p role="status" className="flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-sm font-bold text-brand-800">
+              <output className="flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-sm font-bold text-brand-800">
                 <Check className="h-4 w-4" strokeWidth={3} /> บันทึกแล้ว
-              </p>
+              </output>
             )}
           </div>
         </main>

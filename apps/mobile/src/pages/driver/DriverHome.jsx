@@ -117,7 +117,7 @@ export default function DriverHome() {
                   <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand-600" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-brand-600" />
                 </span>
-                ออนไลน์อยู่ · แตะเพื่อปิดรับงาน
+                <span>ออนไลน์อยู่ · แตะเพื่อปิดรับงาน</span>
               </>
             ) : (
               <>
@@ -186,17 +186,18 @@ export default function DriverHome() {
             <h2 id="queue-title" className="mb-2 text-sm font-semibold text-slate-600">
               คิวรับงานตอนนี้
             </h2>
-            {online === false ? (
+            {online === false && (
               <p className="rounded-xl bg-white px-4 py-5 text-center text-[15px] text-slate-600 ring-1 ring-slate-200">
                 ปิดรับงานอยู่ แตะปุ่มด้านบนเพื่อเข้าคิว
               </p>
-            ) : queueError ? (
+            )}
+            {online !== false && queueError && (
               <p role="alert" className="rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
                 {queueError}
               </p>
-            ) : !overview ? (
-              <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
-            ) : (
+            )}
+            {online !== false && !queueError && !overview && <div className="h-24 animate-pulse rounded-xl bg-slate-200" />}
+            {online !== false && !queueError && overview && (
               <>
                 <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
                   {overview.queue.slice(0, PREVIEW_ROWS).map((row) => (

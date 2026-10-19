@@ -30,7 +30,7 @@ const hereIcon = (label) =>
     className: "",
     iconSize: [24, 24],
     iconAnchor: [12, 12],
-    html: `<div class="kv-here"><i></i>${label ? `<b>${label}</b>` : ""}</div>`,
+    html: `<div class="kv-here"><i></i>${hereLabel(label)}</div>`,
   });
 
 const ICONS = {
@@ -218,4 +218,7 @@ export default function MapView({
       )}
     </div>
   );
+}
+function hereLabel(label) {
+  return label ? `<b>${label}</b>` : "";
 }

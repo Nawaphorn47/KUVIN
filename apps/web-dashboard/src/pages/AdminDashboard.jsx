@@ -340,7 +340,7 @@ function ReportCard({ report: r, onResolve }) {
         </div>
       </dl>
       <label className="flex flex-col gap-1 text-sm text-stone-500">
-        บันทึกการจัดการ (ไม่บังคับ)
+        <span>บันทึกการจัดการ (ไม่บังคับ)</span>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}

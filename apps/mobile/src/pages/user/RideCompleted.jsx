@@ -47,7 +47,7 @@ export default function RideCompleted() {
             <span className="flex h-9 w-9 -rotate-6 items-center justify-center rounded-full bg-brand-600 text-white shadow-sticker">
               <Check className="h-5 w-5" strokeWidth={3} />
             </span>
-            จ่ายเรียบร้อย ขอบคุณที่ใช้วิน!
+            <span>จ่ายเรียบร้อย ขอบคุณที่ใช้วิน!</span>
           </motion.p>
         ) : (
           <section aria-labelledby="pay-title" className="flex flex-col gap-3">

@@ -6,7 +6,7 @@ const { sendPush } = require("./fcm.service");
 
 const BODY_MAX = 300;
 const MESSAGES_PER_TRIP = 200; // กันสแปม/ยิงข้อความวนจนตาราง/แจ้งเตือนท่วม
-const OPEN_STATUSES = ["ACCEPTED", "IN_PROGRESS"];
+const OPEN_STATUSES = new Set(["ACCEPTED", "IN_PROGRESS"]);
 
 async function loadForParticipant(requestId, actor) {
   const request = await prisma.serviceRequest.findUnique({
@@ -39,12 +39,12 @@ async function listMessages(requestId, actor, { markRead = true } = {}) {
     where: { serviceRequestId: requestId },
     orderBy: { createdAt: "asc" },
   });
-  return { open: OPEN_STATUSES.includes(request.status), status: request.status, messages };
+  return { open: OPEN_STATUSES.has(request.status), status: request.status, messages };
 }
 
 async function sendMessage(requestId, actor, { body }, io) {
   const request = await loadForParticipant(requestId, actor);
-  if (!OPEN_STATUSES.includes(request.status)) {
+  if (!OPEN_STATUSES.has(request.status)) {
     throw ApiError.conflict("แชตเปิดเฉพาะระหว่างที่ทริปกำลังดำเนินอยู่");
   }
   const text = typeof body === "string" ? body.trim() : "";

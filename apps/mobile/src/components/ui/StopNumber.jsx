@@ -14,7 +14,7 @@ export default function StopNumber({ n, selected = false, size = "md", className
       aria-hidden="true"
       className={clsx(
         "tabular flex flex-none items-center justify-center overflow-hidden rounded-full font-bold tracking-tighter transition-all duration-300",
-        SIZES[size === "lg" || size === "sm" ? size : "md"][Math.min(String(n).length, 4) <= 2 ? 0 : String(n).length === 3 ? 1 : 2],
+        SIZES[size === "lg" || size === "sm" ? size : "md"][sizeTier(n)],
         selected
           ? "-rotate-6 scale-110 bg-brand-600 text-white shadow-sticker"
           : "border-[2.5px] border-brand-600 bg-white text-brand-700",
@@ -24,4 +24,10 @@ export default function StopNumber({ n, selected = false, size = "md", className
       {n}
     </span>
   );
+}
+// 1-2 หลัก = ใหญ่สุด, 3 หลัก = กลาง, 4 หลักขึ้นไป = เล็ก (ไม่ให้ล้นวง)
+function sizeTier(n) {
+  const len = String(n).length;
+  if (len <= 2) return 0;
+  return len === 3 ? 1 : 2;
 }

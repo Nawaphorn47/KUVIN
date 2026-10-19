@@ -61,3 +61,12 @@ python sonar_report_th.py --host http://localhost:9000 --project ku-vin --token 
 
 Vulnerabilities ที่เหลือ 6 จุด: container รันด้วย root 3 จุด (แก้ตอนทำ Docker สำหรับ deploy) และรหัสผ่านบัญชีทดสอบ
 ใน `apps/mobile/src/pages/auth/Login.jsx` 3 จุด ซึ่งมีเฉพาะใน dev build (`__DEMO_LOGIN__` ตัดทิ้งตอน build จริง)
+
+## การวัด coverage (ข้อจำกัดที่ต้องรู้)
+
+- `cd apps/api && npm run test:coverage` เปิด API ชั่วคราวที่พอร์ต 4100 (`SLIP_PROVIDER=mock` เฉพาะตัวนี้), รันชุดทดสอบทั้ง 9 ชุด
+  (รวม suspension/payment ที่ยิง HTTP+socket จริง) แล้วสร้าง `apps/api/coverage/lcov.info` — วัดได้ประมาณ 80% ของโค้ด API
+- **coverage นับเฉพาะโค้ด API** (`sonar.coverage.exclusions` ตัด `apps/mobile`, `apps/web-dashboard`) เพราะหน้าจอ React ทดสอบด้วย
+  Playwright e2e ที่ขับเบราว์เซอร์จริงและไม่ได้ออกรายงาน coverage ให้ Sonar อ่าน — ฝั่งหน้าจอจึงยังไม่มีตัวเลข coverage ที่วัดได้
+  (ยังถูกตรวจ bug/vulnerability/code smell ตามปกติ)
+- ขั้นตอนสแกน: รัน coverage → `git archive HEAD` ลง temp → คัดลอก `apps/api/coverage/lcov.info` ตามพาธเดิม → รัน scanner

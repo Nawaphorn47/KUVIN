@@ -46,7 +46,7 @@ function DocTile({ info, file, existing, onPick }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-bold text-slate-900">{info.label}</span>
-          <span className="block text-sm text-slate-600">{done ? (file ? "แนบแล้ว แตะเพื่อเปลี่ยน" : "ส่งไว้แล้ว แตะเพื่อเปลี่ยน") : info.hint}</span>
+          <span className="block text-sm text-slate-600">{docHint({ done, file, hint: info.hint })}</span>
         </span>
         <span
           aria-hidden="true"
@@ -164,9 +164,18 @@ export default function VerifyStep1() {
       </main>
       <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
         <Button onClick={submit} disabled={submitting || !ready}>
-          {submitting ? "กำลังส่ง..." : ready ? "ส่งให้แอดมินตรวจ" : `แนบอีก ${docs.length - doneCount} รายการ`}
+          {submitLabel({ submitting, ready, remaining: docs.length - doneCount })}
         </Button>
       </div>
     </div>
   );
+}
+function docHint({ done, file, hint }) {
+  if (!done) return hint;
+  return file ? "แนบแล้ว แตะเพื่อเปลี่ยน" : "ส่งไว้แล้ว แตะเพื่อเปลี่ยน";
+}
+
+function submitLabel({ submitting, ready, remaining }) {
+  if (submitting) return "กำลังส่ง...";
+  return ready ? "ส่งให้แอดมินตรวจ" : `แนบอีก ${remaining} รายการ`;
 }

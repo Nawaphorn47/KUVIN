@@ -47,7 +47,7 @@ export default function TripRail({ stage, request, now }) {
   const rows = STAGES.map((s, i) => ({
     ...s,
     i,
-    state: i < stage ? "done" : i === stage ? "now" : "next",
+    state: railState(i, stage),
     time: clock(s.at && request?.[s.at]),
   })).reverse();
 
@@ -83,4 +83,8 @@ export default function TripRail({ stage, request, now }) {
       ))}
     </ol>
   );
+}
+function railState(i, stage) {
+  if (i < stage) return "done";
+  return i === stage ? "now" : "next";
 }
