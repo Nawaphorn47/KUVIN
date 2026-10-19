@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-10-18T22:09:19.857Z",
+        "reason": "Claude: decision sketch; flagged div is the map area with an absolutely positioned pin, not a text container"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/r1-assigned.html"
+        ],
+        "createdAt": "2026-10-18T22:09:20.177Z",
+        "reason": "Claude: decision sketch; flagged div is the map area with absolutely positioned markers, not a text container"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/r1-zoo.html"
+        ],
+        "createdAt": "2026-10-18T22:09:20.564Z",
+        "reason": "Claude: decision sketch reproduces the dealt catalog world's own water colour #F5F1E4 from its system grammar"
+      }
+    ]
+  }
+}

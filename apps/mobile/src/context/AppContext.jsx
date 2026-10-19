@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
-import { getToken } from "../lib/auth";
+import { getToken, setToken } from "../lib/auth";
 import { registerPush } from "../lib/push";
 
 const AppContext = createContext(null);
@@ -54,6 +54,11 @@ export function AppProvider({ children }) {
           phone: data.phone,
           avatarInitial: data.fullName?.[0] ?? "?",
           totalTrips: trips.length,
+          // ยืนยันตัวตนผู้โดยสาร + โหมดคนขับของบัญชีเดียวกัน (null = ยังไม่สมัครขับ)
+          phoneVerified: Boolean(data.phoneVerifiedAt),
+          hasSelfie: Boolean(data.hasSelfie),
+          hasPassword: Boolean(data.hasPassword),
+          driverMode: data.driverMode ?? null,
         });
       } else if (data.role === "driver") {
         const [{ data: full }, { data: trips }] = await Promise.all([
@@ -73,6 +78,7 @@ export function AppProvider({ children }) {
           verificationStatus: full.verificationStatus,
           rejectionReason: full.rejectionReason,
           areaId: full.areaId,
+          linkedUser: Boolean(full.userId), // คนขับแบบเก่าที่สมัครแยกจะได้บัญชีผู้โดยสารตอนกดสลับครั้งแรก
         });
       } else {
         setMe(null);
@@ -86,6 +92,18 @@ export function AppProvider({ children }) {
     refreshMe();
   }, [refreshMe]);
 
+  // สลับโหมดของบัญชีเดียว — server ออก token ของอีกบทบาทให้ (ดู POST /auth/switch/:mode) แล้วโหลดโปรไฟล์ใหม่
+  const switchMode = useCallback(
+    async (target) => {
+      const { data } = await api.post(`/auth/switch/${target}`);
+      setToken(data.token);
+      setMode(target);
+      await refreshMe();
+      return data;
+    },
+    [refreshMe]
+  );
+
   const value = useMemo(
     () => ({
       mode,
@@ -94,10 +112,11 @@ export function AppProvider({ children }) {
       booking,
       setBooking,
       refreshMe,
+      switchMode,
       user: me?.role === "user" ? me : EMPTY_USER,
       driver: me?.role === "driver" ? me : EMPTY_DRIVER,
     }),
-    [mode, booking, me, refreshMe]
+    [mode, booking, me, refreshMe, switchMode]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

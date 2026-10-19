@@ -3,6 +3,7 @@ import { Ban, Loader2, RotateCcw, Search, ShieldCheck, X } from "lucide-react";
 import clsx from "clsx";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
+import Overlay from "../components/Overlay";
 import { api } from "../services/api";
 import { PageHeader } from "../components/AdminLayout";
 import { useAdminSession } from "../lib/adminSession";
@@ -305,11 +306,8 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
     : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      <aside
-        className="flex h-full w-full max-w-lg flex-col gap-5 overflow-y-auto bg-white p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Overlay onClose={onClose} className="flex justify-end" backdropClassName="bg-black/30">
+      <aside className="relative flex h-full w-full max-w-lg flex-col gap-5 overflow-y-auto bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-2xl text-emerald-900">{p?.fullName ?? "กำลังโหลด..."}</h2>
@@ -428,7 +426,7 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
           </>
         )}
       </aside>
-    </div>
+    </Overlay>
   );
 }
 

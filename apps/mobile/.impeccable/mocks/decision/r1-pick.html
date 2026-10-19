@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#111316; --plate:#FFFFFF; --rim:#111316; --ground:#E4E7EA; --ok:#1E7A3C; --ku:#006664; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Sarabun",sans-serif; color:var(--ink); background:var(--ground); position:relative; }
+  .bar { height:60px; display:flex; align-items:center; justify-content:space-between; padding:12px 16px 0; font:700 18px "Chakra Petch"; }
+  .bar span { font:600 13px "Sarabun"; background:#fff; border:2px solid var(--rim); padding:6px 10px; border-radius:6px; }
+  .map { height:270px; margin:0 12px; border:2px solid var(--rim); border-radius:8px; background:#F2F4F2;
+         background-image:linear-gradient(90deg,transparent 44%,#fff 44%,#fff 48%,transparent 48%),linear-gradient(0deg,transparent 54%,#fff 54%,#fff 57%,transparent 57%); position:relative; }
+  .pin { position:absolute; left:158px; top:110px; width:22px; height:22px; border-radius:50%; background:var(--ink); border:5px solid #fff; }
+  .plate { margin:14px 12px 0; background:var(--plate); border:3px solid var(--rim); border-radius:10px; padding:12px 16px; text-align:center; box-shadow:inset 0 0 0 3px #fff, inset 0 0 0 5px var(--rim); }
+  .plate .top { font:700 30px/1 "Chakra Petch"; letter-spacing:1px; }
+  .plate .bot { font:600 14px "Sarabun"; margin-top:4px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 12px 0; }
+  .cell { background:#fff; border:2px solid var(--rim); border-radius:8px; padding:10px 12px; }
+  .cell small { font:600 12px "Sarabun"; color:#4b5157; }
+  .cell b { display:block; font:700 28px/1.1 "Chakra Petch"; }
+  .go { margin:14px 12px 0; height:56px; border-radius:8px; background:var(--ku); color:#fff; font:700 20px "Chakra Petch"; display:flex; align-items:center; justify-content:center; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:72px; background:#fff; border-top:2px solid var(--rim); display:grid; grid-template-columns:repeat(4,1fr); padding-top:10px; }
+  .tabs div { text-align:center; font:600 12px "Sarabun"; color:#4b5157; }
+  .tabs b { display:block; width:24px; height:16px; margin:3px auto 6px; border:2px solid currentColor; border-radius:3px; }
+  .tabs .cur { color:var(--ink); }
+</style>
+</head>
+<body>
+  <div class="bar">มก. กำแพงแสน<span>ผู้โดยสาร ⇄ คนขับ</span></div>
+  <div class="map"><div class="pin"></div></div>
+  <div class="plate"><div class="top">สำนักหอสมุด</div><div class="bot">ปลายทาง · จากหอพักนิสิต</div></div>
+  <div class="grid"><div class="cell"><small>ค่าโดยสาร</small><b>20 ฿</b></div><div class="cell"><small>คนขับออนไลน์</small><b>3</b></div></div>
+  <div class="go">เรียกวิน</div>
+  <div class="tabs"><div class="cur"><b></b>เรียกวิน</div><div><b></b>ทริป</div><div><b></b>แจ้งเตือน</div><div><b></b>บัญชี</div></div>
+</body>
+</html>

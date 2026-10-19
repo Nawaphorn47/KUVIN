@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 
 const routes = require("./routes");
 const registerSockets = require("./sockets");
+const { corsOrigin } = require("./config/cors");
 const upload = require("./middlewares/upload");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
 const { sweepExpiredOffers } = require("./services/serviceRequest.service");
@@ -19,13 +20,13 @@ const app = express();
 const trustProxy = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? "1" : "");
 if (trustProxy) app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
-app.use(cors());
+app.use(cors({ origin: corsOrigin })); // อนุญาตเฉพาะเว็บของเรา — ดู config/cors.js
 app.use(express.json());
 app.use("/uploads", express.static(upload.UPLOAD_DIR)); // เสิร์ฟไฟล์ที่อัปโหลดผ่าน POST /api/uploads
 app.get("/health", (req, res) => res.json({ ok: true })); // ให้ platform เช็คว่า server พร้อมรับ request
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, { cors: { origin: corsOrigin } });
 app.set("io", io); // controllers ดึงผ่าน req.app.get("io") เพื่อ emit event แบบ real-time
 registerSockets(io);
 

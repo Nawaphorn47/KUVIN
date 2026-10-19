@@ -8,7 +8,7 @@ export default function RatingStars({ value, onChange, size = 32 }) {
   const active = hover || value || 0;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" role={interactive ? "group" : "img"} aria-label={`${value ?? 0} จาก 5 ดาว`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
@@ -17,14 +17,16 @@ export default function RatingStars({ value, onChange, size = 32 }) {
           onMouseEnter={() => interactive && setHover(star)}
           onMouseLeave={() => interactive && setHover(0)}
           onClick={() => interactive && onChange(star)}
-          className={clsx(!interactive && "cursor-default")}
+          aria-label={interactive ? `${star} ดาว` : undefined}
+          aria-pressed={interactive ? star <= (value || 0) : undefined}
+          className={clsx("transition-transform", interactive ? "active:scale-90" : "cursor-default")}
         >
           <Star
             width={size}
             height={size}
             className={clsx(
               "transition-colors",
-              star <= active ? "fill-amber-400 text-amber-400" : "fill-slate-100 text-slate-200"
+              star <= active ? "fill-amber-400 text-amber-500" : "fill-white text-slate-300"
             )}
           />
         </button>

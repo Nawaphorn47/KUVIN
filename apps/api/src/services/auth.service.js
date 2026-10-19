@@ -5,6 +5,7 @@ const ApiError = require("../utils/ApiError");
 const { suspendedMessage } = require("../utils/accountStatus");
 const { signToken } = require("../utils/jwt");
 const { isValidPromptPayId } = require("../utils/promptpay");
+const { isValidEmail } = require("../utils/email");
 const mail = require("./mail.service");
 
 const SALT_ROUNDS = 10;
@@ -30,7 +31,7 @@ function normalizeEmail(email) {
 }
 
 function assertEmail(email) {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isValidEmail(email)) {
     throw ApiError.badRequest("รูปแบบอีเมลไม่ถูกต้อง");
   }
 }
@@ -82,7 +83,8 @@ function assertLoginAllowed(account) {
 
 async function loginUser({ email, password }) {
   const user = await findUserByEmail(normalizeEmail(email));
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  // บัญชีที่สมัครด้วย OTP/Google ไม่มีรหัสผ่าน — ตอบเหมือนรหัสผิด ไม่บอกว่าอีเมลนี้มีบัญชีหรือไม่
+  if (!user?.passwordHash || !(await bcrypt.compare(String(password ?? ""), user.passwordHash))) {
     throw ApiError.unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
   assertLoginAllowed(user);
@@ -202,7 +204,8 @@ async function registerDriver({ fullName, phone, password, areaId, vinNumber, li
 
 async function loginDriver({ phone, password }) {
   const driver = await prisma.driver.findUnique({ where: { phone } });
-  if (!driver || !(await bcrypt.compare(password, driver.passwordHash))) {
+  // โหมดคนขับที่สมัครจากบัญชีผู้ใช้ไม่มีรหัสผ่านแยก — เข้าผ่านบัญชีผู้ใช้แล้วสลับโหมดแทน
+  if (!driver?.passwordHash || !(await bcrypt.compare(String(password ?? ""), driver.passwordHash))) {
     throw ApiError.unauthorized("เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง");
   }
   assertLoginAllowed(driver);
@@ -230,9 +233,14 @@ async function adminProfile(admin) {
 
 async function getMe({ id, role }) {
   if (role === "user") {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { driver: { select: { id: true, verificationStatus: true } } },
+    });
     if (!user) throw ApiError.notFound("User not found");
-    return { role, ...sanitizeUser(user) };
+    const { driver, ...rest } = user;
+    // driverMode = บัญชีนี้สมัครขับแล้วหรือยัง (ใช้โชว์ปุ่มสลับโหมด)
+    return { role, ...sanitizeUser(rest), driverMode: driver };
   }
   if (role === "driver") {
     const driver = await prisma.driver.findUnique({ where: { id } });
@@ -248,14 +256,15 @@ async function getMe({ id, role }) {
   throw ApiError.badRequest("Unknown role");
 }
 
+// ไม่ส่งชื่อไฟล์เซลฟี่/รหัส Google ออกไป — บอกแค่สถานะว่ามีหรือยัง
 function sanitizeUser(user) {
-  const { passwordHash, resetToken, resetTokenExpiresAt, resetAttempts, ...rest } = user;
-  return rest;
+  const { passwordHash, resetToken, resetTokenExpiresAt, resetAttempts, selfieFile, googleSub, ...rest } = user;
+  return { ...rest, hasPassword: Boolean(passwordHash), hasSelfie: Boolean(selfieFile), googleLinked: Boolean(googleSub) };
 }
 
 function sanitizeDriver(driver) {
   const { passwordHash, ...rest } = driver;
-  return rest;
+  return { ...rest, hasPassword: Boolean(passwordHash) };
 }
 
 module.exports = {

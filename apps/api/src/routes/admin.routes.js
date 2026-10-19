@@ -11,6 +11,7 @@ router.use(requireAuth(["admin"]), adminScope);
 router.get("/stats", ctrl.stats);
 router.get("/users", ctrl.users);
 router.get("/users/:id", ctrl.userDetail);
+router.get("/users/:id/selfie", ctrl.userSelfie);
 router.post("/users/:id/suspend", ctrl.suspendUser);
 router.post("/users/:id/unsuspend", ctrl.unsuspendUser);
 router.get("/drivers", ctrl.drivers);

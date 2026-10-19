@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Noto Sans Thai",sans-serif; color:#1C1C1C; background:#F2F4F5; position:relative; }
+  .map { position:absolute; inset:0 0 360px 0; background:#E8ECEA;
+         background-image:linear-gradient(90deg,transparent 45%,#fff 45%,#fff 49%,transparent 49%),linear-gradient(0deg,transparent 52%,#fff 52%,#fff 55%,transparent 55%); }
+  .pin { position:absolute; left:172px; top:190px; width:22px; height:22px; border-radius:50%; background:#006664; border:5px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:404px; background:#fff; border-radius:20px 20px 0 0; box-shadow:0 -4px 16px rgba(0,0,0,.08); padding:10px 18px; }
+  .grab { width:40px; height:4px; border-radius:2px; background:#D5D9DC; margin:0 auto 14px; }
+  h2 { font:700 22px "Noto Sans Thai"; margin-bottom:12px; }
+  .search { height:50px; border-radius:12px; background:#F2F4F5; display:flex; align-items:center; padding:0 14px; font:600 15px "Noto Sans Thai"; color:#6b7075; }
+  .list { margin-top:12px; }
+  .item { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #EEF0F1; font:600 15px "Noto Sans Thai"; }
+  .item small { display:block; font:400 12px "Noto Sans Thai"; color:#6b7075; }
+  .item span { font:700 15px "Noto Sans Thai"; }
+  .go { position:absolute; left:18px; right:18px; bottom:24px; height:54px; border-radius:12px; background:#006664; color:#fff; font:700 18px "Noto Sans Thai"; display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="map"><div class="pin"></div></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>จะไปไหนดี?</h2>
+    <div class="search">ค้นหาปลายทาง</div>
+    <div class="list">
+      <div class="item"><div>สำนักหอสมุด<small>ไปบ่อย</small></div><span>20 ฿</span></div>
+      <div class="item"><div>โรงอาหารกลาง<small>ไปบ่อย</small></div><span>20 ฿</span></div>
+      <div class="item"><div>อาคารเรียนรวม<small>ล่าสุด</small></div><span>20 ฿</span></div>
+    </div>
+    <div class="go">เรียกวิน</div>
+  </div>
+</body>
+</html>

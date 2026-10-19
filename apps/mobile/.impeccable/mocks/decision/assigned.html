@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;700&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1C1B1F; --red:#B3172B; --stock:#F2D74E; --pink:#F3A6B8; --blue:#8EC5E8; --tin:#C9CDD2; --tin-dk:#9EA4AB; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Anuphan",sans-serif; color:var(--ink); background:var(--tin); }
+  .bar { height:64px; padding:14px 16px 0; display:flex; align-items:center; justify-content:space-between;
+         background:linear-gradient(180deg,#D7DBDF,#C3C8CD); border-bottom:1px solid var(--tin-dk); }
+  .area { font:700 18px "Bai Jamjuree"; letter-spacing:.2px; }
+  .area small { display:block; font:500 12px "Anuphan"; color:#4a4d52; }
+  .sos { font:700 14px "Bai Jamjuree"; color:#fff; background:var(--red); padding:8px 14px; border-radius:6px; }
+  .map { position:relative; height:312px; background:#E9ECEA;
+         background-image:linear-gradient(90deg,transparent 46%,#fff 46%,#fff 50%,transparent 50%),
+           linear-gradient(0deg,transparent 58%,#fff 58%,#fff 61%,transparent 61%),
+           linear-gradient(32deg,transparent 70%,#f7f7f2 70%,#f7f7f2 72%,transparent 72%); }
+  .pin { position:absolute; left:168px; top:120px; width:22px; height:22px; border-radius:50%; background:var(--ink); border:5px solid var(--stock); }
+  .pin-lbl { position:absolute; left:120px; top:148px; font:600 13px "Anuphan"; background:var(--ink); color:#fff; padding:3px 8px; border-radius:4px; }
+  .ticket { position:relative; margin:-26px 14px 0; background:var(--stock); border-radius:4px; padding:20px 16px 16px 76px;
+            box-shadow:0 2px 0 var(--tin-dk); }
+  .ticket::before { content:""; position:absolute; left:0; right:0; top:-6px; height:12px;
+            background:radial-gradient(circle at 6px 6px,var(--tin) 4px,transparent 4.5px) 0 0/12px 12px repeat-x; }
+  .stub { position:absolute; left:0; top:0; bottom:0; width:60px; border-right:2px dashed rgba(28,27,31,.45);
+          display:flex; align-items:center; justify-content:center; }
+  .serial { writing-mode:vertical-rl; transform:rotate(180deg); font:700 16px "Bai Jamjuree"; color:var(--red); letter-spacing:2px; }
+  .k { font:500 12px "Anuphan"; text-transform:none; color:#3b3a3e; }
+  .dest { font:700 24px "Bai Jamjuree"; line-height:1.15; margin:2px 0 10px; }
+  .row { display:grid; grid-template-columns:1fr auto; align-items:end; gap:8px; }
+  .from { font:500 14px "Anuphan"; }
+  .fare { font:700 52px/0.9 "Bai Jamjuree"; letter-spacing:-1px; }
+  .fare span { font-size:22px; }
+  .note { font:500 12px "Anuphan"; color:#3b3a3e; margin-top:4px; }
+  .punch { display:grid; grid-template-columns:repeat(4,1fr); margin-top:14px; border-top:1.5px solid var(--ink); padding-top:10px; }
+  .punch div { font:600 12px "Anuphan"; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .punch i { width:16px; height:16px; border-radius:50%; border:1.5px solid var(--ink); }
+  .punch .on i { background:var(--tin); border-color:var(--tin-dk); box-shadow:inset 0 1px 2px rgba(0,0,0,.35); }
+  .go { margin:14px 14px 0; height:58px; border-radius:6px; background:var(--ink); color:var(--stock);
+        font:700 22px "Bai Jamjuree"; display:flex; align-items:center; justify-content:center; letter-spacing:.5px; }
+  .pop { margin:14px 14px 0; }
+  .pop h3 { font:600 13px "Anuphan"; color:#3b3a3e; margin-bottom:8px; }
+  .chips { display:flex; gap:8px; }
+  .chip { font:600 14px "Anuphan"; background:#EEF0F2; border:1.5px solid var(--ink); border-radius:4px; padding:8px 10px; white-space:nowrap; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:76px; background:#fff; border-top:1.5px solid var(--ink);
+          display:grid; grid-template-columns:repeat(4,1fr); padding-top:10px; }
+  .tabs div { font:600 12px "Anuphan"; text-align:center; color:#5b5e63; }
+  .tabs div b { display:block; width:24px; height:24px; margin:0 auto 4px; border:2px solid currentColor; border-radius:5px; }
+  .tabs .cur { color:var(--ink); }
+  .tabs .cur b { background:var(--stock); }
+</style>
+</head>
+<body>
+  <div class="bar"><div class="area">มก. กำแพงแสน<small>โหมดผู้โดยสาร · สลับเป็นคนขับ</small></div><div class="sos">SOS</div></div>
+  <div class="map"><div class="pin"></div><div class="pin-lbl">จุดรับ: หอพักนิสิต</div></div>
+  <div class="ticket">
+    <div class="stub"><div class="serial">№ 004218</div></div>
+    <div class="k">ปลายทาง</div>
+    <div class="dest">สำนักหอสมุด</div>
+    <div class="row">
+      <div><div class="k">จุดรับ</div><div class="from">หอพักนิสิต · 1.4 กม.</div><div class="note">เหมาจ่ายในเขต 2 กม.</div></div>
+      <div class="fare">20<span> ฿</span></div>
+    </div>
+    <div class="punch"><div class="on"><i></i>ขอแล้ว</div><div><i></i>ได้คนขับ</div><div><i></i>รับแล้ว</div><div><i></i>ถึงแล้ว</div></div>
+  </div>
+  <div class="go">เรียกวิน</div>
+  <div class="pop"><h3>ไปบ่อย</h3><div class="chips"><div class="chip">โรงอาหารกลาง</div><div class="chip">อาคารเรียนรวม</div><div class="chip">ประตู 1</div></div></div>
+  <div class="tabs"><div class="cur"><b></b>เรียกวิน</div><div><b></b>ตั๋วของฉัน</div><div><b></b>แจ้งเตือน</div><div><b></b>บัญชี</div></div>
+</body>
+</html>

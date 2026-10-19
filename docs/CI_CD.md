@@ -39,6 +39,7 @@
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | เนื้อหาทั้งไฟล์ service account ของ Firebase (push notification) |
 | `SLIP_PROVIDER` / `EASYSLIP_API_KEY` | `easyslip` / key จาก EasySlip |
 | `BREVO_API_KEY` / `MAIL_FROM` | ส่งรหัสรีเซ็ตรหัสผ่าน — `MAIL_FROM` เช่น `KU VIN <you@gmail.com>` ต้องยืนยันใน Brevo → Senders แล้ว |
+| `CORS_ORIGINS` | เว็บที่เรียก API ได้ คั่นด้วย comma เช่น `https://web-app-production-6f95.up.railway.app,https://admin-production-2219.up.railway.app` — ไม่ตั้งจะใช้สองโดเมนนี้อยู่แล้ว ต้องตั้งเมื่อย้ายโดเมน |
 
 ไม่ต้องตั้ง `PORT` (Railway ตั้งให้ ตอนนี้คือ 8080 — ใช้เลขนี้ตอน Generate Domain) และ `NODE_ENV=production` อยู่ใน Dockerfile แล้ว
 

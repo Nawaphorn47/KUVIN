@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Banknote, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import PaymentQr from "../../components/shared/PaymentQr";
 import SlipUploader from "../../components/shared/SlipUploader";
+import TripHeader from "../../components/shared/TripHeader";
+import TripRail from "../../components/shared/TripRail";
 import { api } from "../../lib/api";
 
 export default function RideCompleted() {
@@ -27,62 +29,53 @@ export default function RideCompleted() {
   }, [initial?.id, paid]);
 
   const request = initial;
-
-  if (!request) {
-    navigate("/home");
-    return null;
-  }
+  if (!request) return <Navigate to="/home" replace />;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-gradient-to-b from-emerald-600 to-emerald-800 px-8 text-center text-white">
-      <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 14 }}
-      >
-        <CheckCircle2 className="h-20 w-20" strokeWidth={1.5} />
-      </motion.div>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <TripHeader status={`ถึง ${request.destinationAddress ?? "ปลายทาง"} แล้ว · ค่าวินทั้งหมด`} value={request.fare} unit="฿" />
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        {paid ? (
+          <motion.p
+            role="status"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 16 }}
+            className="flex items-center gap-3 rounded-xl bg-brand-50 p-4 text-base font-bold text-brand-800 ring-1 ring-brand-200"
+          >
+            <span className="flex h-9 w-9 -rotate-6 items-center justify-center rounded-full bg-brand-600 text-white shadow-sticker">
+              <Check className="h-5 w-5" strokeWidth={3} />
+            </span>
+            จ่ายเรียบร้อย ขอบคุณที่ใช้วิน!
+          </motion.p>
+        ) : (
+          <section aria-labelledby="pay-title" className="flex flex-col gap-3">
+            <h2 id="pay-title" className="text-base font-bold text-slate-900">
+              จ่ายค่าวิน
+            </h2>
+            <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
+            {slipEnabled && <SlipUploader requestId={request.id} onPaid={() => setPaid(true)} />}
+            <p className="flex items-center gap-2 text-sm text-slate-600">
+              <Banknote className="h-4 w-4 flex-none text-slate-500" />
+              {slipEnabled ? "จ่ายเงินสดก็ได้ คนขับจะกดยืนยันว่ารับเงินแล้ว" : "หรือจ่ายเงินสดให้คนขับโดยตรง"}
+            </p>
+          </section>
+        )}
 
-      <div>
-        <h1 className="text-3xl font-bold">เดินทางเสร็จสิ้น!</h1>
-        <p className="mt-1 text-base text-emerald-100">{request.destinationAddress ?? "-"}</p>
-      </div>
-
-      <div className="w-full rounded-2xl bg-white/10 p-5 backdrop-blur">
-        <p className="text-sm text-emerald-100">ค่าบริการทั้งหมด</p>
-        <p className="text-4xl font-bold">{request.fare} ฿</p>
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/15 pt-4 text-left">
-          <div>
-            <p className="text-xs text-emerald-100">คนขับ</p>
-            <p className="text-sm font-semibold">{request.driver.fullName}</p>
-          </div>
-          <div>
-            <p className="text-xs text-emerald-100">ระยะทาง</p>
-            <p className="text-sm font-semibold">{request.distanceKm} กม.</p>
-          </div>
-        </div>
-      </div>
-
-      {paid ? (
-        <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold">
-          <CheckCircle2 className="h-5 w-5" /> ชำระเงินเรียบร้อยแล้ว
-        </div>
-      ) : (
-        <div className="flex w-full flex-col items-center gap-3">
-          <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
-          {slipEnabled && <SlipUploader requestId={request.id} onPaid={() => setPaid(true)} />}
-          <p className="text-xs text-emerald-100">
-            {slipEnabled ? "จ่ายเงินสดให้คนขับได้เช่นกัน คนขับจะกดยืนยันการรับเงิน" : "หรือจ่ายเงินสดให้คนขับโดยตรง"}
+        <section className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <TripRail stage={4} request={request} />
+          <p className="tabular mt-3 border-t border-slate-200 pt-3 text-sm text-slate-600">
+            {request.driver.fullName}
+            {request.distanceKm != null && ` · ${request.distanceKm} กม.`}
           </p>
-        </div>
-      )}
-
-      <Button variant="secondary" onClick={() => navigate("/rating", { state: { request } })}>
-        ให้คะแนนคนขับ
-      </Button>
-      <button onClick={() => navigate("/home")} className="text-sm text-emerald-100">
-        ข้ามไปก่อน
-      </button>
+        </section>
+      </main>
+      <div className="flex flex-none flex-col gap-1 border-t border-slate-200 bg-white px-4 py-3">
+        <Button onClick={() => navigate("/rating", { state: { request } })}>ให้คะแนนคนขับ</Button>
+        <Button variant="ghost" onClick={() => navigate("/home")}>
+          ไว้ทีหลัง
+        </Button>
+      </div>
     </div>
   );
 }

@@ -314,7 +314,14 @@ async function unsuspendAccount(scope, role, id) {
   return role === "user" ? sanitizeUser(fresh) : sanitizeDriver(fresh);
 }
 
+// รูปเซลฟี่ยืนยันตัวตนผู้โดยสาร — แอดมินดูได้เฉพาะผู้ใช้ที่อยู่ในขอบเขตพื้นที่ของตัวเอง (เช็คเหมือนหน้ารายละเอียด)
+async function getUserSelfiePath(scope, id) {
+  await findUserInScope(scope, id);
+  return require("./identity.service").selfiePath(id);
+}
+
 module.exports = {
+  getUserSelfiePath,
   listUsers,
   listDrivers,
   getUserDetail,

@@ -106,6 +106,7 @@ async function main() {
         phone: demoUserPhone,
         email: "somjai@ku.th",
         studentId: "6410400999",
+        phoneVerifiedAt: new Date(), // บัญชีเดโมถือว่ายืนยันเบอร์แล้ว (ยังต้องถ่ายเซลฟี่ก่อนเรียกครั้งแรก)
         passwordHash: await bcrypt.hash("user1234", 10),
       },
     });

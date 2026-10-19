@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { applyBrand, DEFAULT_BRAND } from "../theme/brand";
 import { useApp } from "./AppContext";
 
 // พื้นที่ให้บริการที่แอปกำลังใช้อยู่ (ชื่อ/โลโก้ที่โชว์, จุดกลางแผนที่, สถานที่, เบอร์ฉุกเฉิน, อัตราค่าโดยสาร)
@@ -83,6 +84,10 @@ export function AreaProvider({ children }) {
   // คนขับใช้พื้นที่ที่สังกัดเสมอ ไม่สนพื้นที่ที่เลือกไว้ตอนเป็นผู้โดยสาร
   const effectiveId = mode === "driver" && driver?.areaId ? driver.areaId : areaId;
   const area = areas?.find((a) => a.id === effectiveId) ?? null;
+
+  // สีแบรนด์ของพื้นที่เป็นสีหลักทั้งแอป — เปลี่ยนพื้นที่แล้วทั้งแอปเปลี่ยนตาม
+  const brandColor = area?.brandColor ?? DEFAULT_BRAND;
+  useEffect(() => applyBrand(brandColor), [brandColor]);
 
   const value = useMemo(
     () => ({ areas: areas ?? [], area, setAreaId, loading: areas === null, loadError, reload: loadAreas }),

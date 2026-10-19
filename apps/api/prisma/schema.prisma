@@ -64,15 +64,16 @@ model Area {
   name        String // ชื่อเต็มของพื้นที่ เช่น "มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน"
   displayName String // ชื่อที่โชว์ในแอป เช่น "มก. กำแพงแสน"
   logoUrl     String?
+  brandColor  String  @default("#006664") // สีแบรนด์ของพื้นที่ (hex) — แอปใช้เป็นสีหลักทั้งชุด ต้องอ่านตัวอักษรสีขาวบนสีนี้ได้ (ค่าเริ่มต้น = เขียว มก. ชั่วคราว)
 
   centerLat       Float
   centerLng       Float
   flatRadiusKm    Float @default(2) // ต้นทางและปลายทางอยู่ในรัศมีนี้ทั้งคู่ = เหมาจ่าย flatFare
   serviceRadiusKm Float @default(15) // รับผู้โดยสารได้ไกลจากจุดกลางสุดเท่านี้ (ใช้เลือกพื้นที่จากตำแหน่งจุดรับ)
 
-  flatFare   Float @default(20)
-  ratePerKm  Float @default(10) // นอกเขตเหมาจ่าย คิดตามระยะถนนจริง
-  minFare    Float @default(20)
+  flatFare  Float @default(20)
+  ratePerKm Float @default(10) // นอกเขตเหมาจ่าย คิดตามระยะถนนจริง
+  minFare   Float @default(20)
 
   emergencyContacts Json @default("[]") // [{ label, phone }] — โชว์ในแผง SOS และหน้าตั้งค่าของพื้นที่นี้
 
@@ -93,10 +94,17 @@ model User {
   id           String  @id @default(uuid())
   fullName     String
   phone        String  @unique
-  email        String  @unique // ล็อกอินด้วยอีเมลนี้ (อีเมลไหนก็ได้ เก็บเป็นตัวพิมพ์เล็กเสมอ — ดู normalizeEmail)
-  passwordHash String
+  email        String? @unique // ล็อกอินด้วยอีเมลนี้ (อีเมลไหนก็ได้ เก็บเป็นตัวพิมพ์เล็กเสมอ — ดู normalizeEmail) — บัญชีที่สมัครด้วย OTP อาจไม่มี
+  passwordHash String? // null = บัญชีที่เข้าด้วย OTP เบอร์โทร/Google เท่านั้น
   studentId    String?
   fcmToken     String?
+
+  // ยืนยันตัวตนผู้โดยสาร (คนเรียกต้องยืนยันเหมือนคนขับ): เบอร์ผ่าน OTP + รูปเซลฟี่ก่อนเรียกวินครั้งแรก
+  // selfieFile เก็บแค่ชื่อไฟล์ในโฟลเดอร์ส่วนตัว (ไม่เสิร์ฟสาธารณะ) — เปิดดูได้เฉพาะแอดมินผ่าน API
+  phoneVerifiedAt DateTime?
+  selfieFile      String?
+  selfieAt        DateTime?
+  googleSub       String?   @unique // บัญชี Google ที่ผูกไว้ (sub จาก ID token)
 
   // รีเซ็ตรหัสผ่าน: resetToken เก็บ sha256 ของรหัส 6 หลักที่ส่งทางอีเมล (ไม่เก็บรหัสจริง) — ไม่ unique เพราะ
   // รหัส 6 หลักของสองคนชนกันได้; resetAttempts นับครั้งที่กรอกผิด ครบโควตาแล้วรหัสนั้นใช้ไม่ได้ (กันสุ่มเดา)
@@ -114,15 +122,19 @@ model User {
 
   requests     ServiceRequest[]
   ratingsGiven Rating[]
+  driver       Driver? // โหมดคนขับของบัญชีนี้ (บัญชีเดียวสลับโหมดได้)
 
   @@map("users")
 }
 
 model Driver {
   id                 String                   @id @default(uuid())
+  // บัญชีผู้ใช้เจ้าของโหมดคนขับนี้ — null = บัญชีคนขับแบบเก่าที่สมัครแยก (ล็อกอินด้วยเบอร์+รหัสผ่านของคนขับเอง)
+  userId             String?                  @unique
+  user               User?                    @relation(fields: [userId], references: [id])
   fullName           String
   phone              String                   @unique
-  passwordHash       String
+  passwordHash       String? // null = เข้าโหมดคนขับผ่านบัญชีผู้ใช้เท่านั้น
   areaId             String // คนขับสังกัดพื้นที่เดียว คิวรับงานแยกตามพื้นที่
   area               Area                     @relation(fields: [areaId], references: [id])
   vinNumber          String // หมายเลขวิน — ไม่ซ้ำภายในพื้นที่เดียวกัน (แต่ละพื้นที่มีวินเบอร์ 1, 2, 3 ของตัวเอง)
@@ -133,11 +145,11 @@ model Driver {
   rejectionReason    String? // เหตุผลเมื่อ verificationStatus = REJECTED
 
   // เอกสารยืนยันตัวตน (เก็บเป็น URL ไปยังไฟล์ที่อัปโหลด)
-  photoUrl             String? // รูปถ่ายหน้าตรง
-  idCardPhotoUrl       String? // รูปบัตรประชาชน
+  photoUrl              String? // รูปถ่ายหน้าตรง
+  idCardPhotoUrl        String? // รูปบัตรประชาชน
   driverLicensePhotoUrl String? // รูปใบขับขี่ (คนละใบกับบัตรประชาชน)
-  vehiclePhotoUrl      String? // รูปรถเต็มคัน
-  platePhotoUrl        String? // รูปป้ายทะเบียน
+  vehiclePhotoUrl       String? // รูปรถเต็มคัน
+  platePhotoUrl         String? // รูปป้ายทะเบียน
 
   // ระงับบัญชีโดย admin: login/เรียก API/ต่อ socket ไม่ได้จนกว่าจะปลดระงับ (ดู middlewares/auth.js)
   isSuspended     Boolean   @default(false)
@@ -155,11 +167,11 @@ model Driver {
   queueJoinedAt DateTime? @db.Timestamptz(6)
   timeoutCount  Int       @default(0)
 
-  currentLat  Float?
-  currentLng  Float?
-  fcmToken    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  currentLat Float?
+  currentLng Float?
+  fcmToken   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // ต้นทุนรถของคนขับ — ใช้ประมาณค่าน้ำมันต่อเที่ยว (ระยะทาง / กม.ต่อลิตร × ราคาต่อลิตร)
   fuelKmPerLiter    Float?
@@ -229,14 +241,14 @@ model ServiceRequest {
   distanceKm     Float? // ระยะทางถนนจริง ใช้คิดค่าโดยสารนอกเขตเหมาจ่าย และประมาณค่าน้ำมันของคนขับ
   fare           Float? // คำนวณตามอัตราของพื้นที่ (Area.flatFare / ratePerKm / minFare)
 
-  paymentMethod PaymentMethod @default(CASH)
-  paymentStatus PaymentStatus @default(PENDING)
-  disputeNote   String? // เหตุผลเมื่อ paymentStatus = DISPUTED
+  paymentMethod       PaymentMethod @default(CASH)
+  paymentStatus       PaymentStatus @default(PENDING)
+  disputeNote         String? // เหตุผลเมื่อ paymentStatus = DISPUTED
   // ตรวจสลิปโอนเงิน (ดู services/payment.service.js) — ไม่เก็บรูปสลิป เก็บแค่เลขอ้างอิงธุรกรรมไว้กันสลิปซ้ำ
-  paymentRef          String?   @unique // เลขอ้างอิงธุรกรรมบนสลิป (unique = สลิปใบเดียวใช้ได้ทริปเดียว)
+  paymentRef          String?       @unique // เลขอ้างอิงธุรกรรมบนสลิป (unique = สลิปใบเดียวใช้ได้ทริปเดียว)
   paymentVerifiedAt   DateTime? // เวลาที่ตรวจสลิปผ่าน
   paymentConfirmedBy  String? // ใครยืนยันว่าจ่ายแล้ว: SLIP | DRIVER | ADMIN
-  paymentSlipAttempts Int       @default(0) // จำนวนครั้งที่ผู้โดยสารส่งสลิปแล้วไม่ผ่าน (จำกัดตาม SLIP_MAX_ATTEMPTS)
+  paymentSlipAttempts Int           @default(0) // จำนวนครั้งที่ผู้โดยสารส่งสลิปแล้วไม่ผ่าน (จำกัดตาม SLIP_MAX_ATTEMPTS)
   paymentSlipError    String? // เหตุผลที่สลิปล่าสุดไม่ผ่าน (ให้ admin ดูตอนมีข้อพิพาท)
 
   requestedAt  DateTime  @default(now())
@@ -247,13 +259,13 @@ model ServiceRequest {
 
   // สถานะคิวรับงานแบบเสนอทีละคน (sequential offer): ตอนนี้กำลังเสนองานให้คนขับคนไหนอยู่ และหมดเวลาเมื่อไหร่
   // (60 วิ/คน) ถ้าไม่ตอบสนองภายในเวลา background sweep job จะเลื่อนไปเสนอคนถัดไปในคิวอัตโนมัติ
-  offeredDriverId String?
-  offerExpiresAt  DateTime?
+  offeredDriverId   String?
+  offerExpiresAt    DateTime?
   // เบอร์คนขับที่ถูกเสนองานนี้ไปแล้ว (ปฏิเสธ/หมดเวลา) กันไม่ให้วนกลับมาเสนอซ้ำในคำขอเดียวกัน
-  triedDriverIds  String[]  @default([])
+  triedDriverIds    String[]  @default([])
   // คนขับที่ปล่อยงานนี้ให้หมดเวลา (timeout ครั้งที่ 1-2 = light penalty) — รอจนรู้ว่าใครได้งานรอบนี้ ค่อยย้ายไป
   // "ต่อจากคนที่ได้งาน" ตอนมีคนกดรับ (ดู queue.service.js) เพราะตอน timeout ยังไม่รู้ว่าใครจะได้งาน
-  timedOutDriverIds String[] @default([])
+  timedOutDriverIds String[]  @default([])
 
   rating       Rating?
   driverRating DriverRating?
@@ -295,17 +307,17 @@ model DriverRating {
 
 // สถานที่ในพื้นที่ให้บริการสำหรับหน้าค้นหาจุดหมาย / จุดหมายยอดนิยม (แต่ละพื้นที่มีชุดของตัวเอง)
 model Landmark {
-  id        String   @id @default(uuid())
-  areaId    String
-  area      Area     @relation(fields: [areaId], references: [id])
-  name      String
-  detail    String?
-  lat       Float
-  lng       Float
-  isPopular Boolean  @default(false)
+  id             String   @id @default(uuid())
+  areaId         String
+  area           Area     @relation(fields: [areaId], references: [id])
+  name           String
+  detail         String?
+  lat            Float
+  lng            Float
+  isPopular      Boolean  @default(false)
   // true = admin ตรวจ/ปักหมุดพิกัดให้ตรงกับสถานที่จริงแล้ว, false = ยังเป็นค่าประมาณ (ดูหน้า "จัดการสถานที่" ใน admin)
-  coordsVerified Boolean @default(false)
-  createdAt DateTime @default(now())
+  coordsVerified Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
   @@index([areaId])
   @@map("landmarks")
@@ -328,7 +340,7 @@ model Notification {
 model SosAlert {
   id        String                @id @default(uuid())
   actorType NotificationRecipient // USER หรือ DRIVER ที่กดปุ่ม SOS
-  actorId   String                // userId หรือ driverId ตาม actorType (ไม่ผูก FK ตรง เพราะอ้างได้ 2 ตาราง เหมือน Notification)
+  actorId   String // userId หรือ driverId ตาม actorType (ไม่ผูก FK ตรง เพราะอ้างได้ 2 ตาราง เหมือน Notification)
 
   lat  Float?
   lng  Float?
@@ -352,4 +364,15 @@ model SosAlert {
 
   @@index([actorType, actorId])
   @@map("sos_alerts")
+}
+
+// รหัส OTP ทางเบอร์โทร — เก็บ sha256 ของรหัส (ไม่เก็บรหัสจริง) หนึ่งเบอร์มีรหัสที่ใช้ได้ทีละหนึ่งชุด
+model PhoneOtp {
+  phone     String   @id
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0) // กรอกผิดครบโควตาแล้วรหัสนี้ใช้ไม่ได้ (กันสุ่มเดา)
+  sentAt    DateTime @default(now()) // กันกดขอรหัสถี่เกินไป
+
+  @@map("phone_otps")
 }

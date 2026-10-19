@@ -1,0 +1,35 @@
+sequenceDiagram
+  autonumber
+  actor U as นิสิต/บุคลากร
+  participant UI as แอป (UI)
+  participant SR as :ServiceRequest
+  participant N as :Notification
+  actor D as คนขับวิน
+
+  U->>UI: เลือกประเภทบริการ (เรียกวิน / รับหิ้ว)
+  U->>UI: ระบุจุดรับ-ส่ง และรายการของ (ถ้ารับหิ้ว)
+  UI->>SR: calculateFare()
+  SR-->>UI: ค่าโดยสาร
+  UI-->>U: แสดงรายละเอียดและค่าโดยสาร
+  U->>UI: requestService(type, pickup, destination)
+  UI->>SR: สร้างคำขอ (status = PENDING)
+  SR->>N: send()
+  N-->>D: แจ้งเตือนมีคำขอใหม่
+  D->>UI: viewRequests()
+  UI-->>D: แสดงรายละเอียดคำขอ
+  alt คนขับรับงาน
+    D->>UI: acceptJob(request)
+    UI->>SR: updateStatus(ACCEPTED)
+    SR->>N: send()
+    N-->>U: แจ้งว่าคนขับรับงานแล้ว
+    D->>UI: updateJobStatus(request, IN_PROGRESS)
+    UI->>SR: updateStatus(IN_PROGRESS)
+    D->>UI: updateJobStatus(request, COMPLETED)
+    UI->>SR: updateStatus(COMPLETED)
+    SR->>N: send()
+    N-->>U: แจ้งว่าให้บริการเสร็จสิ้น
+  else คนขับปฏิเสธงาน
+    D->>UI: rejectJob(request)
+    UI->>N: send() ส่งต่อให้คนขับคนถัดไป
+    UI-->>U: แสดงสถานะรอดำเนินการ (PENDING)
+  end

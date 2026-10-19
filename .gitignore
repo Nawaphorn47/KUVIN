@@ -12,6 +12,7 @@ apps/api/prisma/dev.db
 
 # ไฟล์ที่อัปโหลดผ่าน POST /api/uploads (รูปยืนยันตัวตนคนขับ ฯลฯ)
 apps/api/uploads/
+apps/api/uploads-private/
 
 # IDE
 .vscode/

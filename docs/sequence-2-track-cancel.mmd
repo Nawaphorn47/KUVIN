@@ -1,0 +1,25 @@
+sequenceDiagram
+  autonumber
+  actor U as นิสิต/บุคลากร
+  participant UI as แอป (UI)
+  participant SR as :ServiceRequest
+  participant N as :Notification
+  actor D as คนขับวิน
+
+  U->>UI: trackStatus(request)
+  UI->>SR: ขอสถานะคำขอ
+  SR-->>UI: status
+  UI-->>U: แสดงสถานะคำขอ
+  U->>UI: cancelRequest(request)
+  UI->>SR: ตรวจสอบสถานะ
+  alt status = PENDING หรือ ACCEPTED
+    UI->>SR: cancel(reason)
+    SR->>SR: status = CANCELLED
+    opt มีคนขับรับงานแล้ว
+      SR->>N: send()
+      N-->>D: แจ้งว่าคำขอถูกยกเลิก
+    end
+    UI-->>U: ยกเลิกคำขอสำเร็จ
+  else status = IN_PROGRESS หรือ COMPLETED
+    UI-->>U: ยกเลิกไม่ได้ เพราะเริ่มให้บริการแล้ว
+  end

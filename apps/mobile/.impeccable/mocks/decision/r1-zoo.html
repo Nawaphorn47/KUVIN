@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --land:#8ED462; --water:#F5F1E4; --ink:#2C2E2A; --yel:#F5E211; --coral:#FF705D; --blue:#2BA0FF; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Anuphan",sans-serif; color:var(--ink); background:var(--water); position:relative; }
+  .lobe { position:absolute; left:-60px; top:40px; width:470px; height:520px; background:var(--land); border-radius:46% 54% 48% 52% / 52% 44% 56% 48%; }
+  .hole { position:absolute; left:150px; top:250px; width:90px; height:70px; background:var(--water); border-radius:50% 40% 55% 45%; }
+  .title { position:absolute; left:20px; top:70px; font:700 40px/0.95 "Anuphan"; letter-spacing:-1.5px; }
+  .title small { display:block; font:500 14px "Anuphan"; letter-spacing:0; margin-top:8px; }
+  .cap { position:absolute; display:flex; align-items:center; gap:8px; font:700 14px "Anuphan"; padding:8px 8px 8px 14px; border-radius:999px; }
+  .cap i { width:22px; height:22px; border-radius:50%; background:var(--ink); }
+  .here { left:170px; top:330px; background:var(--coral); color:var(--ink); }
+  .d1 { left:30px; top:210px; background:#fff; }
+  .d2 { left:200px; top:190px; background:#fff; }
+  .d3 { left:60px; top:440px; background:#fff; }
+  .sheet { position:absolute; left:0; right:0; bottom:72px; padding:16px 18px; }
+  .sheet .fare { font:700 48px/1 "Anuphan"; letter-spacing:-1.5px; }
+  .sheet .to { font:700 18px "Anuphan"; margin:2px 0 12px; }
+  .go { height:56px; border-radius:999px; background:var(--yel); font:700 20px "Anuphan"; display:flex; align-items:center; justify-content:space-between; padding:0 8px 0 22px; }
+  .go i { width:42px; height:42px; border-radius:50%; background:var(--ink); }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:72px; background:var(--ink); color:var(--water); display:grid; grid-template-columns:repeat(4,1fr); padding-top:12px; }
+  .tabs div { text-align:center; font:500 12px "Anuphan"; }
+  .tabs b { display:block; width:20px; height:20px; border-radius:50%; margin:0 auto 4px; background:var(--water); opacity:.5; }
+  .tabs .cur b { background:var(--yel); opacity:1; }
+</style>
+</head>
+<body>
+  <div class="lobe"></div><div class="hole"></div>
+  <div class="title">เขตเหมาจ่าย<small>มก. กำแพงแสน · ในเขตนี้ 20 ฿ ทุกที่</small></div>
+  <div class="cap d1">สำนักหอสมุด<i></i></div>
+  <div class="cap d2">โรงอาหารกลาง<i></i></div>
+  <div class="cap d3">อาคารเรียนรวม<i></i></div>
+  <div class="cap here">คุณอยู่ที่นี่<i></i></div>
+  <div class="sheet"><div class="fare">20 ฿</div><div class="to">ไปสำนักหอสมุด</div><div class="go">เรียกวิน<i></i></div></div>
+  <div class="tabs"><div class="cur"><b></b>เรียกวิน</div><div><b></b>ทริป</div><div><b></b>แจ้งเตือน</div><div><b></b>บัญชี</div></div>
+</body>
+</html>

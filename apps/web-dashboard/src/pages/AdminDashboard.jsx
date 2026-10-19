@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
+import Overlay from "../components/Overlay";
 import Card from "../components/Card";
 import { PageHeader } from "../components/AdminLayout";
 import { api } from "../services/api";
@@ -339,11 +340,8 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-5 overflow-y-auto rounded-2xl bg-white p-6"
-      >
+    <Overlay onClose={onClose} className="flex items-center justify-center p-4" backdropClassName="bg-black/50">
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-5 overflow-y-auto rounded-2xl bg-white p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-2xl text-emerald-900">ตรวจสอบเอกสารคนขับ</h3>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-stone-100">
@@ -391,8 +389,9 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
 
         {showReject && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-stone-600">เหตุผลที่ปฏิเสธ (จำเป็น)</label>
+            <label htmlFor="reject-reason" className="text-sm text-stone-600">เหตุผลที่ปฏิเสธ (จำเป็น)</label>
             <textarea
+              id="reject-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
@@ -417,7 +416,7 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
           </Button>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }
 

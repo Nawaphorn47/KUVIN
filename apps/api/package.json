@@ -14,7 +14,8 @@
     "test:suspension": "node scripts/test-suspension.js",
     "test:payment": "node scripts/test-payment.js",
     "test:auth": "node scripts/test-auth.js",
-    "test:platform": "node scripts/test-platform.js"
+    "test:platform": "node scripts/test-platform.js",
+    "test:identity": "node scripts/test-identity.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

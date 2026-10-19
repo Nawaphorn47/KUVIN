@@ -219,7 +219,7 @@ async function main() {
   try {
     const passwordHash = await bcrypt.hash("test1234", 4);
     const mkUser = (n) =>
-      prisma.user.create({ data: { fullName: `P-user${n}`, phone: `${PREFIX}U${n}`, email: `pay-u${n}-${Date.now()}@ku.th`, passwordHash } });
+      prisma.user.create({ data: { fullName: `P-user${n}`, phone: `${PREFIX}U${n}`, email: `pay-u${n}-${Date.now()}@ku.th`, passwordHash, phoneVerifiedAt: new Date(), selfieFile: "test-selfie.jpg" } });
     const mkDriver = (n, promptPayId) =>
       prisma.driver.create({
         data: { fullName: `P-drv${n}`, phone: `${PREFIX}D${n}`, passwordHash, areaId: "area-ku-kps", vinNumber: `P${n}${Date.now() % 100000}`, licensePlate: "T", verificationStatus: "APPROVED", promptPayId },

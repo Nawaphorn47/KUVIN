@@ -66,7 +66,7 @@ async function mkDriver(areaId, vin, extra = {}) {
 
 async function mkUser() {
   const u = await prisma.user.create({
-    data: { fullName: "T-plat-user", phone: phone(), email: `plat-${stamp}-${seq}@example.com`, passwordHash: "x" },
+    data: { fullName: "T-plat-user", phone: phone(), email: `plat-${stamp}-${seq}@example.com`, passwordHash: "x", phoneVerifiedAt: new Date(), selfieFile: "test-selfie.jpg" },
   });
   created.users.push(u.id);
   return u;

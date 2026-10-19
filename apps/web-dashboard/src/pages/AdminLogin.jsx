@@ -51,10 +51,11 @@ export default function AdminLogin() {
 
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm text-stone-800">อีเมล</label>
+            <label htmlFor="admin-email" className="mb-2 block text-sm text-stone-800">อีเมล</label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400" />
               <input
+                id="admin-email"
                 type="email"
                 required
                 placeholder="admin@ku.th"
@@ -66,10 +67,11 @@ export default function AdminLogin() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-stone-800">รหัสผ่าน</label>
+            <label htmlFor="admin-password" className="mb-2 block text-sm text-stone-800">รหัสผ่าน</label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400" />
               <input
+                id="admin-password"
                 type="password"
                 required
                 placeholder="••••••••"

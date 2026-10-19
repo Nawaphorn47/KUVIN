@@ -1,30 +1,57 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bike, Mail, Lock, Phone, AlertTriangle, Zap } from "lucide-react";
-import clsx from "clsx";
-import Screen from "../../components/layout/Screen";
+import { Bike, ChevronLeft, Lock, Mail, Phone, User, Zap } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import OtpForm from "../../components/shared/OtpForm";
+import GoogleButton from "../../components/shared/GoogleButton";
 import { api } from "../../lib/api";
 import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
+import { driverLanding, useAuthConfig } from "../../lib/session";
 import { useApp } from "../../context/AppContext";
 import { useArea } from "../../context/AreaContext";
 
 // บัญชีทดสอบจาก apps/api/prisma/seed.js — โชว์เฉพาะตอนรัน dev server หรือ APK ทดสอบที่ build ด้วย npm run android:dev
 // __DEMO_LOGIN__ เป็นค่าคงที่ตอน build (ดู vite.config.js) build จริงจึงตัดทั้งปุ่มและรายการนี้ทิ้งไปเลย ไม่หลุดไปใน bundle
 const DEMO_ACCOUNTS = __DEMO_LOGIN__ && [
-  { label: "ผู้ใช้บริการ (สมใจ)", role: "user", email: "somjai@ku.th", password: "user1234" },
-  { label: "คนขับ เบอร์วิน 1", role: "driver", phone: "0800000002", password: "driver1234" },
-  { label: "คนขับ เบอร์วิน 2", role: "driver", phone: "0800000003", password: "driver1234" },
-  { label: "คนขับ เบอร์วิน 3", role: "driver", phone: "0800000004", password: "driver1234" },
+  { label: "ผู้โดยสาร สมใจ", role: "user", email: "somjai@ku.th", password: "user1234" },
+  { label: "คนขับ วิน 1", role: "driver", phone: "0800000002", password: "driver1234" },
+  { label: "คนขับ วิน 2", role: "driver", phone: "0800000003", password: "driver1234" },
+  { label: "คนขับ วิน 3", role: "driver", phone: "0800000004", password: "driver1234" },
 ];
 
+const errorText = (err, fallback) => err.response?.data?.message || fallback;
+
+function Alert({ children }) {
+  return (
+    <p role="alert" className="rounded-xl bg-here-soft px-3 py-2.5 text-sm font-medium text-here">
+      {children}
+    </p>
+  );
+}
+
+function Divider({ children }) {
+  return (
+    <div className="flex items-center gap-3 text-sm text-slate-500">
+      <span className="h-px flex-1 bg-slate-200" />
+      {children}
+      <span className="h-px flex-1 bg-slate-200" />
+    </div>
+  );
+}
+
+// เข้าระบบ/สมัครในหน้าเดียว: เบอร์มือถือ + OTP เป็นทางหลัก (เบอร์ใหม่ = สมัครให้เลย), Google, อีเมล+รหัสผ่านของบัญชีเดิม
+// และเบอร์+รหัสผ่านของคนขับที่สมัครแยกไว้ก่อนมีบัญชีเดียว
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setMode, refreshMe } = useApp();
   const { area } = useArea();
-  const [role, setRole] = useState(location.state?.role ?? "user"); // "user" | "driver"
+  const config = useAuthConfig();
+  const [view, setView] = useState(location.state?.role === "driver" ? "driver" : "otp"); // otp | name | email | driver
+  const [ticket, setTicket] = useState("");
+  const [googleTicket, setGoogleTicket] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -32,157 +59,237 @@ export default function Login() {
   const [error, setError] = useState(peekSessionNotice); // เช่น "บัญชีถูกระงับ" หลังถูกตัดออกจากระบบ
   useEffect(clearSessionNotice, []); // แสดงครั้งเดียว
 
-  async function performLogin({ role: loginRole, email: loginEmail, phone: loginPhone, password: loginPassword }) {
+  function enter(role, data) {
+    setToken(data.token);
+    setMode(role);
+    refreshMe();
+    if (role === "user") navigate(location.state?.from ?? "/home", { replace: true });
+    else navigate(...driverLanding(data.driver));
+  }
+
+  function go(next) {
     setError("");
+    setView(next);
+  }
+
+  async function verifyOtp(otpPhone, code) {
+    const { data } = await api.post("/auth/otp/verify", { phone: otpPhone, code, googleTicket: googleTicket || undefined });
+    if (data.needsName) {
+      setTicket(data.ticket);
+      go("name");
+    } else enter("user", data);
+  }
+
+  async function completeSignup(e) {
+    e.preventDefault();
     setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.post("/auth/otp/complete", { ticket, fullName, googleTicket: googleTicket || undefined });
+      enter("user", data);
+    } catch (err) {
+      setError(errorText(err, "สร้างบัญชีไม่สำเร็จ ลองใหม่อีกครั้ง"));
+      setLoading(false);
+    }
+  }
+
+  async function googleCredential(credential) {
+    setError("");
+    try {
+      const { data } = await api.post("/auth/google", { credential });
+      if (data.needsPhone) {
+        // บัญชี Google ใหม่ — ยืนยันเบอร์ก่อน แล้วผูกสองอย่างเข้าด้วยกัน
+        setGoogleTicket(data.googleTicket);
+        if (data.name) setFullName(data.name);
+        go("otp");
+      } else enter("user", data);
+    } catch (err) {
+      setError(errorText(err, "เข้าสู่ระบบด้วย Google ไม่สำเร็จ"));
+    }
+  }
+
+  async function passwordLogin({ role, email: e, phone: p, password: pw }) {
+    setLoading(true);
+    setError("");
     try {
       const { data } =
-        loginRole === "user"
-          ? await api.post("/auth/user/login", { email: loginEmail, password: loginPassword })
-          : await api.post("/auth/driver/login", { phone: loginPhone, password: loginPassword });
-
-      setToken(data.token);
-      setMode(loginRole);
-      refreshMe();
-
-      if (loginRole === "user") {
-        navigate("/home");
-      } else if (data.driver.verificationStatus === "PENDING") {
-        navigate("/driver/verify/pending");
-      } else if (data.driver.verificationStatus === "REJECTED") {
-        navigate("/driver/verify/rejected", { state: { reason: data.driver.rejectionReason } });
-      } else {
-        navigate("/driver/home");
-      }
+        role === "user"
+          ? await api.post("/auth/user/login", { email: e, password: pw })
+          : await api.post("/auth/driver/login", { phone: p, password: pw });
+      enter(role, data);
     } catch (err) {
-      setError(err.response?.data?.message || "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError(errorText(err, "เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง"));
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    performLogin({ role, email, phone, password });
-  }
+  const titles = {
+    otp: googleTicket ? "ยืนยันเบอร์มือถือ" : "เข้าใช้ด้วยเบอร์มือถือ",
+    name: "เรียกคุณว่าอะไรดี?",
+    email: "เข้าด้วยอีเมล",
+    driver: "คนขับบัญชีเดิม",
+  };
+  const subtitles = {
+    otp: googleTicket
+      ? "ผูกเบอร์กับบัญชี Google ให้คนขับติดต่อคุณได้"
+      : "ยังไม่มีบัญชีก็ใช้เบอร์นี้สมัครได้เลย บัญชีเดียวใช้ได้ทั้งเรียกวินและขับวิน",
+    name: "ชื่อนี้คนขับจะเห็นตอนมารับ",
+    email: "สำหรับบัญชีที่สมัครด้วยอีเมลและรหัสผ่านไว้แล้ว",
+    driver: "สำหรับคนขับที่สมัครด้วยเบอร์และรหัสผ่านก่อนมีบัญชีเดียว",
+  };
 
   return (
-    <Screen className="justify-center gap-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white">
-          <Bike className="h-7 w-7" />
-        </div>
-        <p className="text-xs font-medium text-slate-400">{area?.displayName ?? "KU VIN"}</p>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">ยินดีต้อนรับกลับ</h1>
-        <p className="mt-1 text-sm text-slate-500">เข้าสู่ระบบเพื่อเรียกวินหรือรับงาน</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
-        {[
-          { value: "user", label: "ผู้ใช้บริการ" },
-          { value: "driver", label: "คนขับ" },
-        ].map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setRole(opt.value)}
-            className={clsx(
-              "rounded-xl py-2.5 text-sm font-semibold transition-colors",
-              role === opt.value ? "bg-white text-emerald-700 shadow-card" : "text-slate-500"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {__DEMO_LOGIN__ && (
-        <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-3">
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-            <Zap className="h-3.5 w-3.5" /> เข้าสู่ระบบด่วน (เฉพาะ dev)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.label}
-                type="button"
-                disabled={loading}
-                onClick={() => performLogin(acc)}
-                className="rounded-lg bg-white px-2 py-2 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-amber-200 disabled:opacity-50"
-              >
-                {acc.label}
-              </button>
-            ))}
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      {/* แผ่นป้ายหัว: ชื่อแอป + พื้นที่ (แบรนด์ของพื้นที่ที่เลือกอยู่) */}
+      <header className="flex-none bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
+            <Bike className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-2xl font-bold leading-none tracking-tight">KU VIN</p>
+            <p className="mt-1 text-sm text-brand-100">{area?.displayName ?? "เรียกวินมอเตอร์ไซค์"}</p>
           </div>
         </div>
-      )}
+      </header>
 
-      {/* ปุ่ม "เข้าสู่ระบบด้วย Google" เอาออกไว้ก่อน — เดิมกดแล้วไม่เกิดอะไร (ยังไม่ได้ต่อ Google OAuth ทั้งฝั่งแอปและ backend) */}
-
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        {role === "user" ? (
-          <Input
-            label="อีเมล"
-            icon={Mail}
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        ) : (
-          <Input
-            label="เบอร์โทรศัพท์"
-            icon={Phone}
-            placeholder="08X-XXX-XXXX"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-6">
+        {view !== "otp" && (
+          <button
+            type="button"
+            onClick={() => go("otp")}
+            className="-ml-1 mb-3 flex h-9 items-center gap-1 text-sm font-bold text-brand-700"
+          >
+            <ChevronLeft className="h-4 w-4" /> ใช้เบอร์มือถือแทน
+          </button>
         )}
-        <Input
-          label="รหัสผ่าน"
-          icon={Lock}
-          type="password"
-          placeholder="รหัสผ่าน"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-slate-900">{titles[view]}</h1>
+        <p className="mt-1 text-[15px] text-slate-600">{subtitles[view]}</p>
 
-        {/* ช่อง "Remember Me" เอาออกแล้ว — ไม่ได้ผูกกับอะไร (ระบบจำการล็อกอินไว้เสมอจนกว่าจะออกจากระบบ) */}
-        <div className="flex items-center justify-end text-sm">
-          {role === "user" && (
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="font-medium text-emerald-600"
+        <div className="mt-6 flex flex-col gap-4">
+          {error && view !== "otp" && <Alert>{error}</Alert>}
+
+          {view === "otp" && (
+            <>
+              {error && <Alert>{error}</Alert>}
+              <OtpForm onSubmit={verifyOtp} submitLabel="เข้าใช้งาน" />
+              {config?.otp === "off" && <Alert>ตอนนี้ยังเข้าด้วย OTP ไม่ได้ ใช้วิธีอื่นด้านล่างแทน</Alert>}
+              {!googleTicket && (
+                <>
+                  <Divider>หรือ</Divider>
+                  {config?.googleClientId && <GoogleButton clientId={config.googleClientId} onCredential={googleCredential} />}
+                  <Button variant="secondary" onClick={() => go("email")}>
+                    <Mail className="h-4 w-4" /> ใช้อีเมลและรหัสผ่าน
+                  </Button>
+                  <button type="button" onClick={() => go("driver")} className="h-10 text-sm font-bold text-brand-700">
+                    คนขับที่สมัครด้วยรหัสผ่านไว้แล้ว
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {view === "name" && (
+            <form onSubmit={completeSignup} className="flex flex-col gap-4">
+              <Input
+                label="ชื่อ-นามสกุล"
+                icon={User}
+                autoComplete="name"
+                autoFocus
+                maxLength={80}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+              <Button type="submit" disabled={loading || fullName.trim().length < 2}>
+                {loading ? "กำลังสร้างบัญชี..." : "เริ่มใช้งาน"}
+              </Button>
+            </form>
+          )}
+
+          {view === "email" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                passwordLogin({ role: "user", email, password });
+              }}
+              className="flex flex-col gap-4"
             >
-              ลืมรหัสผ่าน?
-            </button>
+              <Input label="อีเมล" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                label="รหัสผ่าน"
+                icon={Lock}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button type="submit" disabled={loading}>
+                {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              </Button>
+              <div className="flex justify-between text-sm font-bold text-brand-700">
+                <button type="button" onClick={() => navigate("/forgot-password")} className="h-10">
+                  ลืมรหัสผ่าน?
+                </button>
+                <button type="button" onClick={() => navigate("/register")} className="h-10">
+                  สมัครด้วยอีเมล
+                </button>
+              </div>
+            </form>
+          )}
+
+          {view === "driver" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                passwordLogin({ role: "driver", phone, password });
+              }}
+              className="flex flex-col gap-4"
+            >
+              <Input
+                label="เบอร์มือถือ"
+                icon={Phone}
+                inputMode="tel"
+                maxLength={10}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              />
+              <Input
+                label="รหัสผ่าน"
+                icon={Lock}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button type="submit" disabled={loading}>
+                {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าโหมดคนขับ"}
+              </Button>
+            </form>
+          )}
+
+          {__DEMO_LOGIN__ && (
+            <section aria-labelledby="demo-title" className="mt-2 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 p-3">
+              <h2 id="demo-title" className="flex items-center gap-1.5 text-sm font-bold text-amber-900">
+                <Zap className="h-4 w-4" aria-hidden="true" /> เข้าด่วน (เฉพาะตอนพัฒนา)
+              </h2>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.label}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => passwordLogin(acc)}
+                    className="h-10 rounded-lg bg-white px-2 text-sm font-semibold text-slate-800 ring-1 ring-amber-200 active:bg-amber-100 disabled:text-slate-500"
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
         </div>
-
-        {error && (
-          <p className="flex items-center gap-1.5 text-sm text-red-600">
-            <AlertTriangle className="h-4 w-4 flex-none" /> {error}
-          </p>
-        )}
-
-        <Button type="submit" disabled={loading}>
-          {loading ? "กำลังเข้าสู่ระบบ..." : "Login"}
-        </Button>
-      </form>
-
-      <p className="text-center text-sm text-slate-500">
-        ยังไม่มีบัญชี?{" "}
-        <button
-          onClick={() => navigate("/register", { state: { role } })}
-          className="font-semibold text-emerald-600"
-        >
-          Register
-        </button>
-      </p>
-    </Screen>
+      </main>
+    </div>
   );
 }

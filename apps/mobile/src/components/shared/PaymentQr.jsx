@@ -22,25 +22,25 @@ export default function PaymentQr({ requestId, onLoaded }) {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-        <Banknote className="h-5 w-5 flex-none text-slate-400" /> {error}
+      <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+        <Banknote className="h-5 w-5 flex-none text-slate-500" /> {error}
       </div>
     );
   }
 
   if (!qr) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-2xl bg-slate-50">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+      <div className="flex h-64 items-center justify-center rounded-xl bg-white ring-1 ring-slate-200">
+        <Loader2 className="h-5 w-5 animate-spin text-brand-600" aria-label="กำลังโหลด QR" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-100">
-      <p className="text-xs font-semibold text-slate-500">สแกนจ่ายด้วยพร้อมเพย์</p>
-      <img src={qr.qrDataUrl} alt="พร้อมเพย์ QR" className="h-48 w-48" />
-      <p className="text-2xl font-bold text-emerald-600">{qr.amount} ฿</p>
+    <div className="flex flex-col items-center gap-1 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <p className="text-sm font-semibold text-slate-600">สแกนจ่ายด้วยพร้อมเพย์</p>
+      <img src={qr.qrDataUrl} alt={`QR พร้อมเพย์ ยอด ${qr.amount} บาท`} className="h-52 w-52" />
+      <p className="tabular text-2xl font-bold text-slate-900">{qr.amount} ฿</p>
     </div>
   );
 }

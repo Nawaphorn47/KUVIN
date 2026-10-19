@@ -65,6 +65,12 @@ exports.userDetail = asyncHandler(async (req, res) => {
   res.json(await adminService.getUserDetail(scope(req), req.params.id));
 });
 
+exports.userSelfie = asyncHandler(async (req, res) => {
+  const file = await adminService.getUserSelfiePath(scope(req), req.params.id);
+  res.set("Cache-Control", "private, no-store");
+  res.sendFile(file);
+});
+
 exports.suspendUser = asyncHandler(async (req, res) => {
   res.json(await adminService.suspendAccount(scope(req), "user", req.params.id, req.body.reason, io(req)));
 });
