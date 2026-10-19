@@ -1,20 +1,28 @@
+import { useId } from "react";
 import clsx from "clsx";
 
-export default function Input({ label, icon: Icon, className, ...props }) {
+export default function Input({ label, icon: Icon, className, id, ...props }) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
   return (
-    <label className="flex w-full flex-col gap-1.5">
-      {label && <span className="text-sm font-medium text-slate-700">{label}</span>}
+    <div className="flex w-full flex-col gap-1.5">
+      {label && (
+        <label htmlFor={inputId} className="text-sm font-semibold text-slate-700">
+          {label}
+        </label>
+      )}
       <span className="relative flex items-center">
-        {Icon && <Icon className="pointer-events-none absolute left-4 h-5 w-5 text-slate-400" />}
+        {Icon && <Icon aria-hidden="true" className="pointer-events-none absolute left-4 h-5 w-5 text-slate-500" />}
         <input
+          id={inputId}
           className={clsx(
-            "h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100",
+            "h-[3.25rem] w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-500",
             Icon && "pl-11",
             className
           )}
           {...props}
         />
       </span>
-    </label>
+    </div>
   );
 }

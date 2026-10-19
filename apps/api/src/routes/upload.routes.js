@@ -2,11 +2,12 @@ const { Router } = require("express");
 const requireAuth = require("../middlewares/auth");
 const upload = require("../middlewares/upload");
 const ctrl = require("../controllers/upload.controller");
+const { requireRealImage } = require("../utils/imageCheck");
 
 const router = Router();
 
-// อัปโหลดรูปภาพทั่วไป (เช่น เอกสารยืนยันตัวตนคนขับ) — ได้ url กลับมาแล้วค่อยส่งต่อไปที่ endpoint อื่น
-// เช่น POST /drivers/me/verify { photoUrl, idCardPhotoUrl, ... }
-router.post("/", requireAuth(), upload.single("file"), ctrl.uploadFile);
+// อัปโหลดรูปที่เปิดดูได้สาธารณะ (เช่น โลโก้พื้นที่) — เฉพาะแอดมิน
+// เอกสารส่วนตัว (บัตร/ใบขับขี่/เซลฟี่) ไม่ผ่านทางนี้แล้ว ใช้ POST /drivers/me/documents และ /users/me/selfie แทน
+router.post("/", requireAuth(["admin"]), upload.single("file"), requireRealImage, ctrl.uploadFile);
 
 module.exports = router;

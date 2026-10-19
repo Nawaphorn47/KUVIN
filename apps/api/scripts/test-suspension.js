@@ -50,10 +50,10 @@ async function main() {
   await prisma.driver.updateMany({ where: { NOT: { phone: { startsWith: PREFIX } } }, data: { isOnline: false } });
 
   const user = await prisma.user.create({
-    data: { fullName: "T-user", phone: `${PREFIX}U1`, email: `susp-u1-${Date.now()}@ku.th`, passwordHash },
+    data: { fullName: "T-user", phone: `${PREFIX}U1`, email: `susp-u1-${Date.now()}@ku.th`, passwordHash, phoneVerifiedAt: new Date(), selfieFile: "test-selfie.jpg" },
   });
   const user2 = await prisma.user.create({
-    data: { fullName: "T-user2", phone: `${PREFIX}U2`, email: `susp-u2-${Date.now()}@ku.th`, passwordHash },
+    data: { fullName: "T-user2", phone: `${PREFIX}U2`, email: `susp-u2-${Date.now()}@ku.th`, passwordHash, phoneVerifiedAt: new Date(), selfieFile: "test-selfie.jpg" },
   });
   const mkDriver = (n) =>
     prisma.driver.create({

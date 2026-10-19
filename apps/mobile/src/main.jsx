@@ -5,6 +5,14 @@ import App from "./App.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import { DriverPresenceProvider } from "./context/DriverPresenceContext.jsx";
 import { AreaProvider } from "./context/AreaContext.jsx";
+// ฟอนต์ฝังมากับแอป (ไม่โหลดจาก Google) — ใช้ได้ทั้งออฟไลน์ในแอป Android และไม่รั่วข้อมูลผู้ใช้ไปบุคคลที่สาม
+import "@fontsource/anuphan/thai-400.css";
+import "@fontsource/anuphan/thai-500.css";
+import "@fontsource/anuphan/thai-600.css";
+import "@fontsource/anuphan/thai-700.css";
+import "@fontsource/anuphan/latin-400.css";
+import "@fontsource/anuphan/latin-600.css";
+import "@fontsource/anuphan/latin-700.css";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(

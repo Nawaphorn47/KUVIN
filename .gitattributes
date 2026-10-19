@@ -1,0 +1,6 @@
+
+# ไฟล์ที่รันบน Linux (VPS/container) ต้องเป็น LF เสมอ แม้ checkout บน Windows — CRLF ทำให้ shell script/Dockerfile พัง
+*.sh text eol=lf
+Dockerfile text eol=lf
+nginx.conf text eol=lf
+docker-compose*.yml text eol=lf

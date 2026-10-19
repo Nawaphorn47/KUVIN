@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const adminService = require("../services/admin.service");
 const sosService = require("../services/sos.service");
+const safety = require("../services/tripSafety.service");
 const landmarkService = require("../services/landmark.service");
 const areaService = require("../services/area.service");
 const adminAccountService = require("../services/adminAccount.service");
@@ -65,6 +66,12 @@ exports.userDetail = asyncHandler(async (req, res) => {
   res.json(await adminService.getUserDetail(scope(req), req.params.id));
 });
 
+exports.userSelfie = asyncHandler(async (req, res) => {
+  const file = await adminService.getUserSelfiePath(scope(req), req.params.id);
+  res.set("Cache-Control", "private, no-store");
+  res.sendFile(file);
+});
+
 exports.suspendUser = asyncHandler(async (req, res) => {
   res.json(await adminService.suspendAccount(scope(req), "user", req.params.id, req.body.reason, io(req)));
 });
@@ -122,4 +129,12 @@ exports.updateAdmin = asyncHandler(async (req, res) => {
 exports.deleteAdmin = asyncHandler(async (req, res) => {
   await adminAccountService.deleteAdmin(scope(req).adminId, req.params.id);
   res.status(204).end();
+});
+
+exports.reports = asyncHandler(async (req, res) => {
+  res.json(await safety.listReports(scope(req), { status: req.query.status }));
+});
+
+exports.resolveReport = asyncHandler(async (req, res) => {
+  res.json(await safety.resolveReport(scope(req), req.params.id, req.body?.note));
 });

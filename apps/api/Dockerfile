@@ -26,7 +26,14 @@ COPY apps/api apps/api
 WORKDIR /app/apps/api
 RUN npx prisma generate
 
+# รันด้วย user "node" (ไม่ใช่ root) — โฟลเดอร์อัปโหลดต้องเป็นของ node เพื่อให้เขียนไฟล์ได้ (named volume ที่ mount ทับ
+# จะคัดลอกเจ้าของจาก image ในครั้งแรก) ถ้า platform mount volume เป็น root (เช่น Railway) ให้ตั้ง RAILWAY_RUN_UID=0
+RUN mkdir -p uploads/.private && chown -R node:node /app/apps/api/uploads
+USER node
+
 EXPOSE 4000
+# ตรวจ /health ซึ่งเช็คการเชื่อมต่อ DB จริง (ตอบ 503 เมื่อ DB ล่ม) — ใช้ PORT ที่ server ฟังอยู่จริง
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 # ทุกครั้งที่เริ่ม container: apply migration ที่ค้าง (ไม่แตะข้อมูลเดิม) → ถ้าตั้ง SEED_ADMIN_PASSWORD ไว้ ให้ seed สถานที่ +
 # บัญชีแอดมิน (ข้ามของที่มีอยู่แล้ว รันซ้ำได้) → เปิด server; platform ที่ไม่มีช่องให้รันคำสั่งครั้งเดียวจะได้ไม่ต้อง seed เอง
 CMD ["sh", "-c", "npx prisma migrate deploy && if [ -n \"$SEED_ADMIN_PASSWORD\" ]; then node prisma/seed.js; fi && node src/index.js"]

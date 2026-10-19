@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Noto Sans Thai",sans-serif; color:#fff; background:#0B0B0C; position:relative; }
+  .map { position:absolute; inset:0; background:#1d2124;
+         background-image:linear-gradient(90deg,transparent 45%,#2f3539 45%,#2f3539 49%,transparent 49%),linear-gradient(0deg,transparent 52%,#2f3539 52%,#2f3539 55%,transparent 55%),linear-gradient(28deg,transparent 66%,#2a2f33 66%,#2a2f33 69%,transparent 69%); }
+  .pin { position:absolute; left:170px; top:330px; width:24px; height:24px; border-radius:50%; background:#FF3B5C; border:5px solid #fff; }
+  .top { position:absolute; top:18px; left:16px; right:16px; font:600 14px "Noto Sans Thai"; display:flex; justify-content:space-between; }
+  .scrim { position:absolute; left:0; right:0; bottom:0; height:360px; background:linear-gradient(180deg,transparent,rgba(0,0,0,.92)); }
+  .copy { position:absolute; left:18px; right:96px; bottom:120px; }
+  .copy small { font:600 13px "Noto Sans Thai"; opacity:.8; }
+  .copy h2 { font:800 30px/1.1 "Noto Sans Thai"; margin:4px 0 6px; }
+  .copy p { font:400 14px "Noto Sans Thai"; opacity:.85; }
+  .fare { font:800 44px/1 "Noto Sans Thai"; margin-top:8px; }
+  .rail { position:absolute; right:14px; bottom:120px; display:flex; flex-direction:column; gap:18px; align-items:center; }
+  .rail div { font:600 11px "Noto Sans Thai"; text-align:center; }
+  .rail b { display:block; width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.14); border:2px solid #fff; margin:0 auto 4px; }
+  .rail .call b { background:#FF3B5C; border-color:#FF3B5C; }
+  .next { position:absolute; left:0; right:0; bottom:0; height:84px; background:#16181a; border-top:1px solid #2a2d30; padding:12px 18px; font:600 13px "Noto Sans Thai"; }
+  .next span { display:block; opacity:.6; font-weight:400; }
+</style>
+</head>
+<body>
+  <div class="map"><div class="pin"></div></div>
+  <div class="top"><span>มก. กำแพงแสน</span><span>ผู้โดยสาร ▾</span></div>
+  <div class="scrim"></div>
+  <div class="copy"><small>จากหอพักนิสิต</small><h2>สำนักหอสมุด</h2><p>1.4 กม. · เหมาจ่ายในเขต</p><div class="fare">20 ฿</div></div>
+  <div class="rail"><div class="call"><b></b>เรียก</div><div><b></b>ปลายทาง</div><div><b></b>สลับโหมด</div><div><b></b>SOS</div></div>
+  <div class="next"><span>ปัดขึ้นเพื่อดูปลายทางถัดไป</span>โรงอาหารกลาง · 20 ฿</div>
+</body>
+</html>

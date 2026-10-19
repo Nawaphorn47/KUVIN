@@ -10,6 +10,7 @@ const PUBLIC_SELECT = {
   name: true,
   displayName: true,
   logoUrl: true,
+  brandColor: true,
   centerLat: true,
   centerLng: true,
   flatRadiusKm: true,
@@ -87,6 +88,26 @@ function cleanContacts(value) {
   });
 }
 
+// สีแบรนด์ของพื้นที่เป็นพื้นหลังของปุ่มและแถบหัวที่ใช้ตัวอักษรขาว — ต้องเข้มพอให้อ่านตัวขาวได้ (WCAG AA 4.5:1)
+const HEX_RE = /^#[0-9a-f]{6}$/;
+const MIN_WHITE_CONTRAST = 4.5;
+
+function contrastWithWhite(hex) {
+  const lin = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map((i) => lin(Number.parseInt(hex.slice(i, i + 2), 16) / 255));
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 1.05 / (luminance + 0.05);
+}
+
+function brandColor(value) {
+  const hex = text(value, "สีแบรนด์", { max: 7 }).toLowerCase();
+  if (!HEX_RE.test(hex)) throw ApiError.badRequest("สีแบรนด์ต้องเป็นรหัสสีแบบ #rrggbb เช่น #006664");
+  if (contrastWithWhite(hex) < MIN_WHITE_CONTRAST) {
+    throw ApiError.badRequest("สีแบรนด์อ่อนเกินไป ตัวอักษรสีขาวบนสีนี้จะอ่านไม่ออก กรุณาเลือกสีที่เข้มขึ้น");
+  }
+  return hex;
+}
+
 function cleanArea(body, { partial }) {
   const out = {};
   const has = (k) => !partial || body[k] !== undefined;
@@ -99,6 +120,7 @@ function cleanArea(body, { partial }) {
   if (has("name")) out.name = text(body.name, "ชื่อพื้นที่");
   if (has("displayName")) out.displayName = text(body.displayName, "ชื่อที่แสดงในแอป", { max: 40 });
   if (body.logoUrl !== undefined) out.logoUrl = text(body.logoUrl, "โลโก้", { required: false, max: 500 });
+  if (body.brandColor !== undefined) out.brandColor = brandColor(body.brandColor);
 
   if (has("centerLat") || has("centerLng")) {
     out.centerLat = num(body.centerLat, "ละติจูดจุดกลาง", { min: LAT_RANGE[0], max: LAT_RANGE[1] });

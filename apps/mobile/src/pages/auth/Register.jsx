@@ -1,330 +1,186 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { User, IdCard, BookUser, Mail, Phone, Lock, Hash, Bike, Camera, QrCode, AlertTriangle, MapPinned } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bike, Check, ChevronLeft, IdCard, Lock, Mail, Phone, User } from "lucide-react";
 import clsx from "clsx";
-import Screen from "../../components/layout/Screen";
-import TopBar from "../../components/layout/TopBar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
-import PhotoPicker from "../../components/shared/PhotoPicker";
-import { api, uploadImage } from "../../lib/api";
+import { api } from "../../lib/api";
 import { setToken } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
 import { useArea } from "../../context/AreaContext";
 
+// สมัครด้วยอีเมล + รหัสผ่าน (ทางเลือกของคนที่ไม่อยากใช้ OTP) — ได้บัญชีเดียวแบบเดียวกับสมัครด้วยเบอร์
+// สมัครขับไม่ได้แยกที่นี่แล้ว: สมัครบัญชีก่อน แล้วกด "อยากขับวินด้วย?" ในหน้าบัญชี (ใช้บัญชีเดียวกัน)
+// เบอร์ที่กรอกยังไม่ได้ยืนยัน — จะให้ยืนยันด้วย OTP + เซลฟี่ก่อนเรียกวินครั้งแรก
 export default function Register() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { setMode, refreshMe } = useApp();
-  const { areas, area } = useArea();
-  const [role, setRole] = useState(location.state?.role ?? "user"); // "user" | "driver"
-  const [driverAreaId, setDriverAreaId] = useState("");
-  // ค่าเริ่มต้น = พื้นที่ที่แอปตรวจเจอจาก GPS (เปลี่ยนเองได้)
-  useEffect(() => {
-    if (!driverAreaId && area) setDriverAreaId(area.id);
-  }, [area, driverAreaId]);
-
+  const { area } = useArea();
   const [fullName, setFullName] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [vinNumber, setVinNumber] = useState("");
-  const [licensePlate, setLicensePlate] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("");
-  const [promptPayId, setPromptPayId] = useState("");
+  const [email, setEmail] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [photoFile, setPhotoFile] = useState(null);
-  const [idCardFile, setIdCardFile] = useState(null);
-  const [licenseFile, setLicenseFile] = useState(null);
-  const [vehicleFile, setVehicleFile] = useState(null);
-  const [plateFile, setPlateFile] = useState(null);
+  const passwordShort = password.length > 0 && password.length < 8;
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const ready = fullName.trim() && phone.length === 10 && email && password.length >= 8 && !mismatch && agreed;
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
-
-    if (password !== confirmPassword) {
-      setError("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
-      return;
-    }
-
-    if (role === "user") {
-      setLoading(true);
-      try {
-        const { data } = await api.post("/auth/user/register", { fullName, phone, email, password, studentId });
-        setToken(data.token);
-        setMode("user");
-        refreshMe();
-        navigate("/home");
-      } catch (err) {
-        setError(err.response?.data?.message || "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // role === "driver" — สมัครพร้อมแนบเอกสารยืนยันตัวตนในขั้นตอนเดียว ไม่ต้องแยกไปหน้าอื่นต่อ
-    if (!driverAreaId) {
-      setError("กรุณาเลือกพื้นที่ที่จะรับงาน");
-      return;
-    }
-    if (!/^\d+$/.test(vinNumber)) {
-      setError("หมายเลขวินต้องเป็นตัวเลขล้วนเท่านั้น (ใช้กำหนดลำดับคิวรับงาน)");
-      return;
-    }
-    if (!photoFile || !idCardFile || !licenseFile || !vehicleFile || !plateFile) {
-      setError("กรุณาแนบรูปให้ครบทั้ง 5 รูปก่อนสมัครสมาชิก");
-      return;
-    }
-    if (promptPayId && !/^\d{10}$/.test(promptPayId) && !/^\d{13}$/.test(promptPayId)) {
-      setError("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
-      return;
-    }
-
+    if (!ready) return;
     setLoading(true);
+    setError("");
     try {
-      const { data } = await api.post("/auth/driver/register", {
-        fullName,
+      const { data } = await api.post("/auth/user/register", {
+        fullName: fullName.trim(),
         phone,
+        email,
         password,
-        areaId: driverAreaId,
-        vinNumber,
-        licensePlate,
-        vehicleModel,
-        promptPayId: promptPayId || undefined,
+        studentId: studentId || undefined,
       });
       setToken(data.token);
-      setMode("driver");
-
-      const [photoUrl, idCardPhotoUrl, driverLicensePhotoUrl, vehiclePhotoUrl, platePhotoUrl] = await Promise.all([
-        uploadImage(photoFile),
-        uploadImage(idCardFile),
-        uploadImage(licenseFile),
-        uploadImage(vehicleFile),
-        uploadImage(plateFile),
-      ]);
-
-      await api.post("/drivers/me/verify", {
-        photoUrl,
-        idCardPhotoUrl,
-        driverLicensePhotoUrl,
-        vehiclePhotoUrl,
-        platePhotoUrl,
-      });
-
+      setMode("user");
       refreshMe();
-      navigate("/driver/verify/pending");
+      navigate("/home", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-    } finally {
+      setError(err.response?.data?.message || "สมัครไม่สำเร็จ ลองใหม่อีกครั้ง");
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <TopBar title="สมัครสมาชิก" />
-      <Screen className="gap-4 pt-2">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
-          {[
-            { value: "user", label: "ผู้ใช้บริการ" },
-            { value: "driver", label: "คนขับ" },
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setRole(opt.value)}
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <header className="flex-none bg-brand-600 px-4 pb-5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label="ย้อนกลับ"
+          className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 active:bg-white/25"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="flex h-11 w-11 flex-none -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
+            <Bike className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight">สมัครด้วยอีเมล</h1>
+            <p className="text-sm text-brand-100">{area?.displayName ?? "KU VIN"} · บัญชีเดียว ทั้งเรียกวินและขับวิน</p>
+          </div>
+        </div>
+      </header>
+
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-brand-300 bg-white px-3 py-3 text-left active:bg-brand-50"
+          >
+            <Phone className="h-5 w-5 flex-none text-brand-600" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-bold text-slate-900">ใช้เบอร์มือถือแทน เร็วกว่า</span>
+              <span className="block text-sm text-slate-600">รับรหัส OTP แล้วเข้าใช้ได้เลย ไม่ต้องตั้งรหัสผ่าน</span>
+            </span>
+          </button>
+
+          <fieldset className="mt-6 flex flex-col gap-4">
+            <legend className="mb-3 text-sm font-semibold text-slate-600">ข้อมูลของคุณ</legend>
+            <Input label="ชื่อ-นามสกุล" icon={User} autoComplete="name" maxLength={80} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <Input
+              label="เบอร์มือถือ"
+              icon={Phone}
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="08X XXX XXXX"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              className="tabular"
+            />
+            <Input
+              label="อีเมล"
+              icon={Mail}
+              type="email"
+              autoComplete="email"
+              placeholder="อีเมลไหนก็ได้"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              label="รหัสนิสิต/บุคลากร (ไม่บังคับ)"
+              icon={IdCard}
+              inputMode="numeric"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value.replace(/\D/g, ""))}
+            />
+          </fieldset>
+
+          <fieldset className="mt-6 flex flex-col gap-4">
+            <legend className="mb-3 text-sm font-semibold text-slate-600">ตั้งรหัสผ่าน</legend>
+            <div>
+              <Input
+                label="รหัสผ่าน"
+                icon={Lock}
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-describedby="pw-hint"
+              />
+              <p id="pw-hint" className={clsx("mt-1 text-sm", passwordShort ? "font-semibold text-here" : "text-slate-500")}>
+                อย่างน้อย 8 ตัวอักษร
+              </p>
+            </div>
+            <div>
+              <Input
+                label="ยืนยันรหัสผ่าน"
+                icon={Lock}
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              {mismatch && <p className="mt-1 text-sm font-semibold text-here">รหัสผ่านสองช่องยังไม่ตรงกัน</p>}
+            </div>
+          </fieldset>
+
+          <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3 ring-1 ring-slate-200">
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="peer sr-only" />
+            <span
+              aria-hidden="true"
               className={clsx(
-                "rounded-xl py-2.5 text-sm font-semibold transition-colors",
-                role === opt.value ? "bg-white text-emerald-700 shadow-card" : "text-slate-500"
+                "mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-md border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-brand-100",
+                agreed ? "-rotate-6 border-brand-600 bg-brand-600 text-white" : "border-slate-300 bg-white"
               )}
             >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {role === "user" ? (
-          <p className="text-sm text-slate-500">สมัครสมาชิกด้วยอีเมลของคุณ (ใช้อีเมลไหนก็ได้)</p>
-        ) : (
-          <p className="text-sm text-slate-500">
-            สมัครบัญชีคนขับด้วยเบอร์โทรศัพท์ พร้อมแนบเอกสารยืนยันตัวตนในขั้นตอนเดียว — แอดมินตรวจสอบและอนุมัติ
-            ก่อนจึงเริ่มรับงานได้
-          </p>
-        )}
-
-        {/* ปุ่ม "Register ด้วย Google" เอาออกไว้ก่อน — เดิมกดแล้วไม่เกิดอะไร (ยังไม่ได้ต่อ Google OAuth) */}
-
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <Input
-            label="ชื่อ-นามสกุล"
-            icon={User}
-            placeholder="ชื่อ นามสกุล"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-
-          {role === "user" ? (
-            <>
-              <Input
-                label="รหัสนิสิต / รหัสพนักงาน"
-                icon={IdCard}
-                placeholder="64010001"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-              />
-              <Input
-                label="อีเมล"
-                icon={Mail}
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
-                label="เบอร์โทรศัพท์"
-                icon={Phone}
-                placeholder="0xx-xxx-xxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </>
-          ) : (
-            <>
-              {/* คนขับสังกัดพื้นที่เดียว: คิวรับงาน + แอดมินที่อนุมัติเป็นของพื้นที่นั้น */}
-              <label className="flex w-full flex-col gap-1.5">
-                <span className="text-sm font-medium text-slate-700">พื้นที่ที่รับงาน</span>
-                <span className="relative flex items-center">
-                  <MapPinned className="pointer-events-none absolute left-4 h-5 w-5 text-slate-400" />
-                  <select
-                    value={driverAreaId}
-                    onChange={(e) => setDriverAreaId(e.target.value)}
-                    className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                  >
-                    <option value="">เลือกพื้นที่</option>
-                    {areas.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </span>
-              </label>
-              <Input
-                label="เบอร์โทรศัพท์"
-                icon={Phone}
-                placeholder="0xx-xxx-xxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-              <Input
-                label="หมายเลขวิน (ตัวเลขเท่านั้น)"
-                icon={Hash}
-                placeholder="เช่น 1, 2, 3 — ใช้กำหนดลำดับคิวรับงาน"
-                inputMode="numeric"
-                value={vinNumber}
-                onChange={(e) => setVinNumber(e.target.value)}
-              />
-              <Input
-                label="ยี่ห้อ / รุ่นรถ"
-                icon={Bike}
-                placeholder="เช่น Honda Wave 125"
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-              />
-              <Input
-                label="เลขทะเบียนรถ"
-                icon={Hash}
-                placeholder="1กข 1234 กรุงเทพฯ"
-                value={licensePlate}
-                onChange={(e) => setLicensePlate(e.target.value)}
-              />
-              <Input
-                label="พร้อมเพย์ (ไม่บังคับ)"
-                icon={QrCode}
-                placeholder="เบอร์โทร 10 หลัก หรือเลขบัตร ปชช. 13 หลัก"
-                inputMode="numeric"
-                value={promptPayId}
-                onChange={(e) => setPromptPayId(e.target.value)}
-              />
-              <p className="-mt-2 text-xs text-slate-400">
-                ใส่ไว้ให้ระบบสร้าง QR รับเงินอัตโนมัติตอนจบทริป ไม่ใส่ก็ได้ รับเงินสดตามปกติ
-              </p>
-
-              <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm font-bold text-slate-700">เอกสารยืนยันตัวตน</p>
-                <PhotoPicker label="รูปถ่ายหน้าตรง" icon={Camera} file={photoFile} onChange={setPhotoFile} />
-                <PhotoPicker
-                  label="รูปบัตรประชาชน"
-                  hint="มองเห็นชื่อและตัวเลขชัดเจน"
-                  icon={IdCard}
-                  file={idCardFile}
-                  onChange={setIdCardFile}
-                />
-                <PhotoPicker
-                  label="รูปใบขับขี่"
-                  hint="ใบขับขี่รถจักรยานยนต์ที่ยังไม่หมดอายุ"
-                  icon={BookUser}
-                  file={licenseFile}
-                  onChange={setLicenseFile}
-                />
-                <PhotoPicker
-                  label="รูปรถเต็มคัน"
-                  hint="เห็นป้ายทะเบียนชัดเจน"
-                  icon={Camera}
-                  file={vehicleFile}
-                  onChange={setVehicleFile}
-                />
-                <PhotoPicker label="รูปป้ายทะเบียน" icon={Camera} file={plateFile} onChange={setPlateFile} />
-              </div>
-            </>
-          )}
-
-          <Input
-            label="รหัสผ่าน"
-            icon={Lock}
-            type="password"
-            placeholder="อย่างน้อย 8 ตัวอักษร"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Input
-            label="ยืนยันรหัสผ่าน"
-            icon={Lock}
-            type="password"
-            placeholder="ยืนยันรหัสผ่าน"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-
-          <label className="flex items-start gap-2 text-xs text-slate-500">
-            <input
-              type="checkbox"
-              required
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600"
-            />
-            ฉันยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัวของ KU VIN
+              {agreed && <Check className="h-4 w-4" strokeWidth={3} />}
+            </span>
+            <span className="text-sm text-slate-700">ฉันยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัวของ KU VIN</span>
           </label>
 
+          <p className="mt-4 flex items-start gap-2 text-sm text-slate-600">
+            <Bike className="mt-0.5 h-4 w-4 flex-none text-brand-600" aria-hidden="true" />
+            อยากขับวินด้วย? สมัครบัญชีนี้ก่อน แล้วกด “อยากขับวินด้วย?” ในหน้าบัญชี
+          </p>
+
           {error && (
-            <p className="flex items-center gap-1.5 text-sm text-red-600">
-              <AlertTriangle className="h-4 w-4 flex-none" /> {error}
+            <p role="alert" className="mt-4 rounded-xl bg-here-soft px-3 py-2.5 text-sm font-medium text-here">
+              {error}
             </p>
           )}
-
-          <Button type="submit" disabled={loading}>
-            {loading ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}
+        </main>
+        <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
+          <Button type="submit" disabled={loading || !ready}>
+            {loading ? "กำลังสมัคร..." : "สมัครและเริ่มใช้งาน"}
           </Button>
-        </form>
-      </Screen>
+        </div>
+      </form>
     </div>
   );
 }

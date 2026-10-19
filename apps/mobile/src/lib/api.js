@@ -4,7 +4,7 @@ import { getToken, clearToken, setSessionNotice } from "./auth";
 // fallback ใช้ hostname เดียวกับที่เปิดหน้าเว็บอยู่ (ไม่ hardcode "localhost") — เวลาเข้าจากเครื่องอื่นในวง
 // LAN เดียวกันผ่าน IP เครื่อง dev (เช่น http://192.168.1.23:5173) จะได้ยิง API ไปที่ IP เดียวกันโดยอัตโนมัติ
 // แทนที่จะยิงไปหา localhost ของเครื่องตัวเอง (ซึ่งไม่มี backend รันอยู่)
-const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:4000/api`;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:4000/api`;
 
 export const api = axios.create({ baseURL: API_BASE_URL });
 
@@ -33,10 +33,15 @@ api.interceptors.response.use(
   }
 );
 
-// อัปโหลดไฟล์รูปเดียว (เช่น รูปยืนยันตัวตนคนขับ) ผ่าน POST /api/uploads แล้วคืน url ที่ได้กลับมา
-export async function uploadImage(file) {
+// อัปโหลดเอกสารยืนยันตัวตนคนขับหนึ่งใบเข้าที่เก็บส่วนตัว — คืน ref ไว้ส่งใน POST /drivers/me/verify
+// (เอกสารพวกนี้ไม่เปิดสาธารณะ ดูได้เฉพาะเจ้าของและแอดมินผ่านลิงก์ที่เซ็นแล้วอายุสั้น)
+export async function uploadDriverDocument(file) {
   const formData = new FormData();
   formData.append("file", file);
-  const { data } = await api.post("/uploads", formData);
-  return data.url;
+  const { data } = await api.post("/drivers/me/documents", formData);
+  return data.ref;
 }
+
+// ลิงก์ไฟล์ส่วนตัวจาก server เป็น path "/api/private-files/..." — แปลงเป็น URL เต็มของ API
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+export const fileUrl = (u) => (typeof u === "string" && u.startsWith("/api/") ? API_ORIGIN + u : u);

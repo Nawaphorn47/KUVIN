@@ -11,6 +11,7 @@ router.use(requireAuth(["admin"]), adminScope);
 router.get("/stats", ctrl.stats);
 router.get("/users", ctrl.users);
 router.get("/users/:id", ctrl.userDetail);
+router.get("/users/:id/selfie", ctrl.userSelfie);
 router.post("/users/:id/suspend", ctrl.suspendUser);
 router.post("/users/:id/unsuspend", ctrl.unsuspendUser);
 router.get("/drivers", ctrl.drivers);
@@ -30,6 +31,8 @@ router.delete("/landmarks/:id", ctrl.deleteLandmark);
 
 router.get("/sos", ctrl.sosList);
 router.post("/sos/:id/resolve", ctrl.resolveSos);
+router.get("/reports", ctrl.reports);
+router.post("/reports/:id/resolve", ctrl.resolveReport);
 
 // พื้นที่: แอดมินพื้นที่ดู/แก้ค่าพื้นที่ตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ ขอบเขต) สร้างใหม่ได้เฉพาะ super
 router.get("/areas", ctrl.areas);

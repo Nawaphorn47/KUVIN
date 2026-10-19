@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;800&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --or:#F26B1D; --ink:#161616; --sil:#C8CCD0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Sarabun",sans-serif; color:var(--ink); background:#fff; }
+  .head { background:var(--or); color:var(--ink); padding:22px 18px 18px; position:relative; }
+  .head h1 { font:800 30px/1 "Kanit"; }
+  .head p { font:600 14px "Sarabun"; margin-top:6px; }
+  .stripe { height:12px; background:repeating-linear-gradient(90deg,var(--sil) 0 40px,#e7e9eb 40px 44px); }
+  .map { height:250px; background:#EEF0EE;
+         background-image:linear-gradient(90deg,transparent 40%,#fff 40%,#fff 44%,transparent 44%),linear-gradient(0deg,transparent 55%,#fff 55%,#fff 58%,transparent 58%); position:relative; }
+  .pin { position:absolute; left:150px; top:96px; width:26px; height:26px; background:var(--or); border:5px solid var(--ink); border-radius:50%; }
+  .card { padding:18px; }
+  .lbl { font:600 13px "Sarabun"; color:#555; }
+  .dest { font:800 26px/1.1 "Kanit"; margin:4px 0 12px; }
+  .meta { display:flex; justify-content:space-between; align-items:flex-end; }
+  .fare { font:800 56px/0.9 "Kanit"; }
+  .fare span { font-size:22px; }
+  .online { text-align:right; font:600 14px "Sarabun"; }
+  .online b { display:block; font:800 34px/1 "Kanit"; color:var(--or); }
+  .go { margin:16px 18px 0; height:60px; background:var(--ink); color:var(--or); font:800 22px "Kanit"; display:flex; align-items:center; justify-content:center; border-radius:10px; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:74px; border-top:4px solid var(--or); display:grid; grid-template-columns:repeat(4,1fr); padding-top:12px; background:#fff; }
+  .tabs div { text-align:center; font:600 12px "Sarabun"; color:#666; }
+  .tabs .cur { color:var(--ink); }
+  .tabs b { display:block; width:24px; height:24px; margin:0 auto 4px; border-radius:50%; border:2px solid currentColor; }
+</style>
+</head>
+<body>
+  <div class="head"><h1>เรียกวิน</h1><p>มก. กำแพงแสน · โหมดผู้โดยสาร</p></div>
+  <div class="stripe"></div>
+  <div class="map"><div class="pin"></div></div>
+  <div class="stripe"></div>
+  <div class="card">
+    <div class="lbl">ปลายทาง</div>
+    <div class="dest">สำนักหอสมุด</div>
+    <div class="meta">
+      <div><div class="lbl">จากหอพักนิสิต · เหมาจ่าย</div><div class="fare">20<span> ฿</span></div></div>
+      <div class="online"><b>3</b>คนขับออนไลน์</div>
+    </div>
+  </div>
+  <div class="go">เรียกวินเลย</div>
+  <div class="tabs"><div class="cur"><b></b>เรียกวิน</div><div><b></b>ประวัติ</div><div><b></b>แจ้งเตือน</div><div><b></b>บัญชี</div></div>
+</body>
+</html>

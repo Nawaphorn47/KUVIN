@@ -10,13 +10,18 @@ function suspendedMessage(reason) {
   return `บัญชีของคุณถูกระงับการใช้งาน${reason ? `: ${reason}` : ""} กรุณาติดต่อผู้ดูแลระบบ`;
 }
 
+// โหมดคนขับที่ผูกกับบัญชีผู้ใช้: ระงับบัญชีผู้ใช้ = ระงับทั้งคน (สลับไปโหมดคนขับแล้วขับต่อไม่ได้)
+// ระงับเฉพาะโหมดคนขับ = ยังเรียกวินเป็นผู้โดยสารได้
 async function lookup(role, id) {
   const select = { isSuspended: true, suspendedReason: true };
-  const row =
-    role === "user"
-      ? await prisma.user.findUnique({ where: { id }, select })
-      : await prisma.driver.findUnique({ where: { id }, select });
-  return row?.isSuspended ? (row.suspendedReason ?? "") : null;
+  if (role === "user") {
+    const row = await prisma.user.findUnique({ where: { id }, select });
+    return row?.isSuspended ? (row.suspendedReason ?? "") : null;
+  }
+  const row = await prisma.driver.findUnique({ where: { id }, select: { ...select, user: { select } } });
+  if (row?.isSuspended) return row.suspendedReason ?? "";
+  if (row?.user?.isSuspended) return row.user.suspendedReason ?? "";
+  return null;
 }
 
 // คืน undefined ถ้าปกติ, ไม่งั้น throw ApiError 403 (code ACCOUNT_SUSPENDED) — แอดมินไม่ถูกตรวจ

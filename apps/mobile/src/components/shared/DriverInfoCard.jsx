@@ -1,28 +1,50 @@
-import { Star, Bike } from "lucide-react";
+import { Star } from "lucide-react";
 import Avatar from "../ui/Avatar";
+import StopNumber from "../ui/StopNumber";
+import { DRIVER_TYPES } from "../../lib/driverTypes";
 
+// ข้อมูลคนขับที่ผู้โดยสารใช้ "จับคู่กับของจริง" ตรงจุดรับ: เลขเสื้อวินเป็นสติกเกอร์ใหญ่ ป้ายทะเบียนเป็นกรอบแบบป้ายจริง
 export default function DriverInfoCard({ driver }) {
   const name = driver.fullName ?? driver.name;
+  const rating = driver.rating ?? driver.ratingAvg;
   return (
-    <div className="flex items-center gap-3">
-      <Avatar initial={name[0]} size="lg" />
-      <div className="flex-1">
-        <p className="text-lg font-bold text-slate-900">{name}</p>
-        {(driver.rating ?? driver.ratingAvg) != null && (
-          <div className="flex items-center gap-1 text-xs text-slate-500">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="font-semibold text-slate-700">{driver.rating ?? driver.ratingAvg}</span>
-            {driver.totalTrips != null && <span>({driver.totalTrips.toLocaleString()} เที่ยว)</span>}
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <Avatar initial={name[0]} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2">
+            <span className="truncate text-lg font-bold text-slate-900">{name}</span>
+            {DRIVER_TYPES[driver.driverType] && (
+              <span className="flex-none rounded-md bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-800">
+                {DRIVER_TYPES[driver.driverType].label}
+              </span>
+            )}
+          </p>
+          {rating != null && (
+            <p className="flex items-center gap-1 text-sm text-slate-600">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+              <span className="tabular font-bold text-slate-800">{Number(rating).toFixed(1)}</span>
+              {driver.totalTrips != null && <span className="tabular">· {driver.totalTrips.toLocaleString()} เที่ยว</span>}
+            </p>
+          )}
+        </div>
+        {driver.vinNumber && (
+          <div className="flex flex-none flex-col items-center gap-0.5">
+            <StopNumber n={driver.vinNumber} selected size="lg" />
+            <span className="text-[11px] font-semibold text-slate-600">เสื้อวิน</span>
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
-        <Bike className="h-5 w-5 text-slate-500" />
-        <div className="text-right">
-          <p className="text-xs font-semibold text-slate-700">{driver.vehicleModel}</p>
-          <p className="text-[11px] text-slate-400">{driver.vinNumber}</p>
+      {(driver.licensePlate || driver.vehicleModel) && (
+        <div className="flex items-center gap-3">
+          {driver.licensePlate && (
+            <span className="tabular rounded-md border-2 border-slate-900 bg-white px-3 py-1 text-lg font-bold tracking-wide text-slate-900">
+              {driver.licensePlate}
+            </span>
+          )}
+          {driver.vehicleModel && <span className="truncate text-sm text-slate-600">{driver.vehicleModel}</span>}
         </div>
-      </div>
+      )}
     </div>
   );
 }

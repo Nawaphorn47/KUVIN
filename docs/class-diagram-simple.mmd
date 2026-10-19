@@ -1,0 +1,102 @@
+classDiagram
+direction TB
+
+class Person {
+  <<abstract>>
+  -String id
+  -String fullName
+  -String phone
+  -String password
+  +login() Boolean
+  +logout()
+}
+
+class User {
+  -String email
+  -String studentId
+  +register()
+  +requestService(type, pickup, destination) ServiceRequest
+  +trackStatus(request) RequestStatus
+  +cancelRequest(request)
+}
+
+class Driver {
+  -String vinNumber
+  -String licensePlate
+  -Boolean isOnline
+  +viewRequests() List~ServiceRequest~
+  +acceptJob(request)
+  +rejectJob(request)
+  +updateJobStatus(request, status)
+}
+
+class Admin {
+  -String email
+  +manageUser(user)
+  +manageDriver(driver)
+  +manageRequest(request)
+  +viewReport(period) Report
+}
+
+class ServiceRequest {
+  -String requestId
+  -ServiceType serviceType
+  -RequestStatus status
+  -String itemDetail
+  -Float fare
+  -DateTime requestedAt
+  +calculateFare() Float
+  +updateStatus(status)
+  +cancel(reason)
+}
+
+class Location {
+  -String name
+  -Float latitude
+  -Float longitude
+}
+
+class Notification {
+  -String message
+  -Boolean isRead
+  -DateTime createdAt
+  +send()
+  +markAsRead()
+}
+
+class Report {
+  -String period
+  -Int totalRequests
+  -Float totalIncome
+  +generate()
+}
+
+class ServiceType {
+  <<enumeration>>
+  RIDE
+  ERRAND
+}
+
+class RequestStatus {
+  <<enumeration>>
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+Person <|-- User
+Person <|-- Driver
+Person <|-- Admin
+
+User "1" -- "0..*" ServiceRequest : สร้างคำขอ
+Driver "0..1" -- "0..*" ServiceRequest : รับงาน
+ServiceRequest "1" *-- "2" Location : จุดรับ / จุดส่ง
+Person "1" -- "0..*" Notification : ได้รับ
+ServiceRequest "1" -- "0..*" Notification : แจ้งสถานะ
+Admin "1" -- "0..*" Report : ดูรายงาน
+Report o-- "0..*" ServiceRequest : สรุปจาก
+
+ServiceRequest ..> ServiceType
+ServiceRequest ..> RequestStatus

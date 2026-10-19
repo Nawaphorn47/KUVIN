@@ -1,0 +1,142 @@
+# Deploy — build Docker image 3 ตัว → push ไป GHCR → deploy ขึ้น VPS (Hostinger)
+#   job build-push : ทำงานทันทีหลังงาน "CI" ผ่านบน main
+#   job deploy     : ข้ามไปจนกว่าจะตั้ง Variable APP_URL และ Secrets ของ VPS (ดู docs/CI_CD.md หัวข้อ Hostinger VPS)
+# แนวทางเดียวกับ Lab ของอาจารย์ (suriyapi/nextjs-crud-starter) ต่างที่ KU VIN มี 3 image: api, web, admin
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # ปุ่ม "Run workflow" สำหรับสั่ง deploy เองจากแท็บ Actions
+  workflow_dispatch:
+
+# สิทธิ์ของ GITHUB_TOKEN: อ่านโค้ด + เขียน package (push image ขึ้น GHCR)
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # ใช้ commit เดียวกับที่ CI ทดสอบผ่าน
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set image name and tag
+        id: vars
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          # ชื่อ image บน GHCR ต้องเป็นตัวพิมพ์เล็ก: ${GITHUB_REPOSITORY,,} = แปลงเป็นตัวเล็ก
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}-api:latest
+            ${{ steps.vars.outputs.image }}-api:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      # ค่า VITE_* ฝังตอน build (ไม่ใช่ runtime) — ตั้งที่ Settings → Secrets and variables → Actions → Variables
+      # ไม่ตั้ง = ใช้ค่าเริ่มต้นของโดเมน kuvinn.tech
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/mobile/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ vars.API_URL || 'https://api.kuvinn.tech' }}/api
+            VITE_PUBLIC_APP_URL=${{ vars.APP_URL || 'https://kuvinn.tech' }}
+          tags: |
+            ${{ steps.vars.outputs.image }}-web:latest
+            ${{ steps.vars.outputs.image }}-web:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Build and push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web-dashboard/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ vars.API_URL || 'https://api.kuvinn.tech' }}/api
+          tags: |
+            ${{ steps.vars.outputs.image }}-admin:latest
+            ${{ steps.vars.outputs.image }}-admin:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=admin
+          cache-to: type=gha,mode=max,scope=admin
+
+  deploy:
+    needs: build-push
+    # ข้าม job นี้จนกว่าจะตั้ง Variable APP_URL (Settings → Secrets and variables → Actions → Variables)
+    if: vars.APP_URL != ''
+    runs-on: ubuntu-latest
+    # ให้ deploy ทีละครั้ง ถ้ามี push ซ้อนกันจะรอคิว
+    concurrency: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: docker-compose.yml
+          target: app
+
+      - name: Pull and restart on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          # ใช้ image ที่ tag ด้วย sha ของ commit นี้ (ย้อนกลับเวอร์ชันได้ง่าย)
+          API_IMAGE: ${{ needs.build-push.outputs.image }}-api:${{ needs.build-push.outputs.tag }}
+          WEB_IMAGE: ${{ needs.build-push.outputs.image }}-web:${{ needs.build-push.outputs.tag }}
+          ADMIN_IMAGE: ${{ needs.build-push.outputs.image }}-admin:${{ needs.build-push.outputs.tag }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: API_IMAGE,WEB_IMAGE,ADMIN_IMAGE
+          script: |
+            set -e
+            cd ~/app
+            # ค่าจาก env ของ shell มีผลเหนือค่าใน .env
+            docker compose pull
+            docker compose up -d
+            # ลบ image เก่าที่ไม่ได้ใช้ ป้องกัน disk เต็ม (ไม่แตะ volume)
+            docker image prune -f
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 24); do
+            if curl -fsS "${{ vars.API_URL || 'https://api.kuvinn.tech' }}/health"; then exit 0; fi
+            echo "รอแอปพร้อม... ($i)"; sleep 5
+          done
+          echo "health check ไม่ผ่าน"; exit 1

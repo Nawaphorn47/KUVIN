@@ -1,5 +1,8 @@
 # CI/CD และการ deploy
 
+> **Hostinger VPS (Docker Compose + Nginx):** ดู [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md)
+> หมายเหตุ Railway: `api` รันด้วย user `node` แล้ว ต้องตั้ง `RAILWAY_RUN_UID=0` ที่ service `api` เพื่อให้ volume อัปโหลดเขียนได้
+
 ## ระบบที่ใช้งานจริง (Railway, region Southeast Asia)
 
 | ส่วน | URL | service บน Railway |
@@ -39,6 +42,18 @@
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | เนื้อหาทั้งไฟล์ service account ของ Firebase (push notification) |
 | `SLIP_PROVIDER` / `EASYSLIP_API_KEY` | `easyslip` / key จาก EasySlip |
 | `BREVO_API_KEY` / `MAIL_FROM` | ส่งรหัสรีเซ็ตรหัสผ่าน — `MAIL_FROM` เช่น `KU VIN <you@gmail.com>` ต้องยืนยันใน Brevo → Senders แล้ว |
+| `CORS_ORIGINS` | เว็บที่เรียก API ได้ คั่นด้วย comma เช่น `https://web-app-production-6f95.up.railway.app,https://admin-production-2219.up.railway.app` — ไม่ตั้งจะใช้สองโดเมนนี้อยู่แล้ว ต้องตั้งเมื่อย้ายโดเมน |
+
+ตัวแปรเรื่องบัญชีเดียวและความปลอดภัย (ดู [SECURITY.md](SECURITY.md)):
+
+| ตัวแปร | ค่า |
+|---|---|
+| `JWT_SECRET` | **ต้องยาว ≥ 32 ตัวอักษร** ไม่งั้น server ไม่ยอมเริ่ม (deploy ล้มที่ healthcheck) |
+| `OTP_MODE` | `test` = แอปโชว์รหัสแทน SMS (ยังไม่ได้ซื้อ SMS) — **ไม่ตั้ง = ปิด OTP บน production** ผู้โดยสารจะยืนยันเบอร์/เรียกวินไม่ได้ |
+| `OTP_TEST_PHONES` | เบอร์ที่ใช้โหมดทดสอบได้ คั่นด้วย comma เช่น `0812345678,0898765432` — `*` = ทุกเบอร์ (ใครก็เข้าบัญชีคนอื่นได้ ใช้เฉพาะเดโม) |
+| `PASSENGER_VERIFICATION` | ไม่ตั้ง = ผู้โดยสารต้องยืนยันเบอร์ + เซลฟี่ก่อนเรียกครั้งแรก, `off` = ปิด (ใช้ตอนเดโมเท่านั้น) |
+| `GOOGLE_CLIENT_ID` | ไม่ตั้ง = ซ่อนปุ่มเข้าด้วย Google |
+| `PRIVATE_UPLOAD_DIR` | ไม่ต้องตั้ง — ค่าเริ่มต้น `uploads/.private` อยู่ใน volume `/app/apps/api/uploads` อยู่แล้ว |
 
 ไม่ต้องตั้ง `PORT` (Railway ตั้งให้ ตอนนี้คือ 8080 — ใช้เลขนี้ตอน Generate Domain) และ `NODE_ENV=production` อยู่ใน Dockerfile แล้ว
 
@@ -47,6 +62,7 @@
 | ตัวแปร | ค่า |
 |---|---|
 | `RAILWAY_DOCKERFILE_PATH` | `apps/mobile/Dockerfile` / `apps/web-dashboard/Dockerfile` |
+| `VITE_PUBLIC_APP_URL` | (เฉพาะ `web-app` / ตอน build APK) ที่อยู่เว็บแอปจริง เช่น `https://web-app-production-6f95.up.railway.app` — ใช้สร้างลิงก์ "แชร์ทริป" ให้เปิดจากข้างนอกได้ ไม่ตั้งบนเว็บจะใช้โดเมนที่เปิดอยู่ แต่ใน APK ต้องตั้ง |
 | `VITE_API_URL` | `https://${{api.RAILWAY_PUBLIC_DOMAIN}}/api` (ชื่อใน `${{ }}` ต้องตรงกับชื่อ service ของ API ทุกตัวอักษร) |
 
 `VITE_API_URL` ถูกฝังลงในไฟล์ตอน build — แก้ค่าแล้วต้อง deploy ใหม่ถึงจะมีผล

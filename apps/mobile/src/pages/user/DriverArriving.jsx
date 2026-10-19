@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ShieldAlert, Phone, MessageCircle } from "lucide-react";
+import { Phone } from "lucide-react";
 import MapView from "../../components/shared/MapView";
 import DriverInfoCard from "../../components/shared/DriverInfoCard";
 import SosPanel from "../../components/shared/SosPanel";
-import Card from "../../components/ui/Card";
+import TripHeader from "../../components/shared/TripHeader";
+import TripRail from "../../components/shared/TripRail";
+import ChatButton from "../../components/shared/ChatButton";
+import ShareTripButton from "../../components/shared/ShareTripButton";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { useRequestStatus } from "../../lib/useRequestStatus";
@@ -56,71 +59,45 @@ export default function DriverArriving() {
   const driver = request.driver;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <MapView
-        height="h-72"
-        className="rounded-none"
-        pickup={pickupPoint}
-        driver={driverPos}
-        route={route?.coordinates}
-        interactive
-      >
-        <div className="absolute left-0 right-0 top-0 flex items-start justify-between p-4">
-          <div className="rounded-xl bg-white/95 px-3 py-2 shadow backdrop-blur">
-            <p className="text-xs font-semibold text-slate-900">คนขับกำลังมารับคุณ</p>
-            <p className="text-xs text-slate-500">
-              {route ? `ถึงใน ประมาณ ${route.durationMin} นาที · ${route.distanceKm} กม.` : "กำลังรอตำแหน่งคนขับ..."}
-            </p>
-          </div>
-          <button
-            onClick={() => setSosOpen(true)}
-            className="flex items-center gap-1 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white shadow"
-          >
-            <ShieldAlert className="h-3.5 w-3.5" /> SOS
-          </button>
-        </div>
-      </MapView>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <TripHeader
+        status="คนขับกำลังมารับ"
+        value={route?.durationMin}
+        unit="นาที"
+        fallback="รอตำแหน่งคนขับ..."
+        onSos={() => setSosOpen(true)}
+      />
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        <MapView height="h-52" pickup={pickupPoint} driver={driverPos} route={route?.coordinates} interactive />
 
-      <div className="flex flex-1 flex-col gap-4 rounded-t-3xl bg-white p-5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
-        <Card className="gap-2 shadow-none ring-emerald-100">
-          <p className="text-sm font-semibold text-emerald-600">คนขับกำลังเดินทางมา</p>
+        <section aria-label="คนขับของคุณ" className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <DriverInfoCard driver={driver} />
-        </Card>
-
-        <div className="flex gap-3">
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-bold text-white">
-            <span>{driver.licensePlate}</span>
-          </button>
-          <a
-            href={`tel:${driver.phone}`}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600"
-          >
-            <Phone className="h-5 w-5" />
-          </a>
-          <button
-            onClick={() => navigate("/chatbot")}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600"
-          >
-            <MessageCircle className="h-5 w-5" />
-          </button>
-        </div>
-
-        <Card className="gap-3 shadow-none ring-slate-100">
-          <div>
-            <p className="text-xs text-slate-400">รับที่</p>
-            <p className="text-sm text-slate-700">{request.pickupAddress ?? "จุดนัดพบ"}</p>
+          <p className="mt-3 text-sm text-slate-600">ดูเลขเสื้อกับป้ายทะเบียนให้ตรงก่อนขึ้นรถ</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <a
+              href={`tel:${driver.phone}`}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-800 active:bg-slate-200"
+            >
+              <Phone className="h-4 w-4" /> โทรหาคนขับ
+            </a>
+            <ChatButton request={request} label="แชตกับคนขับ" />
           </div>
-          <div>
-            <p className="text-xs text-slate-400">ส่งที่</p>
-            <p className="text-sm text-slate-700">{request.destinationAddress ?? "-"}</p>
-          </div>
-        </Card>
+        </section>
 
-        <Button variant="danger" onClick={handleCancel}>
-          ยกเลิกการเรียกวิน
+        <ShareTripButton request={request} className="mt-4" />
+
+        <section className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <TripRail
+            stage={1}
+            request={request}
+            now={route ? `อยู่ห่างจุดรับ ${route.distanceKm} กม. · คนขับกดเริ่มเมื่อคุณขึ้นรถแล้ว` : "คนขับกดเริ่มเมื่อคุณขึ้นรถแล้ว"}
+          />
+        </section>
+      </main>
+      <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
+        <Button variant="outline" onClick={handleCancel}>
+          ยกเลิกการเรียก
         </Button>
-
-        <p className="text-center text-xs text-slate-400">รอคนขับกดเริ่มการเดินทางเมื่อถึงจุดรับ</p>
       </div>
 
       <AnimatePresence>

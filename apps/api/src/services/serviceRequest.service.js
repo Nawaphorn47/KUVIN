@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { presentRequest } = require("../utils/tripPrivacy");
 const ApiError = require("../utils/ApiError");
 const { calculateFare } = require("../utils/geo");
 const { getRoute } = require("../utils/routing");
@@ -54,6 +55,11 @@ async function estimateFare(payload) {
 }
 
 async function createRequest(userId, payload, io) {
+  // คนเรียกต้องยืนยันตัวตนเหมือนคนขับ (เบอร์ผ่าน OTP + เซลฟี่) — ดู identity.service.js
+  const passenger = await prisma.user.findUnique({ where: { id: userId } });
+  if (!passenger) throw ApiError.notFound("ไม่พบบัญชีผู้ใช้");
+  require("./identity.service").assertPassengerVerified(passenger);
+
   const activeCount = await prisma.serviceRequest.count({
     where: { userId, status: { in: ACTIVE_STATUSES } },
   });
@@ -142,7 +148,7 @@ async function transition(requestId, driverId, { from, to, extraData = {} }) {
 
 async function startRequest(requestId, driverId, io) {
   const request = await transition(requestId, driverId, { from: "ACCEPTED", to: "IN_PROGRESS" });
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   return request;
 }
 
@@ -155,7 +161,7 @@ async function completeRequest(requestId, driverId, io) {
 
   await queue.handleTripCompleted(driverId);
 
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   await notify(io, {
     recipientType: "USER",
     recipientId: request.userId,
@@ -196,7 +202,7 @@ async function cancelRequest(requestId, actor, io, reason) {
   // งานที่รับไปแล้วถูกยกเลิก: คนขับว่างอีกครั้ง (ยังออนไลน์ → กลับเข้าท้ายคิว)
   if (existing.driverId) await queue.handleTripCompleted(existing.driverId);
 
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   return request;
 }
 
@@ -252,6 +258,17 @@ async function getPaymentQr(requestId, actor) {
   return { payload, qrDataUrl, amount: request.fare, slipVerification: slip.isEnabled() };
 }
 
+const COMMENT_MAX = 500;
+
+// ความเห็นประกอบคะแนนเป็นข้อความสั้นเท่านั้น — กันส่งสตริงยาวมาก ๆ หรือค่าที่ไม่ใช่ข้อความเข้า DB
+function cleanComment(comment) {
+  if (comment === undefined || comment === null) return undefined;
+  if (typeof comment !== "string") throw ApiError.badRequest("ความคิดเห็นต้องเป็นข้อความ");
+  const trimmed = comment.trim();
+  if (trimmed.length > COMMENT_MAX) throw ApiError.badRequest(`ความคิดเห็นยาวได้ไม่เกิน ${COMMENT_MAX} ตัวอักษร`);
+  return trimmed || undefined;
+}
+
 async function rateRequest(requestId, userId, { score, comment }) {
   if (!Number.isInteger(score) || score < 1 || score > 5) {
     throw ApiError.badRequest("score ต้องเป็นจำนวนเต็ม 1-5");
@@ -263,7 +280,7 @@ async function rateRequest(requestId, userId, { score, comment }) {
   if (existing.status !== "COMPLETED") throw ApiError.conflict("ให้คะแนนได้เฉพาะทริปที่เสร็จสิ้นแล้ว");
 
   return prisma.rating.create({
-    data: { serviceRequestId: requestId, ratedByUserId: userId, score, comment },
+    data: { serviceRequestId: requestId, ratedByUserId: userId, score, comment: cleanComment(comment) },
   });
 }
 
@@ -279,7 +296,7 @@ async function ratePassenger(requestId, driverId, { score, comment }) {
   if (existing.status !== "COMPLETED") throw ApiError.conflict("ให้คะแนนได้เฉพาะทริปที่เสร็จสิ้นแล้ว");
 
   return prisma.driverRating.create({
-    data: { serviceRequestId: requestId, ratedByDriverId: driverId, score, comment },
+    data: { serviceRequestId: requestId, ratedByDriverId: driverId, score, comment: cleanComment(comment) },
   });
 }
 

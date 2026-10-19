@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ค่าเริ่มต้นของชั้นแบรนด์ (เขียว มก.) ให้เฟรมแรกมีสีถูกก่อนโหลดพื้นที่เสร็จ — src/theme/brand.js เขียนทับตามพื้นที่ */
+:root {
+  --brand-50: 240 246 246;
+  --brand-100: 222 235 235;
+  --brand-200: 189 215 215;
+  --brand-300: 143 188 187;
+  --brand-400: 92 157 156;
+  --brand-500: 41 126 125;
+  --brand-600: 0 102 100;
+  --brand-700: 0 86 84;
+  --brand-800: 0 69 68;
+  --brand-900: 0 53 52;
+  --brand-950: 0 37 36;
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
 body,
 #root {
@@ -9,13 +26,31 @@ body,
 }
 
 body {
-  @apply bg-slate-200 text-slate-900 antialiased;
-  font-family: "Prompt", system-ui, sans-serif;
+  @apply bg-slate-100 text-slate-900 antialiased;
+  font-family: "Anuphan", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  caret-color: rgb(var(--brand-600));
 }
 
-/* mobile device frame for desktop viewing; collapses to full width on real phones */
+::selection {
+  background: rgb(var(--brand-200));
+  color: theme("colors.slate.900");
+}
+
+:focus-visible {
+  outline: 3px solid rgb(var(--brand-500));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ตัวเลขราคา เวลา ระยะทาง เรียงตรงคอลัมน์เสมอ */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* กรอบมือถือตอนเปิดบนจอคอม — บนมือถือจริงเต็มจอ */
 .device-frame {
-  @apply mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-white sm:my-6 sm:min-h-[900px] sm:rounded-[2.5rem] sm:shadow-2xl sm:ring-8 sm:ring-slate-900/5;
+  /* สูงเท่าจอพอดี (ไม่ใช่ min-h) — แต่ละหน้าเลื่อนเฉพาะเนื้อหา ปุ่มหลักและแท็บล่างจึงอยู่ที่เดิมเสมอ */
+  @apply mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-slate-50 sm:my-6 sm:h-[900px] sm:rounded-[2rem] sm:shadow-floating sm:ring-1 sm:ring-slate-300;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -24,4 +59,111 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* แผนที่แบบแผ่นป้าย: ลดสีของแผนที่พื้นหลังให้เป็นกลาง สีแบรนด์ เขตเหมาจ่าย และหมุดจะเด่นขึ้นมาเอง */
+.map-board .leaflet-tile-pane {
+  filter: grayscale(0.85) contrast(1.05) brightness(1.05);
+}
+.map-board .leaflet-control-attribution {
+  font-size: 9px;
+  background: rgb(255 255 255 / 0.75);
+}
+
+/* เขตเหมาจ่าย: ผืนสีแบรนด์อ่อน ขอบประ (Leaflet ใส่ class ให้ path — สีจาก CSS ชนะ attribute) */
+.kv-zone {
+  stroke: rgb(var(--brand-600));
+  fill: rgb(var(--brand-300));
+  fill-opacity: 0.28;
+}
+.kv-route {
+  stroke: rgb(var(--brand-600));
+}
+
+/* หมุดเลขแบบสติกเกอร์ — เลือกแล้วเด้งขยายและกลับสีเป็นสีแบรนด์ */
+.kv-stop {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kv-stop span {
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 15px/1 "Anuphan", sans-serif;
+  background: #fff;
+  color: rgb(var(--brand-700));
+  border: 2.5px solid rgb(var(--brand-600));
+  box-shadow: 0 2px 0 rgb(21 32 27 / 0.18), 0 4px 10px -2px rgb(21 32 27 / 0.3);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, color 0.2s;
+}
+.kv-stop.is-selected span {
+  background: rgb(var(--brand-600));
+  color: #fff;
+  border-color: #fff;
+  transform: scale(1.25) rotate(-6deg);
+}
+
+/* "คุณอยู่ที่นี่" — จุดแดงมีวงกระเพื่อม และป้ายข้อความแดง */
+.kv-here {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+.kv-here i {
+  position: absolute;
+  inset: 3px;
+  border-radius: 9999px;
+  background: #c62828;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #c62828;
+}
+.kv-here i::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 9999px;
+  background: rgb(198 40 40 / 0.35);
+  animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.kv-here b {
+  position: absolute;
+  left: 50%;
+  top: 26px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 700 12px/1 "Anuphan", sans-serif;
+  color: #fff;
+  background: #c62828;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgb(21 32 27 / 0.25);
+}
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

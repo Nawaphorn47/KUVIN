@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#121417; --panel:#F5F6F7; --line:#C8CDD2; --alert:#FFB000; --board:#15181B; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:390px; height:844px; overflow:hidden; font-family:"Noto Sans Thai",sans-serif; color:var(--ink); background:#E7EAED; position:relative; }
+  .bar { height:58px; display:flex; align-items:center; justify-content:space-between; padding:12px 16px 0; font:700 17px "Noto Sans Thai"; }
+  .bar span { font:600 12px "Noto Sans Thai"; color:#4a5056; }
+  .pass { margin:6px 12px 0; background:#fff; border-radius:10px; border:1.5px solid var(--ink); overflow:hidden; }
+  .seg { display:grid; grid-template-columns:1fr 34px 1fr; padding:14px 14px 10px; align-items:end; }
+  .seg small { font:600 11px "Noto Sans Thai"; color:#555c63; display:block; }
+  .seg b { font:700 21px/1.1 "Noto Sans Thai"; }
+  .seg .arrow { text-align:center; font:700 20px "JetBrains Mono"; }
+  .cut { border-top:1.5px dashed var(--line); display:grid; grid-template-columns:repeat(3,1fr); }
+  .cut div { padding:10px 14px; border-right:1.5px dashed var(--line); }
+  .cut div:last-child { border-right:0; }
+  .cut small { font:600 11px "Noto Sans Thai"; color:#555c63; display:block; }
+  .cut b { font:700 18px "JetBrains Mono"; }
+  .go { margin:12px 12px 0; height:54px; border-radius:8px; background:#006664; color:#fff; font:700 19px "Noto Sans Thai"; display:flex; align-items:center; justify-content:center; }
+  .board { margin:14px 12px 0; background:var(--board); color:#E9EDF0; border-radius:10px; padding:12px 14px 6px; }
+  .board h3 { font:600 12px "Noto Sans Thai"; color:#9aa3ab; margin-bottom:6px; display:flex; justify-content:space-between; }
+  .r { display:grid; grid-template-columns:34px 1fr 80px; padding:8px 0; border-top:1px solid #2a2f34; font:600 14px "Noto Sans Thai"; align-items:center; }
+  .r i { font:700 15px "JetBrains Mono"; font-style:normal; }
+  .r span { font:700 13px "JetBrains Mono"; text-align:right; }
+  .r.chg { color:var(--alert); }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:72px; background:#fff; border-top:1.5px solid var(--ink); display:grid; grid-template-columns:repeat(4,1fr); padding-top:10px; }
+  .tabs div { text-align:center; font:600 12px "Noto Sans Thai"; color:#555c63; }
+  .tabs b { display:block; width:22px; height:22px; margin:0 auto 4px; border:2px solid currentColor; border-radius:4px; }
+  .tabs .cur { color:var(--ink); }
+</style>
+</head>
+<body>
+  <div class="bar">มก. กำแพงแสน<span>ผู้โดยสาร</span></div>
+  <div class="pass">
+    <div class="seg"><div><small>จาก</small><b>หอพักนิสิต</b></div><div class="arrow">→</div><div><small>ถึง</small><b>สำนักหอสมุด</b></div></div>
+    <div class="cut"><div><small>ค่าโดยสาร</small><b>20฿</b></div><div><small>ระยะทาง</small><b>1.4กม</b></div><div><small>เลขที่</small><b>4218</b></div></div>
+  </div>
+  <div class="go">เรียกวิน</div>
+  <div class="board">
+    <h3><span>คิวคนขับตอนนี้</span><span>อัปเดตสด</span></h3>
+    <div class="r"><i>01</i>วิน 2 · สมชาย<span>พร้อม</span></div>
+    <div class="r chg"><i>02</i>วิน 1 · ประยุทธ<span>เลื่อนขึ้น</span></div>
+    <div class="r"><i>03</i>วิน 3 · มานพ<span>พร้อม</span></div>
+  </div>
+  <div class="tabs"><div class="cur"><b></b>เรียกวิน</div><div><b></b>ทริป</div><div><b></b>แจ้งเตือน</div><div><b></b>บัญชี</div></div>
+</body>
+</html>

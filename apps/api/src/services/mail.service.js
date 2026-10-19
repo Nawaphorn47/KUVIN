@@ -27,9 +27,15 @@ function isConfigured() {
 }
 
 // "KU VIN <you@gmail.com>" หรือ "you@gmail.com" → { name, email }
+// แยกด้วย indexOf แทน regex /^\s*(.*?)\s*<([^>]+)>\s*$/ เดิม ซึ่ง backtrack หนักเมื่อข้อความยาว
 function parseAddress(value) {
-  const match = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(value);
-  return match ? { name: match[1] || undefined, email: match[2] } : { email: value.trim() };
+  const text = value.trim();
+  const open = text.lastIndexOf("<");
+  if (open !== -1 && text.endsWith(">") && text.length - open > 2) {
+    const name = text.slice(0, open).trim();
+    return { name: name || undefined, email: text.slice(open + 1, -1).trim() };
+  }
+  return { email: text };
 }
 
 async function sendViaBrevo({ to, subject, text, html }) {

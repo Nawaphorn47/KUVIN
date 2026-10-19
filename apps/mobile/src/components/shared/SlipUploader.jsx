@@ -37,13 +37,13 @@ export default function SlipUploader({ requestId, onPaid }) {
   return (
     <div className="flex w-full flex-col gap-2">
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
-      <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={busy}>
+      <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
         {busy ? "กำลังตรวจสลิป..." : "โอนแล้ว แนบสลิปเพื่อยืนยัน"}
       </Button>
       {error && (
-        <p className="flex items-start gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-left text-xs text-red-700">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none" />
+        <p role="alert" className="flex items-start gap-2 rounded-xl bg-here-soft px-3 py-2 text-left text-sm text-here">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
           <span>
             {error}
             {giveUp && " หรือแจ้งคนขับให้กดยืนยันว่าได้รับเงินแล้ว"}

@@ -2,6 +2,7 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
+const { isValidEmail } = require("../utils/email");
 
 const SALT_ROUNDS = 10;
 const ROLES = ["SUPER_ADMIN", "AREA_ADMIN"];
@@ -44,7 +45,7 @@ async function createAdmin({ fullName, email, password, role = "AREA_ADMIN", are
   const name = typeof fullName === "string" ? fullName.trim() : "";
   if (!name) throw ApiError.badRequest("ต้องระบุชื่อแอดมิน");
   const normalized = normalizeEmail(email);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw ApiError.badRequest("รูปแบบอีเมลไม่ถูกต้อง");
+  if (!isValidEmail(normalized)) throw ApiError.badRequest("รูปแบบอีเมลไม่ถูกต้อง");
   assertPassword(password);
   const roleArea = await resolveRoleArea(role, areaId);
 

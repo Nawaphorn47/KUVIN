@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, KeyRound, Loader2, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
+import Overlay from "../components/Overlay";
 import { PageHeader } from "../components/AdminLayout";
 import { api } from "../services/api";
 import { useAdminSession } from "../lib/adminSession";
@@ -159,12 +160,8 @@ function AdminModal({ target, areas, isSelf, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <form
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-md flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl"
-      >
+    <Overlay onClose={onClose} className="flex items-center justify-center p-4">
+      <form onSubmit={submit} className="relative flex w-full max-w-md flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-emerald-900">{creating ? "เพิ่มแอดมิน" : "แก้ไขแอดมิน"}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-stone-100" aria-label="ปิด">
@@ -234,7 +231,7 @@ function AdminModal({ target, areas, isSelf, onClose, onSaved }) {
           </Button>
         </div>
       </form>
-    </div>
+    </Overlay>
   );
 }
 

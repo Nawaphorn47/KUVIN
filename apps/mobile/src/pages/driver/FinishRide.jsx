@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { PartyPopper, CheckCircle2 } from "lucide-react";
+import { PartyPopper, CheckCircle2, Flag } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import PaymentQr from "../../components/shared/PaymentQr";
@@ -103,6 +103,13 @@ export default function FinishRide() {
         <Button variant="secondary" onClick={() => navigate("/driver/earnings")}>
           ดูรายได้วันนี้
         </Button>
+        <button
+          type="button"
+          onClick={() => navigate("/report-trip", { state: { request } })}
+          className="flex h-10 items-center justify-center gap-1.5 text-sm font-bold text-emerald-100"
+        >
+          <Flag className="h-4 w-4" aria-hidden="true" /> มีปัญหากับผู้โดยสาร? แจ้งแอดมิน
+        </button>
       </div>
     </div>
   );

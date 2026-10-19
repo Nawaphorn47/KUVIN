@@ -26,6 +26,14 @@ exports.updateAvailability = asyncHandler(async (req, res) => {
   res.json(driver);
 });
 
+exports.uploadDocument = (req, res, next) => {
+  try {
+    res.status(201).json(driverService.documentUploaded(req.file));
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.submitVerification = asyncHandler(async (req, res) => {
   const driver = await driverService.submitVerification(req.auth.id, req.body);
   res.json(driver);

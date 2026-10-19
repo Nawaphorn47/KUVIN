@@ -16,6 +16,7 @@
 
 const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
+const { presentRequest } = require("../utils/tripPrivacy");
 const ApiError = require("../utils/ApiError");
 const { notify } = require("./notification.service");
 
@@ -25,7 +26,7 @@ const TX_OPTIONS = { maxWait: 5000, timeout: 10000 };
 
 const includeParties = {
   user: { select: { id: true, fullName: true, phone: true } },
-  driver: { select: { id: true, fullName: true, phone: true, vinNumber: true, vehicleModel: true, licensePlate: true, currentLat: true, currentLng: true } },
+  driver: { select: { id: true, fullName: true, phone: true, driverType: true, vinNumber: true, vehicleModel: true, licensePlate: true, currentLat: true, currentLng: true } },
 };
 
 // ---------------------------------------------------------------------------
@@ -88,9 +89,9 @@ async function dispatchInTx(tx, request, triedDriverIds) {
 async function publishDispatch(io, result) {
   if (!result) return;
   if (result.kind === "offered") {
-    io?.to(`driver:${result.driverId}`).emit("service-request:new", result.request);
+    io?.to(`driver:${result.driverId}`).emit("service-request:new", presentRequest(result.request));
   } else if (result.kind === "expired") {
-    io?.to(`service-request:${result.request.id}`).emit("service-request:status", result.request);
+    io?.to(`service-request:${result.request.id}`).emit("service-request:status", presentRequest(result.request));
     await notify(io, {
       recipientType: "USER",
       recipientId: result.request.userId,
@@ -244,7 +245,7 @@ async function handleDriverResponse(driverId, response, io, { requestId } = {}) 
   // ---- หลัง commit: ส่ง event ----
   if (outcome.kind === "accepted") {
     const { request } = outcome;
-    io?.to(`service-request:${request.id}`).emit("service-request:status", request);
+    io?.to(`service-request:${request.id}`).emit("service-request:status", presentRequest(request));
     await notify(io, {
       recipientType: "USER",
       recipientId: request.userId,

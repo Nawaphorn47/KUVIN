@@ -5,6 +5,9 @@
 .git
 .github
 .claude
+.agents
+.codex
+**/.impeccable
 docs
 *.md
 *.pdf
