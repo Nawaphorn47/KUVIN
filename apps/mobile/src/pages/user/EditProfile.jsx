@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, IdCard, Phone, AlertTriangle, CheckCircle2 } from "lucide-react";
-import Screen from "../../components/layout/Screen";
+import { Check, IdCard, Phone, User } from "lucide-react";
 import TopBar from "../../components/layout/TopBar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -16,17 +15,18 @@ export default function EditProfile() {
   const [phone, setPhone] = useState(user.phone ?? "");
   const [studentId, setStudentId] = useState(user.studentId ?? "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
-  // โปรไฟล์จริงโหลดมาทีหลัง (async ตอน AppProvider mount) — ตอน component นี้ mount ครั้งแรก `user` อาจยังเป็น
-  // ค่า mock ชั่วคราวอยู่ ถ้า seed state จากมันครั้งเดียวตอน useState จะได้ค่าผิดค้างไว้ ต้อง sync ใหม่ทุกครั้งที่
-  // `user` เปลี่ยน (เช่น ตอนโปรไฟล์จริงโหลดเสร็จ)
+  // โปรไฟล์จริงโหลดมาทีหลัง (async ตอน AppProvider mount) — sync ใหม่ทุกครั้งที่ `user` เปลี่ยน
+  // ไม่งั้นค่าว่างตอน mount ครั้งแรกจะค้างอยู่ในฟอร์ม
   useEffect(() => {
     setFullName(user.name ?? "");
     setPhone(user.phone ?? "");
     setStudentId(user.studentId ?? "");
   }, [user]);
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
+
+  const phoneChanged = phone !== (user.phone ?? "");
 
   async function handleSave(e) {
     e.preventDefault();
@@ -38,57 +38,64 @@ export default function EditProfile() {
       await refreshMe();
       setSaved(true);
     } catch (err) {
-      setError(err.response?.data?.message || "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError(err.response?.data?.message || "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
       <TopBar title="ข้อมูลส่วนตัว" onBack={() => navigate("/profile")} />
-      <Screen className="gap-4 pt-2">
-        <form className="flex flex-col gap-4" onSubmit={handleSave}>
-          <Input
-            label="ชื่อ-นามสกุล"
-            icon={User}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-          <Input
-            label="เบอร์โทรศัพท์"
-            icon={Phone}
-            placeholder="0xx-xxx-xxxx"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <Input
-            label="รหัสนิสิต / รหัสพนักงาน"
-            icon={IdCard}
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-          />
-
-          <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-400">
-            อีเมล: {user.email} — เปลี่ยนอีเมลไม่ได้เพราะใช้เป็นบัญชีเข้าสู่ระบบ
+      <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
+        <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5">
+          <div className="flex flex-col gap-4">
+            <Input label="ชื่อ-นามสกุล" icon={User} autoComplete="name" maxLength={80} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <div>
+              <Input
+                label="เบอร์มือถือ"
+                icon={Phone}
+                inputMode="tel"
+                maxLength={10}
+                placeholder="08X XXX XXXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                className="tabular"
+              />
+              {phoneChanged && (
+                <p className="mt-1.5 text-sm font-medium text-amber-900">เปลี่ยนเบอร์แล้วต้องยืนยันด้วย OTP ใหม่ก่อนเรียกวินครั้งถัดไป</p>
+              )}
+            </div>
+            <Input
+              label="รหัสนิสิต / รหัสพนักงาน (ไม่บังคับ)"
+              icon={IdCard}
+              inputMode="numeric"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+            />
+            {user.email && (
+              <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+                อีเมล <span className="font-semibold text-slate-900">{user.email}</span> ใช้เป็นบัญชีเข้าสู่ระบบ เปลี่ยนไม่ได้
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="rounded-xl bg-here-soft px-3 py-2.5 text-sm font-medium text-here">
+                {error}
+              </p>
+            )}
+            {saved && (
+              <p role="status" className="flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-sm font-bold text-brand-800">
+                <Check className="h-4 w-4" strokeWidth={3} /> บันทึกแล้ว
+              </p>
+            )}
           </div>
-
-          {error && (
-            <p className="flex items-center gap-1.5 text-sm text-red-600">
-              <AlertTriangle className="h-4 w-4 flex-none" /> {error}
-            </p>
-          )}
-          {saved && (
-            <p className="flex items-center gap-1.5 text-sm text-emerald-600">
-              <CheckCircle2 className="h-4 w-4 flex-none" /> บันทึกข้อมูลเรียบร้อยแล้ว
-            </p>
-          )}
-
+        </main>
+        <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
           <Button type="submit" disabled={saving}>
-            {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
-        </form>
-      </Screen>
+        </div>
+      </form>
     </div>
   );
 }

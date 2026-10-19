@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Bike, Loader2 } from "lucide-react";
-import Screen from "../../components/layout/Screen";
+import { Bell, Loader2 } from "lucide-react";
+import clsx from "clsx";
 import BottomNav from "../../components/layout/BottomNav";
 import { api } from "../../lib/api";
-import clsx from "clsx";
 
 export default function Notifications() {
   const [items, setItems] = useState(null);
@@ -21,45 +20,53 @@ export default function Notifications() {
     api.post(`/notifications/${id}/read`).catch(() => {});
   }
 
+  const unread = (items ?? []).filter((n) => !n.isRead).length;
+
   return (
-    <div className="flex flex-1 flex-col">
-      <Screen className="gap-4">
-        <h1 className="text-xl font-bold text-slate-900">Notification</h1>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <header className="flex-none bg-brand-600 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] text-white">
+        <h1 className="text-2xl font-bold tracking-tight">แจ้งเตือน</h1>
+        {items && <p className="tabular mt-1 text-brand-100">{unread > 0 ? `ยังไม่ได้อ่าน ${unread} รายการ` : "อ่านครบแล้ว"}</p>}
+      </header>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        {!items && !error && (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
-            <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        {error && (
+          <p role="alert" className="rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
+            {error}
+          </p>
+        )}
+        {!items && !error && <Loader2 className="mx-auto my-10 h-6 w-6 animate-spin text-brand-600" aria-label="กำลังโหลด" />}
+        {items?.length === 0 && (
+          <div className="mt-12 flex flex-col items-center gap-2 text-center">
+            <Bell className="h-8 w-8 text-slate-400" aria-hidden="true" />
+            <p className="text-base font-semibold text-slate-900">ยังไม่มีแจ้งเตือน</p>
+            <p className="text-sm text-slate-600">สถานะทริปและข่าวจากระบบจะขึ้นที่นี่</p>
           </div>
         )}
-
-        {items && items.length === 0 && (
-          <p className="py-10 text-center text-sm text-slate-400">ยังไม่มีการแจ้งเตือน</p>
+        {items?.length > 0 && (
+          <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+            {items.map((n) => (
+              <li key={n.id} className="border-b border-slate-200 last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => !n.isRead && markRead(n.id)}
+                  className={clsx("flex w-full gap-3 px-4 py-3.5 text-left", !n.isRead && "bg-brand-50")}
+                >
+                  <span
+                    aria-label={n.isRead ? undefined : "ยังไม่ได้อ่าน"}
+                    className={clsx("mt-1.5 h-3 w-3 flex-none rounded-full", n.isRead ? "border-2 border-slate-300" : "bg-brand-600")}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className={clsx("block text-[15px] text-slate-900", !n.isRead ? "font-bold" : "font-semibold")}>{n.title}</span>
+                    <span className="mt-0.5 block text-sm text-slate-600">{n.body}</span>
+                    <span className="tabular mt-1 block text-xs text-slate-500">{formatRelative(n.createdAt)}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-
-        <div className="flex flex-col divide-y divide-slate-100">
-          {items?.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => !n.isRead && markRead(n.id)}
-              className="flex gap-3 py-4 text-left"
-            >
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                <Bike className="h-5 w-5" />
-              </span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-slate-900">{n.title}</p>
-                  {!n.isRead && <span className="h-2 w-2 rounded-full bg-emerald-500" />}
-                </div>
-                <p className={clsx("mt-0.5 text-sm text-slate-500")}>{n.body}</p>
-                <p className="mt-1 text-xs text-slate-400">{formatRelative(n.createdAt)}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </Screen>
+      </main>
       <BottomNav />
     </div>
   );
