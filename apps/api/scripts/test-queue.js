@@ -212,13 +212,18 @@ async function main() {
       assert.equal(new Set(offered).size, 5);
     });
 
-    await test("8 คำขอพร้อมกัน / 3 คนขับ: 3 คำขอได้คนขับคนละคน ที่เหลือถูกยกเลิก (ไม่ซ้อน ไม่ค้าง)", async () => {
-      await resetQueue("ABC");
-      const results = await Promise.all(Array.from({ length: 8 }, () => mkRequest()));
-      const offered = results.filter((r) => r.status === "PENDING").map((r) => r.offeredDriverId);
-      assert.equal(offered.length, 3);
-      assert.equal(new Set(offered).size, 3);
-      assert.equal(results.filter((r) => r.status === "CANCELLED").length, 5);
+    // วนซ้ำหลายรอบ: เดิมล้มสุ่มประมาณ 1 ใน 30 รอบบน CI (เสนองานซ้อนให้คนขับคนเดียวกัน) รอบเดียวจับไม่ค่อยได้
+    // QUEUE_RACE_ROUNDS ปรับจำนวนรอบได้ (ค่าเริ่มต้น 40)
+    await test("8 คำขอพร้อมกัน / 3 คนขับ: 3 คำขอได้คนขับคนละคน ที่เหลือถูกยกเลิก (ไม่ซ้อน ไม่ค้าง) — วนซ้ำหลายรอบ", async () => {
+      const rounds = Number(process.env.QUEUE_RACE_ROUNDS) || 40;
+      for (let round = 1; round <= rounds; round++) {
+        await resetQueue("ABC");
+        const results = await Promise.all(Array.from({ length: 8 }, () => mkRequest()));
+        const offered = results.filter((r) => r.status === "PENDING").map((r) => r.offeredDriverId);
+        assert.equal(offered.length, 3, `รอบที่ ${round}: ควรมี 3 คำขอที่ถูกเสนอ`);
+        assert.equal(new Set(offered).size, 3, `รอบที่ ${round}: ต้องไม่มีคนขับถูกเสนองานซ้อน`);
+        assert.equal(results.filter((r) => r.status === "CANCELLED").length, 5, `รอบที่ ${round}`);
+      }
     });
 
     await test("accept กับ reject จากคนขับคนเดียวพร้อมกัน: สำเร็จได้แค่อย่างเดียว", async () => {
