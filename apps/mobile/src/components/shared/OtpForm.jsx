@@ -1,50 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { FlaskConical, Phone } from "lucide-react";
-import clsx from "clsx";
 import Button from "../ui/Button";
+import DigitBoxes from "../ui/DigitBoxes";
 import Input from "../ui/Input";
 import { api } from "../../lib/api";
 
 const CODE_LENGTH = 6;
 const errorText = (err, fallback) => err.response?.data?.message || fallback;
-
-// ช่องรหัส 6 หลัก: input จริงตัวเดียว (วางรหัส/เติมอัตโนมัติจาก SMS ได้) วางทับกล่องสติกเกอร์ 6 กล่องที่ใช้แสดงผล
-function CodeBoxes({ value, onChange, disabled }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="relative">
-      <div aria-hidden="true" className="grid grid-cols-6 gap-2">
-        {Array.from({ length: CODE_LENGTH }, (_, i) => {
-          const active = focused && i === Math.min(value.length, CODE_LENGTH - 1);
-          return (
-            <span
-              key={i}
-              className={clsx(
-                "tabular flex h-14 items-center justify-center rounded-xl border-2 bg-white text-2xl font-bold text-slate-900 transition-all",
-                value[i] ? "border-brand-600" : "border-slate-200",
-                active && "-translate-y-0.5 border-brand-600 ring-4 ring-brand-100"
-              )}
-            >
-              {value[i] ?? ""}
-            </span>
-          );
-        })}
-      </div>
-      <input
-        aria-label="รหัส OTP 6 หลัก"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        maxLength={CODE_LENGTH}
-        value={value}
-        disabled={disabled}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH))}
-        className="absolute inset-0 h-full w-full cursor-text opacity-0"
-      />
-    </div>
-  );
-}
 
 /**
  * ขอรหัส OTP ไปที่เบอร์ แล้วกรอกรหัส — ส่ง (phone, code) ให้ onSubmit ไปยืนยันกับ endpoint ที่เหมาะกับงานนั้น
@@ -175,7 +137,7 @@ export default function OtpForm({ fixedPhone, onSubmit, submitLabel = "ยืน
         </div>
       )}
 
-      <CodeBoxes value={code} onChange={changeCode} disabled={busy} />
+      <DigitBoxes length={CODE_LENGTH} label="รหัส OTP 6 หลัก" value={code} onChange={changeCode} disabled={busy} />
 
       {error && (
         <p role="alert" className="rounded-xl bg-here-soft px-3 py-2.5 text-sm font-medium text-here">

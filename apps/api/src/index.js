@@ -8,6 +8,7 @@ const routes = require("./routes");
 const registerSockets = require("./sockets");
 const { corsOrigin } = require("./config/cors");
 const upload = require("./middlewares/upload");
+const prisma = require("./config/prisma");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
 const { sweepExpiredOffers } = require("./services/serviceRequest.service");
 
@@ -31,7 +32,21 @@ app.use(cors({ origin: corsOrigin })); // อนุญาตเฉพาะเ�
 app.use(express.json({ limit: "100kb" })); // JSON ของแอปเล็กมาก — กันส่ง body ยักษ์มาถ่วง server
 // เสิร์ฟไฟล์ที่อัปโหลดผ่าน POST /api/uploads — dotfiles: "deny" กันเปิดไฟล์ส่วนตัวใน uploads/.private
 app.use("/uploads", express.static(upload.UPLOAD_DIR, { dotfiles: "deny" }));
-app.get("/health", (req, res) => res.json({ ok: true })); // ให้ platform เช็คว่า server พร้อมรับ request
+// ให้ platform/Docker เช็คว่า server พร้อมรับ request — ตรวจการเชื่อมต่อ DB จริง: ปกติ 200, DB ล่ม 503 (แอปไม่ crash
+// กลับมา 200 เองเมื่อ DB กลับมา) ใช้ทั้ง /health (Railway) และ /api/health (CI, deploy)
+async function health(req, res) {
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("db timeout")), 3000)),
+    ]);
+    res.json({ ok: true, db: "up" });
+  } catch {
+    res.status(503).json({ ok: false, db: "down" });
+  }
+}
+app.get("/health", health);
+app.get("/api/health", health);
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: corsOrigin } });

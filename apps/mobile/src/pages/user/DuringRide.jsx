@@ -6,6 +6,7 @@ import SosPanel from "../../components/shared/SosPanel";
 import TripHeader from "../../components/shared/TripHeader";
 import TripRail from "../../components/shared/TripRail";
 import ChatButton from "../../components/shared/ChatButton";
+import ShareTripButton from "../../components/shared/ShareTripButton";
 import Avatar from "../../components/ui/Avatar";
 import { useRequestStatus } from "../../lib/useRequestStatus";
 import { useDriverLocation } from "../../lib/useTripTracking";
@@ -72,6 +73,8 @@ export default function DuringRide() {
             now={route ? `เหลืออีก ${route.distanceKm} กม.` : null}
           />
         </section>
+
+        <ShareTripButton request={request} className="mt-4" />
 
         <section aria-label="คนขับและค่าวิน" className="mt-4 flex items-center gap-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <Avatar initial={driver.fullName[0]} />

@@ -14,8 +14,10 @@ COPY apps/web-dashboard apps/web-dashboard
 ARG VITE_API_URL
 RUN npm run build --workspace=apps/web-dashboard
 
-FROM nginx:1.27-alpine
-ENV PORT=80
+# nginx-unprivileged: รันด้วย user ที่ไม่ใช่ root (พอร์ตเริ่มต้น 8080 แทนค่า ${PORT} ใน template เหมือนเดิม)
+FROM nginxinc/nginx-unprivileged:1.27-alpine
+ENV PORT=8080
 COPY --from=build /app/apps/web-dashboard/dist /usr/share/nginx/html
 COPY apps/web-dashboard/nginx.conf /etc/nginx/templates/default.conf.template
-EXPOSE 80
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5   CMD wget -qO /dev/null http://127.0.0.1:${PORT}/ || exit 1

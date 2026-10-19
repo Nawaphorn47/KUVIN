@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { presentRequest } = require("../utils/tripPrivacy");
 const ApiError = require("../utils/ApiError");
 const { calculateFare } = require("../utils/geo");
 const { getRoute } = require("../utils/routing");
@@ -147,7 +148,7 @@ async function transition(requestId, driverId, { from, to, extraData = {} }) {
 
 async function startRequest(requestId, driverId, io) {
   const request = await transition(requestId, driverId, { from: "ACCEPTED", to: "IN_PROGRESS" });
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   return request;
 }
 
@@ -160,7 +161,7 @@ async function completeRequest(requestId, driverId, io) {
 
   await queue.handleTripCompleted(driverId);
 
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   await notify(io, {
     recipientType: "USER",
     recipientId: request.userId,
@@ -201,7 +202,7 @@ async function cancelRequest(requestId, actor, io, reason) {
   // งานที่รับไปแล้วถูกยกเลิก: คนขับว่างอีกครั้ง (ยังออนไลน์ → กลับเข้าท้ายคิว)
   if (existing.driverId) await queue.handleTripCompleted(existing.driverId);
 
-  io?.to(`service-request:${requestId}`).emit("service-request:status", request);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(request));
   return request;
 }
 

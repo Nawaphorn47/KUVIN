@@ -1,0 +1,74 @@
+# docker-compose.yml — ไฟล์เดียวใช้ได้ทั้งในเครื่องและบน VPS (Hostinger)
+# ค่า ${...} อ่านจากไฟล์ .env ในโฟลเดอร์เดียวกัน (ในเครื่อง: cp .env.example .env / บน VPS: sh make-env.sh ...)
+#
+# ลำดับการเริ่ม:  db (รอ healthcheck) → api (รัน migration + seed เองตอนเริ่ม ดู apps/api/Dockerfile) → web, admin
+#   - db     PostgreSQL ไม่เปิด port ออกนอก (เครื่อง dev เปิดผ่าน docker-compose.override.yml)
+#   - api    Express + Socket.IO + Prisma   ← https://api.<โดเมน>
+#   - web    เว็บแอปผู้โดยสาร/คนขับ          ← https://<โดเมน>
+#   - admin  แดชบอร์ดแอดมิน                  ← https://admin.<โดเมน>
+# บน VPS ทุก port bind ที่ 127.0.0.1 เท่านั้น เข้าได้ผ่าน Nginx (HTTPS) เท่านั้น
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # :? = ถ้าไม่ได้ตั้งค่าใน .env ให้หยุดพร้อมแสดงข้อความ
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    volumes:
+      # named volume: ข้อมูลยังอยู่แม้ลบ container (หายเมื่อสั่ง docker compose down -v — ห้ามใช้ -v)
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # $$ = ส่งเครื่องหมาย $ ไปให้ shell ใน container (ไม่ให้ compose แทนค่าเอง)
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ${API_IMAGE:-kuvin-api:local}
+    restart: unless-stopped
+    # ตัวแปรทั้งหมดของ API (JWT_SECRET, CORS_ORIGINS, OTP_MODE, SEED_ADMIN_* ฯลฯ) อยู่ใน .env — ดู .env.example
+    env_file: .env
+    environment:
+      PORT: "4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # เอกสารยืนยันตัวตนคนขับ/เซลฟี่/โลโก้ — ต้องสำรองโฟลเดอร์นี้ (volume ชื่อ uploads)
+      - uploads:/app/apps/api/uploads
+    ports:
+      - "${API_BIND:-127.0.0.1:3301}:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/mobile/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3301/api}
+        VITE_PUBLIC_APP_URL: ${VITE_PUBLIC_APP_URL:-http://localhost:3302}
+    image: ${WEB_IMAGE:-kuvin-web:local}
+    restart: unless-stopped
+    ports:
+      - "${WEB_BIND:-127.0.0.1:3302}:8080"
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/web-dashboard/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3301/api}
+    image: ${ADMIN_IMAGE:-kuvin-admin:local}
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_BIND:-127.0.0.1:3303}:8080"
+
+volumes:
+  pgdata:
+  uploads:

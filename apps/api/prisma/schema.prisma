@@ -282,6 +282,7 @@ model ServiceRequest {
   rating       Rating?
   driverRating DriverRating?
   messages     TripMessage[]
+  reports      TripReport[]
 
   @@index([areaId, status])
   @@map("service_requests")
@@ -407,4 +408,24 @@ model TripMessage {
 
   @@index([serviceRequestId, createdAt])
   @@map("trip_messages")
+}
+
+// แจ้งปัญหาหลังทริป (ผู้โดยสารหรือคนขับ) — ส่งถึงแอดมินของพื้นที่ทริป ใช้ตรวจสอบ/ระงับบัญชี และเก็บเป็นฟีดแบ็ก
+model TripReport {
+  id               String         @id @default(uuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  areaId           String // พื้นที่ของทริป — แอดมินพื้นที่เห็นเฉพาะของตัวเอง
+  reporterRole     String // "user" | "driver"
+  reporterId       String
+  category         String // ดู utils/reportCategories.js
+  detail           String?
+  status           String         @default("OPEN") // OPEN | RESOLVED
+  resolvedNote     String?
+  resolvedAt       DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([areaId, status])
+  @@index([serviceRequestId])
+  @@map("trip_reports")
 }

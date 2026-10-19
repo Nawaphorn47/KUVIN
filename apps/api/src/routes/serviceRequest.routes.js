@@ -27,6 +27,10 @@ router.post("/:id/rate-passenger", requireAuth(["driver"]), ctrl.ratePassenger);
 
 // แชตในทริประหว่างผู้โดยสารกับคนขับ (ดู services/chat.service.js)
 router.get("/:id/messages", requireAuth(["user", "driver"]), chat.list);
+
+// ความปลอดภัยระหว่างทริป: ลิงก์แชร์ทริป, แจ้งปัญหาหลังทริป
+router.post("/:id/share", requireAuth(["user"]), ctrl.share);
+router.post("/:id/report", requireAuth(["user", "driver"]), ctrl.report);
 router.post("/:id/messages", requireAuth(["user", "driver"]), chat.send);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { Banknote, Check } from "lucide-react";
+import { Banknote, Check, Flag } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import PaymentQr from "../../components/shared/PaymentQr";
@@ -75,6 +75,13 @@ export default function RideCompleted() {
         <Button variant="ghost" onClick={() => navigate("/home")}>
           ไว้ทีหลัง
         </Button>
+        <button
+          type="button"
+          onClick={() => navigate("/report-trip", { state: { request } })}
+          className="flex h-10 items-center justify-center gap-1.5 text-sm font-bold text-slate-600"
+        >
+          <Flag className="h-4 w-4" aria-hidden="true" /> มีปัญหากับทริปนี้? แจ้งแอดมิน
+        </button>
       </div>
     </div>
   );

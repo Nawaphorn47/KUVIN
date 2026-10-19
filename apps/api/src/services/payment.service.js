@@ -8,6 +8,7 @@
 // ไม่เก็บรูปสลิป: สลิปมีข้อมูลบัญชีของผู้โอน ส่งต่อให้ผู้ให้บริการตรวจแล้วทิ้ง เก็บแค่เลขอ้างอิงธุรกรรม
 
 const prisma = require("../config/prisma");
+const { presentRequest } = require("../utils/tripPrivacy");
 const ApiError = require("../utils/ApiError");
 const slip = require("./slip");
 const { SlipError, PROVIDER_FAILURE_CODES } = require("./slip/errors");
@@ -126,7 +127,7 @@ async function submitSlip(requestId, userId, file, io) {
     },
   });
 
-  io?.to(`service-request:${requestId}`).emit("service-request:status", updated);
+  io?.to(`service-request:${requestId}`).emit("service-request:status", presentRequest(updated));
   await notify(io, {
     recipientType: "DRIVER",
     recipientId: request.driver.id,

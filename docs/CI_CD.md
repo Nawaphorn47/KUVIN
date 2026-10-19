@@ -1,5 +1,8 @@
 # CI/CD และการ deploy
 
+> **Hostinger VPS (Docker Compose + Nginx):** ดู [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md)
+> หมายเหตุ Railway: `api` รันด้วย user `node` แล้ว ต้องตั้ง `RAILWAY_RUN_UID=0` ที่ service `api` เพื่อให้ volume อัปโหลดเขียนได้
+
 ## ระบบที่ใช้งานจริง (Railway, region Southeast Asia)
 
 | ส่วน | URL | service บน Railway |
@@ -59,6 +62,7 @@
 | ตัวแปร | ค่า |
 |---|---|
 | `RAILWAY_DOCKERFILE_PATH` | `apps/mobile/Dockerfile` / `apps/web-dashboard/Dockerfile` |
+| `VITE_PUBLIC_APP_URL` | (เฉพาะ `web-app` / ตอน build APK) ที่อยู่เว็บแอปจริง เช่น `https://web-app-production-6f95.up.railway.app` — ใช้สร้างลิงก์ "แชร์ทริป" ให้เปิดจากข้างนอกได้ ไม่ตั้งบนเว็บจะใช้โดเมนที่เปิดอยู่ แต่ใน APK ต้องตั้ง |
 | `VITE_API_URL` | `https://${{api.RAILWAY_PUBLIC_DOMAIN}}/api` (ชื่อใน `${{ }}` ต้องตรงกับชื่อ service ของ API ทุกตัวอักษร) |
 
 `VITE_API_URL` ถูกฝังลงในไฟล์ตอน build — แก้ค่าแล้วต้อง deploy ใหม่ถึงจะมีผล

@@ -8,6 +8,7 @@ import SosPanel from "../../components/shared/SosPanel";
 import TripHeader from "../../components/shared/TripHeader";
 import TripRail from "../../components/shared/TripRail";
 import ChatButton from "../../components/shared/ChatButton";
+import ShareTripButton from "../../components/shared/ShareTripButton";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { useRequestStatus } from "../../lib/useRequestStatus";
@@ -82,6 +83,8 @@ export default function DriverArriving() {
             <ChatButton request={request} label="แชตกับคนขับ" />
           </div>
         </section>
+
+        <ShareTripButton request={request} className="mt-4" />
 
         <section className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <TripRail

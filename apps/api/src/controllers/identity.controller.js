@@ -1,6 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const identity = require("../services/identity.service");
 const { DRIVER_TYPES, DOC_LABELS } = require("../utils/driverTypes");
+const { REPORT_CATEGORIES } = require("../utils/reportCategories");
 
 // บอกแอปว่าเปิดวิธีเข้าระบบแบบไหนอยู่ — แอปซ่อนปุ่มที่ใช้ไม่ได้แทนการให้ผู้ใช้กดแล้วเจอ error
 exports.config = (req, res) => {
@@ -10,6 +11,7 @@ exports.config = (req, res) => {
     passengerVerification: process.env.PASSENGER_VERIFICATION !== "off",
     driverTypes: DRIVER_TYPES, // เอกสารที่คนขับแต่ละประเภทต้องแนบ (แอปใช้สร้างหน้าส่งเอกสาร)
     docLabels: DOC_LABELS,
+    reportCategories: REPORT_CATEGORIES,
   });
 };
 

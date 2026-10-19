@@ -14,11 +14,15 @@ COPY apps/mobile apps/mobile
 # VITE_API_URL ต้อง build เข้าไปตอนนี้เลย (ไม่ใช่ runtime env) เพราะ Vite ฝัง import.meta.env ไว้ในบันเดิลตอน build
 # ไม่ตั้งค่า = ใช้ hostname เดียวกับหน้าเว็บที่เปิดอยู่ (ดู src/lib/api.js) ซึ่งใช้ไม่ได้ถ้า frontend/backend อยู่คนละโดเมน
 ARG VITE_API_URL
+# ที่อยู่เว็บแอปจริง ใช้สร้างลิงก์แชร์ทริป (ดู src/lib/shareTrip.js)
+ARG VITE_PUBLIC_APP_URL
 RUN npm run build --workspace=apps/mobile
 
-FROM nginx:1.27-alpine
+# nginx-unprivileged: รันด้วย user ที่ไม่ใช่ root (พอร์ตเริ่มต้น 8080 แทนค่า ${PORT} ใน template เหมือนเดิม)
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 # platform อย่าง Railway กำหนดพอร์ตผ่าน $PORT — image ของ nginx แทนค่า ${PORT} ในไฟล์ templates/ ให้ตอนเริ่ม container
-ENV PORT=80
+ENV PORT=8080
 COPY --from=build /app/apps/mobile/dist /usr/share/nginx/html
 COPY apps/mobile/nginx.conf /etc/nginx/templates/default.conf.template
-EXPOSE 80
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5   CMD wget -qO /dev/null http://127.0.0.1:${PORT}/ || exit 1

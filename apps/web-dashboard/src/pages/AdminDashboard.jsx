@@ -10,6 +10,7 @@ import {
   Check,
   Loader2,
   RefreshCw,
+  Flag,
 } from "lucide-react";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [pendingDrivers, setPendingDrivers] = useState(null);
   const [trips, setTrips] = useState(null);
   const [sosAlerts, setSosAlerts] = useState(null);
+  const [reports, setReports] = useState(null);
   const [reviewDriver, setReviewDriver] = useState(null);
   const [error, setError] = useState("");
 
@@ -45,6 +47,7 @@ export default function AdminDashboard() {
     api.get("/admin/drivers/pending").then(({ data }) => setPendingDrivers(data)).catch(fail);
     api.get("/admin/trips").then(({ data }) => setTrips(data)).catch(fail);
     api.get("/admin/sos").then(({ data }) => setSosAlerts(data)).catch(fail);
+    api.get("/admin/reports", { params: { status: "OPEN" } }).then(({ data }) => setReports(data)).catch(fail);
   }, []);
 
   useEffect(() => {
@@ -59,8 +62,17 @@ export default function AdminDashboard() {
       if (areaId && alert.areaId && alert.areaId !== areaId) return;
       setSosAlerts((prev) => [alert, ...(prev ?? [])]);
     }
+    // แจ้งปัญหาหลังทริปแบบ real-time (ห้องเดียวกับ SOS)
+    function handleNewReport(report) {
+      if (areaId && report.areaId !== areaId) return;
+      setReports((prev) => [report, ...(prev ?? [])]);
+    }
     socket.on("sos:new", handleNewSos);
-    return () => socket.off("sos:new", handleNewSos);
+    socket.on("report:new", handleNewReport);
+    return () => {
+      socket.off("sos:new", handleNewSos);
+      socket.off("report:new", handleNewReport);
+    };
   }, [areaId]);
   async function approveDriver(id) {
     await api.post(`/admin/drivers/${id}/approve`);
@@ -86,6 +98,11 @@ export default function AdminDashboard() {
     setSosAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: "RESOLVED" } : a)));
   }
 
+  async function resolveReport(id, note) {
+    await api.post(`/admin/reports/${id}/resolve`, { note });
+    setReports((prev) => prev.filter((r) => r.id !== id));
+  }
+
   const openSosCount = (sosAlerts ?? []).filter((a) => a.status === "OPEN").length;
 
   return (
@@ -107,6 +124,8 @@ export default function AdminDashboard() {
         {openSosCount > 0 && (
           <SosSection alerts={sosAlerts} onResolve={resolveSos} />
         )}
+
+        {reports?.length > 0 && <ReportSection reports={reports} onResolve={resolveReport} />}
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -256,6 +275,94 @@ function StatsGrid({ stats, openSosCount }) {
         </Card>
       )}
     </section>
+  );
+}
+
+// แจ้งปัญหาหลังทริปที่ยังไม่ปิด — เคสด่วน (ขับอันตราย/คุกคาม/ไม่ปลอดภัย) ขึ้นก่อน
+function ReportSection({ reports, onResolve }) {
+  const sorted = [...reports].sort((a, b) => Number(b.urgent) - Number(a.urgent));
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-3xl text-amber-800">
+          <Flag className="h-6 w-6" /> แจ้งปัญหาหลังทริป
+        </h2>
+        <span className="rounded-full bg-amber-100 px-3 py-1 text-base text-amber-950">{reports.length} รายการ</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {sorted.map((r) => (
+          <ReportCard key={r.id} report={r} onResolve={onResolve} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReportCard({ report: r, onResolve }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const reporter = r.reporterRole === "user" ? r.trip?.user : r.trip?.driver;
+  const other = r.reporterRole === "user" ? r.trip?.driver : r.trip?.user;
+  return (
+    <Card className={`flex flex-col gap-3 p-5 ${r.urgent ? "border-red-300" : "border-amber-200"}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {r.urgent && <Badge tone="danger">ด่วน</Badge>}
+          <Badge tone={r.reporterRole === "user" ? "info" : "warning"}>
+            {r.reporterRole === "user" ? "ผู้โดยสารแจ้ง" : "คนขับแจ้ง"}
+          </Badge>
+        </div>
+        <span className="flex items-center gap-1 text-sm text-stone-400">
+          <Clock className="h-3.5 w-3.5" /> {formatDateTime(r.createdAt)}
+        </span>
+      </div>
+      <p className="text-2xl font-bold text-stone-900">{r.categoryLabel}</p>
+      {r.detail && <p className="whitespace-pre-wrap rounded-lg bg-stone-50 p-2 text-sm text-stone-700">{r.detail}</p>}
+      <dl className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <dt className="text-stone-400">ผู้แจ้ง</dt>
+          <dd className="text-stone-900">
+            {reporter?.fullName ?? "-"} {reporter?.phone && <a href={`tel:${reporter.phone}`} className="text-emerald-800">{reporter.phone}</a>}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-stone-400">{r.reporterRole === "user" ? "คนขับ" : "ผู้โดยสาร"}</dt>
+          <dd className="text-stone-900">
+            {other?.fullName ?? "-"}
+            {r.reporterRole === "user" && r.trip?.driver && ` · เบอร์วิน ${r.trip.driver.vinNumber} · ${r.trip.driver.licensePlate}`}
+          </dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-stone-400">ทริป</dt>
+          <dd className="text-stone-900">
+            {r.trip?.pickupAddress ?? "-"} → {r.trip?.destinationAddress ?? "-"} · {formatDateTime(r.trip?.requestedAt)}
+          </dd>
+        </div>
+      </dl>
+      <label className="flex flex-col gap-1 text-sm text-stone-500">
+        บันทึกการจัดการ (ไม่บังคับ)
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={500}
+          placeholder="เช่น ตักเตือนคนขับแล้ว / ระงับบัญชี"
+          className="rounded-lg border border-stone-200 px-3 py-2 text-stone-900"
+        />
+      </label>
+      <Button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await onResolve(r.id, note);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "กำลังปิดเคส..." : "ปิดเคสนี้"}
+      </Button>
+    </Card>
   );
 }
 

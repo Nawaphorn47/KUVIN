@@ -17,7 +17,8 @@
     "test:platform": "node scripts/test-platform.js",
     "test:identity": "node scripts/test-identity.js",
     "test:chat": "node scripts/test-chat.js",
-    "test:security": "node scripts/test-security.js"
+    "test:security": "node scripts/test-security.js",
+    "test:trip-safety": "node scripts/test-trip-safety.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
