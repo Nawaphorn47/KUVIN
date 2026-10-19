@@ -78,17 +78,17 @@ test("TC-03-01 ทริปเต็ม: เรียกวิน → รับ�
       await p.getByRole("button", { name: /แชตกับคนขับ/ }).click();
       await p.getByLabel(/พิมพ์ข้อความถึง/).fill("รออยู่หน้าตึกค่ะ ใส่เสื้อสีเหลือง");
       await p.getByRole("button", { name: "ส่งข้อความ" }).click();
-      await expect(p.getByText("รออยู่หน้าตึกค่ะ ใส่เสื้อสีเหลือง")).toBeVisible();
+      await expect(p.locator("ol").getByText("รออยู่หน้าตึกค่ะ ใส่เสื้อสีเหลือง")).toBeVisible();
       await shotP(p, "chat-sent");
 
       await d.getByRole("button", { name: /แชตกับผู้โดยสาร|แชต/ }).first().click();
-      await expect(d.getByText("รออยู่หน้าตึกค่ะ ใส่เสื้อสีเหลือง")).toBeVisible({ timeout: 15_000 });
+      await expect(d.locator("ol").getByText("รออยู่หน้าตึกค่ะ ใส่เสื้อสีเหลือง")).toBeVisible({ timeout: 15_000 });
       await d.getByRole("button", { name: "อีก 2 นาทีถึง" }).click();
-      await expect(d.getByText("อีก 2 นาทีถึง").last()).toBeVisible();
+      await expect(d.locator("ol").getByText("อีก 2 นาทีถึง")).toBeVisible();
       await shotD(d, "chat-driver-view");
 
       // ผู้โดยสารได้ข้อความตอบกลับแบบ real-time
-      await expect(p.getByText("อีก 2 นาทีถึง")).toBeVisible({ timeout: 15_000 });
+      await expect(p.locator("ol").getByText("อีก 2 นาทีถึง")).toBeVisible({ timeout: 15_000 });
       await shotP(p, "chat-reply-received");
 
       await p.goBack();
