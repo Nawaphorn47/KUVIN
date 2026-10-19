@@ -21,6 +21,7 @@ export const blankArea = () => ({
   name: "",
   displayName: "",
   logoUrl: "",
+  brandColor: "#006664",
   centerLat: 14.023,
   centerLng: 99.9739,
   flatRadiusKm: 2,
@@ -37,6 +38,7 @@ export const toForm = (a) => ({
   name: a.name,
   displayName: a.displayName,
   logoUrl: a.logoUrl ?? "",
+  brandColor: a.brandColor ?? "#006664",
   centerLat: a.centerLat,
   centerLng: a.centerLng,
   flatRadiusKm: a.flatRadiusKm,
@@ -185,6 +187,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
               />
             </Field>
           </div>
+          <BrandColorField value={form.brandColor} onChange={(brandColor) => set({ brandColor })} />
           {canManage && (
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} />
@@ -328,6 +331,58 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
 const round6 = (n) => Math.round(n * 1e6) / 1e6;
 const inputCls =
   "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-700 disabled:bg-stone-100 disabled:text-stone-500";
+
+// ความสว่างสัมพัทธ์ตาม WCAG — ใช้เทียบกับสีขาวว่าตัวหนังสือขาวบนสีแบรนด์อ่านได้ไหม (ตรงกับกฎฝั่ง API: ≥ 4.5:1)
+function contrastWithWhite(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return null;
+  const n = Number.parseInt(m[1], 16);
+  const lin = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  return 1.05 / (lum + 0.05);
+}
+
+// สีแบรนด์ของพื้นที่: แถบหัว/ปุ่ม/หมุดในแอปทั้งหมดเปลี่ยนตามสีนี้ (ต้องเข้มพอให้ตัวหนังสือขาวอ่านได้)
+function BrandColorField({ value, onChange }) {
+  const ratio = contrastWithWhite(value);
+  const tooLight = ratio != null && ratio < 4.5;
+  return (
+    <Field label="สีประจำพื้นที่" hint="สีแถบหัว ปุ่ม และหมุดในแอป — ใช้สีที่ตัวหนังสือสีขาวอ่านชัด">
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#006664"}
+          onChange={(e) => onChange(e.target.value.toLowerCase())}
+          aria-label="เลือกสี"
+          className="h-11 w-14 cursor-pointer rounded-lg border border-stone-300 bg-white p-1"
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value.trim().toLowerCase())}
+          maxLength={7}
+          placeholder="#006664"
+          aria-label="รหัสสี"
+          className={inputCls + " w-32 font-mono"}
+        />
+        <span
+          className="flex h-11 flex-1 items-center justify-center rounded-lg px-3 text-sm font-bold text-white"
+          style={{ background: ratio == null ? "#999" : value }}
+        >
+          ตัวอย่างหัวแอป
+        </span>
+      </div>
+      {ratio == null && <p className="mt-1.5 text-sm text-red-700">รหัสสีต้องเป็น #rrggbb เช่น #006664</p>}
+      {tooLight && (
+        <p className="mt-1.5 text-sm text-red-700">
+          สีอ่อนเกินไป (อัตราส่วนความต่างกับตัวหนังสือขาว {ratio.toFixed(1)}:1 ต้องไม่ต่ำกว่า 4.5:1) ระบบจะไม่ยอมบันทึก
+        </p>
+      )}
+    </Field>
+  );
+}
 
 function Section({ title, hint, children }) {
   return (
