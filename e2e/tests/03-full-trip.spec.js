@@ -1,7 +1,7 @@
 // ชุด 03: เรียกวิน → คนขับรับงาน → แชต → เดินทาง → จบทริป → เก็บเงินสด → ให้คะแนน ด้วยผู้ใช้ 2 คนพร้อมกัน (2 หน้าต่าง)
 // เตรียมข้อมูล (บัญชีผู้โดยสารที่ยืนยันตัวตนแล้ว + คนขับที่แอดมินอนุมัติแล้ว) ผ่าน API ส่วนที่ทดสอบคือการใช้งานผ่านหน้าจอทั้งหมด
 const { test, expect } = require("@playwright/test");
-const { call, createApprovedDriver, otpLogin, testPhone, PNG } = require("../helpers/api");
+const { call, createApprovedDriver, driverOffline, otpLogin, testPhone, PNG } = require("../helpers/api");
 const { makeShooter } = require("../helpers/shot");
 
 const shotP = makeShooter("03-full-trip-passenger");
@@ -146,11 +146,9 @@ test("TC-03-01 ทริปเต็ม: เรียกวิน → รับ�
       expect(msgs.messages.length).toBeGreaterThanOrEqual(2);
     });
 
-    // ปิดสถานะออนไลน์ของคนขับทดสอบ ไม่ให้ค้างในคิวของรอบถัดไป
-    await d.goto("/driver/home");
-    const online = d.getByRole("button", { name: /ออนไลน์อยู่/ });
-    if (await online.isVisible().catch(() => false)) await online.click();
   } finally {
+    // ปิดสถานะออนไลน์ของคนขับทดสอบผ่าน API เสมอ (แม้เทสต์ล้ม) ไม่ให้ค้างหัวคิวแล้วแย่งงานของชุดถัดไป
+    await driverOffline(driver);
     await P.context.close();
     await D.context.close();
   }
