@@ -1,6 +1,10 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { sanitizeDriver, assertNumericVinNumber } = require("./auth.service");
+const { DRIVER_TYPES, DOC_LABELS } = require("../utils/driverTypes");
+const fs = require("fs");
+const privateUpload = require("../middlewares/privateUpload");
+const { fileOf, toRef, signedPath } = require("../utils/privateFiles");
 const { isValidPromptPayId } = require("../utils/promptpay");
 const queue = require("./queue.service");
 
@@ -38,7 +42,8 @@ async function getPublicDriver(id) {
   });
   if (!driver) throw ApiError.notFound("Driver not found");
 
-  return { ...driver, ...(await ratingSummary(id)) };
+  // รูปหน้าตรงให้ผู้โดยสารเทียบหน้าคนขับได้ — เป็นลิงก์เซ็นแล้วอายุสั้น ไม่ใช่ไฟล์สาธารณะ
+  return { ...driver, photoUrl: signedPath(driver.photoUrl), ...(await ratingSummary(id)) };
 }
 
 async function updateLocation(driverId, { lat, lng }) {
@@ -64,27 +69,36 @@ async function updateAvailability(driverId, isOnline, io) {
   return sanitizeDriver(await prisma.driver.findUnique({ where: { id: driverId } }));
 }
 
-// ผู้ขับส่งเอกสารยืนยันตัวตน (รวม step 1 ข้อมูลส่วนตัว+รูปถ่าย/บัตร ปชช./ใบขับขี่ + step 2 ข้อมูลรถ+รูปรถ/
-// ป้ายทะเบียน) เรียกครั้งเดียวตอนกด "ส่งข้อมูลเพื่อตรวจสอบ" ท้าย step 2 — ต้องแนบรูปครบทั้ง 5 ก่อนเสมอ ไม่งั้น
-// admin จะไม่มีเอกสารพอให้ตรวจสอบตัวตน (อัปโหลดรูปแต่ละใบผ่าน POST /api/uploads ก่อน แล้วค่อยส่ง url มาที่นี่)
+// คนขับส่งเอกสารยืนยันตัวตนครั้งเดียวตอนกด "ส่งตรวจสอบ" — เอกสารที่ต้องแนบขึ้นกับประเภทคนขับ (utils/driverTypes.js)
+// อัปโหลดรูปแต่ละใบผ่าน POST /api/uploads ก่อน แล้วค่อยส่ง url มาที่นี่ ส่งแล้วกลับไปรอแอดมินตรวจ (PENDING)
 async function submitVerification(driverId, payload) {
-  const {
-    vinNumber,
-    licensePlate,
-    vehicleModel,
-    photoUrl,
-    idCardPhotoUrl,
-    driverLicensePhotoUrl,
-    vehiclePhotoUrl,
-    platePhotoUrl,
-  } = payload;
+  const current = await prisma.driver.findUnique({ where: { id: driverId } });
+  if (!current) throw ApiError.notFound("ไม่พบบัญชีคนขับ");
+  const { vinNumber, licensePlate, vehicleModel, winGroupName } = payload;
+  const required = DRIVER_TYPES[current.driverType].docs;
 
-  if (!photoUrl || !idCardPhotoUrl || !driverLicensePhotoUrl || !vehiclePhotoUrl || !platePhotoUrl) {
-    throw ApiError.badRequest(
-      "ต้องแนบรูปให้ครบ: รูปถ่ายหน้าตรง, รูปบัตรประชาชน, รูปใบขับขี่, รูปรถเต็มคัน, รูปป้ายทะเบียน"
-    );
+  // เอกสารใหม่ต้องเป็นไฟล์ที่คนขับคนนี้อัปโหลดเองผ่าน POST /drivers/me/documents เท่านั้น (รับ URL ภายนอกไม่ได้
+  // กันชี้ไปรูปของคนอื่น/ลิงก์ติดตามตัวแอดมิน) — ไม่ส่งมา = ใช้ใบเดิมที่ส่งไว้แล้ว
+  const owner = privateUpload.ownerPrefix("driver", driverId);
+  const docs = {};
+  for (const k of required) {
+    const ref = payload[k];
+    if (ref === undefined || ref === null || ref === "") continue;
+    const file = fileOf(ref);
+    const p = file && privateUpload.resolve(file);
+    if (!p || !file.startsWith(owner) || !fs.existsSync(p)) {
+      throw ApiError.badRequest(`ไฟล์${DOC_LABELS[k]}ไม่ถูกต้อง กรุณาแนบรูปใหม่`);
+    }
+    docs[k] = toRef(file);
+  }
+  const missing = required.filter((k) => !docs[k] && !current[k]);
+  if (missing.length) {
+    throw ApiError.badRequest(`ต้องแนบรูปให้ครบ: ${missing.map((k) => DOC_LABELS[k]).join(", ")}`);
   }
   if (vinNumber) assertNumericVinNumber(vinNumber);
+  if (winGroupName !== undefined && (typeof winGroupName !== "string" || winGroupName.trim().length > 60)) {
+    throw ApiError.badRequest("ชื่อวินที่สังกัดยาวได้ไม่เกิน 60 ตัวอักษร");
+  }
 
   try {
     const driver = await prisma.driver.update({
@@ -93,11 +107,8 @@ async function submitVerification(driverId, payload) {
         ...(vinNumber && { vinNumber }),
         ...(licensePlate && { licensePlate }),
         ...(vehicleModel && { vehicleModel }),
-        photoUrl,
-        idCardPhotoUrl,
-        driverLicensePhotoUrl,
-        vehiclePhotoUrl,
-        platePhotoUrl,
+        ...(current.driverType === "PRO" && winGroupName && { winGroupName: winGroupName.trim() }),
+        ...docs,
         verificationStatus: "PENDING",
         rejectionReason: null,
       },
@@ -107,6 +118,13 @@ async function submitVerification(driverId, payload) {
     if (err?.code === "P2002") throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้`);
     throw err;
   }
+}
+
+// อัปโหลดเอกสารคนขับหนึ่งใบเข้าโฟลเดอร์ส่วนตัว — คืน ref ไว้ส่งต่อใน submitVerification และลิงก์ดูตัวอย่าง
+function documentUploaded(file) {
+  if (!file) throw ApiError.badRequest("ไม่พบไฟล์ที่อัปโหลด (field name ต้องเป็น 'file')");
+  const ref = toRef(file.filename);
+  return { ref, url: signedPath(ref) };
 }
 
 async function updateFcmToken(driverId, fcmToken) {
@@ -136,6 +154,7 @@ module.exports = {
   updateLocation,
   updateAvailability,
   submitVerification,
+  documentUploaded,
   updateFcmToken,
   updateProfile,
 };

@@ -2,6 +2,7 @@ const { Router } = require("express");
 const requireAuth = require("../middlewares/auth");
 const slipUpload = require("../middlewares/slipUpload");
 const ctrl = require("../controllers/serviceRequest.controller");
+const chat = require("../controllers/chat.controller");
 
 const router = Router();
 
@@ -23,5 +24,9 @@ router.post("/:id/payment-slip", requireAuth(["user"]), slipUpload.single("file"
 router.get("/:id/payment-qr", requireAuth(["user", "driver"]), ctrl.paymentQr);
 router.post("/:id/rating", requireAuth(["user"]), ctrl.rate);
 router.post("/:id/rate-passenger", requireAuth(["driver"]), ctrl.ratePassenger);
+
+// แชตในทริประหว่างผู้โดยสารกับคนขับ (ดู services/chat.service.js)
+router.get("/:id/messages", requireAuth(["user", "driver"]), chat.list);
+router.post("/:id/messages", requireAuth(["user", "driver"]), chat.send);
 
 module.exports = router;

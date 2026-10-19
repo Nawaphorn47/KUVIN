@@ -5,6 +5,10 @@ import { getToken, clearToken } from "../lib/auth";
 // LAN เดียวกันผ่าน IP เครื่อง dev ได้โดยไม่ต้องตั้งค่าอะไรเพิ่ม (ดูเหตุผลเดียวกันใน apps/mobile/src/lib/api.js)
 const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:4000/api`;
 
+// ไฟล์ส่วนตัว (เอกสารคนขับ/เซลฟี่) มาเป็น path เซ็นแล้ว "/api/private-files/..." อายุสั้น — แปลงเป็น URL เต็มของ API
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+export const fileUrl = (u) => (typeof u === "string" && u.startsWith("/api/") ? API_ORIGIN + u : u);
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
 });

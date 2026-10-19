@@ -4,7 +4,7 @@ import clsx from "clsx";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
 import Overlay from "../components/Overlay";
-import { api } from "../services/api";
+import { api, fileUrl } from "../services/api";
 import { PageHeader } from "../components/AdminLayout";
 import { useAdminSession } from "../lib/adminSession";
 
@@ -42,6 +42,18 @@ const VERIFICATION = {
   PENDING: { label: "รอตรวจสอบ", tone: "warning" },
   REJECTED: { label: "ไม่ผ่าน", tone: "danger" },
 };
+
+// เอกสารตามประเภทคนขับ — ตรงกับ apps/api/src/utils/driverTypes.js
+const DRIVER_TYPE_LABEL = { STUDENT: "นิสิต", PUBLIC: "บุคคลทั่วไป", PRO: "วินมอเตอร์ไซค์" };
+const DOC_FIELDS = [
+  ["photoUrl", "รูปถ่ายหน้าตรง"],
+  ["idCardPhotoUrl", "บัตรประชาชน"],
+  ["studentCardPhotoUrl", "บัตรนิสิต"],
+  ["driverLicensePhotoUrl", "ใบขับขี่"],
+  ["vestPhotoUrl", "เสื้อวิน"],
+  ["vehiclePhotoUrl", "รถเต็มคัน"],
+  ["platePhotoUrl", "ป้ายทะเบียน"],
+];
 
 function formatDate(iso, withTime = false) {
   if (!iso) return "-";
@@ -296,14 +308,10 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
   const s = detail?.stats;
   const isDriver = kind === "drivers";
   const docs = isDriver
-    ? [
-        { label: "หน้าตรง", url: p?.photoUrl },
-        { label: "บัตร ปชช.", url: p?.idCardPhotoUrl },
-        { label: "ใบขับขี่", url: p?.driverLicensePhotoUrl },
-        { label: "รถ", url: p?.vehiclePhotoUrl },
-        { label: "ป้ายทะเบียน", url: p?.platePhotoUrl },
-      ].filter((d) => d.url)
-    : [];
+    ? DOC_FIELDS.filter(([key]) => p?.[key]).map(([key, label]) => ({ label, url: fileUrl(p[key]) }))
+    : p?.selfieUrl
+      ? [{ label: "เซลฟี่ยืนยันตัวตน", url: fileUrl(p.selfieUrl) }]
+      : [];
 
   return (
     <Overlay onClose={onClose} className="flex justify-end" backdropClassName="bg-black/30">
@@ -313,7 +321,11 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
             <h2 className="text-2xl text-emerald-900">{p?.fullName ?? "กำลังโหลด..."}</h2>
             {p && (
               <p className="text-sm text-stone-500">
-                {isDriver ? `เบอร์วิน ${p.vinNumber} · ${p.licensePlate}` : p.email}
+                {isDriver
+                  ? [DRIVER_TYPE_LABEL[p.driverType], p.winGroupName, `เบอร์ ${p.vinNumber}`, p.licensePlate, p.studentId && `รหัสนิสิต ${p.studentId}`]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : p.email}
               </p>
             )}
           </div>

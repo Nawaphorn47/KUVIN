@@ -78,6 +78,8 @@ export function AppProvider({ children }) {
           verificationStatus: full.verificationStatus,
           rejectionReason: full.rejectionReason,
           areaId: full.areaId,
+          driverType: full.driverType,
+          winGroupName: full.winGroupName,
           linkedUser: Boolean(full.userId), // คนขับแบบเก่าที่สมัครแยกจะได้บัญชีผู้โดยสารตอนกดสลับครั้งแรก
         });
       } else {

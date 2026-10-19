@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { Phone, MessageCircle } from "lucide-react";
+import { Phone } from "lucide-react";
 import MapView from "../../components/shared/MapView";
 import DriverInfoCard from "../../components/shared/DriverInfoCard";
 import SosPanel from "../../components/shared/SosPanel";
 import TripHeader from "../../components/shared/TripHeader";
 import TripRail from "../../components/shared/TripRail";
+import ChatButton from "../../components/shared/ChatButton";
 import Button from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { useRequestStatus } from "../../lib/useRequestStatus";
@@ -74,17 +75,11 @@ export default function DriverArriving() {
           <div className="mt-3 grid grid-cols-2 gap-2">
             <a
               href={`tel:${driver.phone}`}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-50 text-sm font-bold text-brand-800 ring-1 ring-brand-200 active:bg-brand-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-800 active:bg-slate-200"
             >
               <Phone className="h-4 w-4" /> โทรหาคนขับ
             </a>
-            <button
-              type="button"
-              onClick={() => navigate("/chatbot")}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-700 active:bg-slate-200"
-            >
-              <MessageCircle className="h-4 w-4" /> ถามผู้ช่วย
-            </button>
+            <ChatButton request={request} label="แชตกับคนขับ" />
           </div>
         </section>
 

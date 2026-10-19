@@ -41,6 +41,17 @@
 | `BREVO_API_KEY` / `MAIL_FROM` | ส่งรหัสรีเซ็ตรหัสผ่าน — `MAIL_FROM` เช่น `KU VIN <you@gmail.com>` ต้องยืนยันใน Brevo → Senders แล้ว |
 | `CORS_ORIGINS` | เว็บที่เรียก API ได้ คั่นด้วย comma เช่น `https://web-app-production-6f95.up.railway.app,https://admin-production-2219.up.railway.app` — ไม่ตั้งจะใช้สองโดเมนนี้อยู่แล้ว ต้องตั้งเมื่อย้ายโดเมน |
 
+ตัวแปรเรื่องบัญชีเดียวและความปลอดภัย (ดู [SECURITY.md](SECURITY.md)):
+
+| ตัวแปร | ค่า |
+|---|---|
+| `JWT_SECRET` | **ต้องยาว ≥ 32 ตัวอักษร** ไม่งั้น server ไม่ยอมเริ่ม (deploy ล้มที่ healthcheck) |
+| `OTP_MODE` | `test` = แอปโชว์รหัสแทน SMS (ยังไม่ได้ซื้อ SMS) — **ไม่ตั้ง = ปิด OTP บน production** ผู้โดยสารจะยืนยันเบอร์/เรียกวินไม่ได้ |
+| `OTP_TEST_PHONES` | เบอร์ที่ใช้โหมดทดสอบได้ คั่นด้วย comma เช่น `0812345678,0898765432` — `*` = ทุกเบอร์ (ใครก็เข้าบัญชีคนอื่นได้ ใช้เฉพาะเดโม) |
+| `PASSENGER_VERIFICATION` | ไม่ตั้ง = ผู้โดยสารต้องยืนยันเบอร์ + เซลฟี่ก่อนเรียกครั้งแรก, `off` = ปิด (ใช้ตอนเดโมเท่านั้น) |
+| `GOOGLE_CLIENT_ID` | ไม่ตั้ง = ซ่อนปุ่มเข้าด้วย Google |
+| `PRIVATE_UPLOAD_DIR` | ไม่ต้องตั้ง — ค่าเริ่มต้น `uploads/.private` อยู่ใน volume `/app/apps/api/uploads` อยู่แล้ว |
+
 ไม่ต้องตั้ง `PORT` (Railway ตั้งให้ ตอนนี้คือ 8080 — ใช้เลขนี้ตอน Generate Domain) และ `NODE_ENV=production` อยู่ใน Dockerfile แล้ว
 
 **`web-app` / `admin`** — Variables:

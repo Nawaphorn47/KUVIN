@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Avatar from "../../components/ui/Avatar";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import ChatButton from "../../components/shared/ChatButton";
 import RouteSummary from "../../components/shared/RouteSummary";
 import { api } from "../../lib/api";
 import { useDriverTracking } from "../../lib/useTripTracking";
@@ -70,9 +71,15 @@ export default function ArrivedPickup() {
         </div>
       </Card>
 
-      <a href={`tel:${user.phone}`} className="flex items-center gap-2 text-lg font-bold text-slate-900">
-        <Phone className="h-5 w-5" /> โทรหาผู้โดยสาร
-      </a>
+      <div className="grid w-full grid-cols-2 gap-2">
+        <a
+          href={`tel:${user.phone}`}
+          className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-800 active:bg-slate-200"
+        >
+          <Phone className="h-4 w-4" /> โทรหาผู้โดยสาร
+        </a>
+        <ChatButton request={request} label="แชต" />
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

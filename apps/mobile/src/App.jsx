@@ -25,6 +25,7 @@ import Sos from "./pages/user/Sos";
 import Chatbot from "./pages/user/Chatbot";
 import VerifyIdentity from "./pages/user/VerifyIdentity";
 import BecomeDriver from "./pages/user/BecomeDriver";
+import TripChat from "./pages/shared/TripChat";
 
 import VerifyStep1 from "./pages/driver/VerifyStep1";
 import VerifyStep2 from "./pages/driver/VerifyStep2";
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/chatbot" element={<Chatbot />} />
           <Route path="/verify-identity" element={<VerifyIdentity />} />
           <Route path="/become-driver" element={<BecomeDriver />} />
+          <Route path="/trip-chat" element={<TripChat />} />
 
           <Route path="/driver/verify/step-1" element={<VerifyStep1 />} />
           <Route path="/driver/verify/step-2" element={<VerifyStep2 />} />

@@ -5,6 +5,7 @@ import MapView from "../../components/shared/MapView";
 import SosPanel from "../../components/shared/SosPanel";
 import TripHeader from "../../components/shared/TripHeader";
 import TripRail from "../../components/shared/TripRail";
+import ChatButton from "../../components/shared/ChatButton";
 import Avatar from "../../components/ui/Avatar";
 import { useRequestStatus } from "../../lib/useRequestStatus";
 import { useDriverLocation } from "../../lib/useTripTracking";
@@ -78,6 +79,7 @@ export default function DuringRide() {
             <p className="truncate text-[15px] font-bold text-slate-900">{driver.fullName}</p>
             <p className="tabular text-sm text-slate-600">{driver.licensePlate}</p>
           </div>
+          <ChatButton request={request} label="แชต" className="px-3" />
           <div className="text-right">
             <p className="text-xs text-slate-500">จ่ายตอนถึง</p>
             <p className="tabular text-2xl font-bold text-slate-900">{request.fare} ฿</p>

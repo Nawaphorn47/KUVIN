@@ -3,6 +3,7 @@ import { Phone, Navigation } from "lucide-react";
 import MapView from "../../components/shared/MapView";
 import Avatar from "../../components/ui/Avatar";
 import Button from "../../components/ui/Button";
+import ChatButton from "../../components/shared/ChatButton";
 import { useDriverTracking } from "../../lib/useTripTracking";
 import { useRoute } from "../../lib/useRoute";
 import { gpsMessage } from "../../lib/gpsMessage";
@@ -53,6 +54,8 @@ export default function NavigatePickup() {
             </a>
           </div>
         </div>
+
+        <ChatButton request={request} label="แชตกับผู้โดยสาร" />
 
         <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
           <div>

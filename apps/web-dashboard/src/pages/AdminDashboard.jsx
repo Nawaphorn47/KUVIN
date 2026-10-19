@@ -16,7 +16,7 @@ import Badge from "../components/Badge";
 import Overlay from "../components/Overlay";
 import Card from "../components/Card";
 import { PageHeader } from "../components/AdminLayout";
-import { api } from "../services/api";
+import { api, fileUrl } from "../services/api";
 import { socket, connectWithAuth } from "../lib/socket";
 import { useAdminSession } from "../lib/adminSession";
 
@@ -307,18 +307,27 @@ function SosSection({ alerts, onResolve }) {
   );
 }
 
+// เอกสารตามประเภทคนขับ — ตรงกับ apps/api/src/utils/driverTypes.js
+const DRIVER_TYPE_LABEL = { STUDENT: "นิสิต", PUBLIC: "บุคคลทั่วไป", PRO: "วินมอเตอร์ไซค์" };
+const DOC_FIELDS = [
+  ["photoUrl", "รูปถ่ายหน้าตรง"],
+  ["idCardPhotoUrl", "บัตรประชาชน"],
+  ["studentCardPhotoUrl", "บัตรนิสิต"],
+  ["driverLicensePhotoUrl", "ใบขับขี่"],
+  ["vestPhotoUrl", "เสื้อวิน"],
+  ["vehiclePhotoUrl", "รถเต็มคัน"],
+  ["platePhotoUrl", "ป้ายทะเบียน"],
+];
+
 function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [showReject, setShowReject] = useState(false);
 
-  const docs = [
-    { label: "รูปถ่ายหน้าตรง", url: driver.photoUrl },
-    { label: "บัตรประชาชน", url: driver.idCardPhotoUrl },
-    { label: "ใบขับขี่", url: driver.driverLicensePhotoUrl },
-    { label: "รถเต็มคัน", url: driver.vehiclePhotoUrl },
-    { label: "ป้ายทะเบียน", url: driver.platePhotoUrl },
-  ];
+  const docs = DOC_FIELDS.filter(([key]) => driver[key]).map(([key, label]) => ({
+    label: key === "driverLicensePhotoUrl" && driver.driverType === "PRO" ? "ใบขับขี่สาธารณะ" : label,
+    url: fileUrl(driver[key]),
+  }));
 
   async function handleApprove() {
     setBusy(true);
@@ -357,6 +366,14 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
           <div>
             <p className="text-stone-400">เบอร์โทรศัพท์</p>
             <p className="text-stone-900">{driver.phone}</p>
+          </div>
+          <div>
+            <p className="text-stone-400">ประเภท</p>
+            <p className="text-stone-900">
+              {DRIVER_TYPE_LABEL[driver.driverType] ?? "-"}
+              {driver.winGroupName && ` · ${driver.winGroupName}`}
+              {driver.studentId && ` · รหัส ${driver.studentId}`}
+            </p>
           </div>
           <div>
             <p className="text-stone-400">เบอร์วิน</p>

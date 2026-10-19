@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import Avatar from "../ui/Avatar";
 import StopNumber from "../ui/StopNumber";
+import { DRIVER_TYPES } from "../../lib/driverTypes";
 
 // ข้อมูลคนขับที่ผู้โดยสารใช้ "จับคู่กับของจริง" ตรงจุดรับ: เลขเสื้อวินเป็นสติกเกอร์ใหญ่ ป้ายทะเบียนเป็นกรอบแบบป้ายจริง
 export default function DriverInfoCard({ driver }) {
@@ -11,7 +12,14 @@ export default function DriverInfoCard({ driver }) {
       <div className="flex items-center gap-3">
         <Avatar initial={name[0]} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-bold text-slate-900">{name}</p>
+          <p className="flex items-center gap-2">
+            <span className="truncate text-lg font-bold text-slate-900">{name}</span>
+            {DRIVER_TYPES[driver.driverType] && (
+              <span className="flex-none rounded-md bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-800">
+                {DRIVER_TYPES[driver.driverType].label}
+              </span>
+            )}
+          </p>
           {rating != null && (
             <p className="flex items-center gap-1 text-sm text-slate-600">
               <Star className="h-4 w-4 fill-amber-400 text-amber-500" />

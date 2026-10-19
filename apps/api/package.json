@@ -15,7 +15,9 @@
     "test:payment": "node scripts/test-payment.js",
     "test:auth": "node scripts/test-auth.js",
     "test:platform": "node scripts/test-platform.js",
-    "test:identity": "node scripts/test-identity.js"
+    "test:identity": "node scripts/test-identity.js",
+    "test:chat": "node scripts/test-chat.js",
+    "test:security": "node scripts/test-security.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

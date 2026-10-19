@@ -20,9 +20,17 @@ const app = express();
 const trustProxy = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? "1" : "");
 if (trustProxy) app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
+app.disable("x-powered-by");
+// security headers พื้นฐาน: ห้ามเบราว์เซอร์เดาชนิดไฟล์, ห้ามถูกฝังใน iframe (กัน clickjacking), ไม่ส่ง URL ต่อให้เว็บอื่น
+app.use((req, res, next) => {
+  res.set({ "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer" });
+  if (req.secure) res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  next();
+});
 app.use(cors({ origin: corsOrigin })); // อนุญาตเฉพาะเว็บของเรา — ดู config/cors.js
-app.use(express.json());
-app.use("/uploads", express.static(upload.UPLOAD_DIR)); // เสิร์ฟไฟล์ที่อัปโหลดผ่าน POST /api/uploads
+app.use(express.json({ limit: "100kb" })); // JSON ของแอปเล็กมาก — กันส่ง body ยักษ์มาถ่วง server
+// เสิร์ฟไฟล์ที่อัปโหลดผ่าน POST /api/uploads — dotfiles: "deny" กันเปิดไฟล์ส่วนตัวใน uploads/.private
+app.use("/uploads", express.static(upload.UPLOAD_DIR, { dotfiles: "deny" }));
 app.get("/health", (req, res) => res.json({ ok: true })); // ให้ platform เช็คว่า server พร้อมรับ request
 
 const server = http.createServer(app);

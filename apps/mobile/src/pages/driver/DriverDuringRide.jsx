@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Navigation } from "lucide-react";
 import MapView from "../../components/shared/MapView";
 import Button from "../../components/ui/Button";
+import ChatButton from "../../components/shared/ChatButton";
 import { api } from "../../lib/api";
 import { useDriverTracking } from "../../lib/useTripTracking";
 import { useRoute } from "../../lib/useRoute";
@@ -75,6 +76,8 @@ export default function DriverDuringRide() {
             <p className="text-xl font-bold text-emerald-600">{request.fare} ฿</p>
           </div>
         </div>
+
+        <ChatButton request={request} label="แชตกับผู้โดยสาร" />
 
         {error && <p className="text-center text-sm text-red-600">{error}</p>}
 

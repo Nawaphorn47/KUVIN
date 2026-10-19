@@ -9,6 +9,7 @@ import { useApp } from "../../context/AppContext";
 import { useArea } from "../../context/AreaContext";
 import { clearToken } from "../../lib/auth";
 import { unregisterPush } from "../../lib/push";
+import { DRIVER_TYPES } from "../../lib/driverTypes";
 
 // หน้าสถานะยืนยันตัวตนตามสถานะจริงของบัญชี — เดิมพาไปหน้า "ยืนยันสำเร็จ" เสมอ แม้ยังรออนุมัติหรือถูกปฏิเสธ
 const VERIFY_ROUTE = {
@@ -135,6 +136,8 @@ export default function DriverProfile() {
               รถและพื้นที่
             </h2>
             <dl className="divide-y divide-slate-200">
+              <Fact label="ประเภท">{DRIVER_TYPES[driver.driverType]?.label ?? "-"}</Fact>
+              {driver.winGroupName && <Fact label="สังกัดวิน">{driver.winGroupName}</Fact>}
               <Fact label="พื้นที่รับงาน">{area?.displayName ?? "-"}</Fact>
               <Fact label="ทะเบียน">{driver.plate}</Fact>
               <Fact label="รุ่น">{driver.vehicleModel || "-"}</Fact>

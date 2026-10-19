@@ -7,6 +7,19 @@ const prisma = require("../src/config/prisma");
 const auth = require("../src/services/auth.service");
 const identity = require("../src/services/identity.service");
 const { verifyToken } = require("../src/utils/jwt");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const privateUpload = require("../src/middlewares/privateUpload");
+
+// ไฟล์เอกสารปลอม (หัวไฟล์ JPEG) ในโฟลเดอร์ส่วนตัวของคนขับ — เหมือนอัปโหลดผ่าน POST /drivers/me/documents
+const madeFiles = [];
+function makeDoc(driverId) {
+  const name = `${privateUpload.ownerPrefix("driver", driverId)}${crypto.randomUUID()}.jpg`;
+  fs.writeFileSync(path.join(privateUpload.PRIVATE_DIR, name), Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]));
+  madeFiles.push(name);
+  return `private:${name}`;
+}
 
 const stamp = String(Date.now()).slice(-5);
 const phone = (n) => `0996${stamp}${n}`;
@@ -107,13 +120,56 @@ async function main() {
     await expectReject(identity.switchToDriver(userId), /NO_DRIVER_MODE/);
   });
   let driverId;
+  await test("ประเภทคนขับ: ไม่เลือก/นิสิตไม่มีรหัส/วินไม่มีชื่อวินหรือเบอร์เสื้อ → ถูกปฏิเสธ", async () => {
+    await expectReject(identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด" }), /เลือกประเภท/);
+    await expectReject(identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด", driverType: "STUDENT" }), /รหัสนิสิต/);
+    await expectReject(
+      identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด", driverType: "PRO", vinNumber: "5" }),
+      /ชื่อวิน/
+    );
+    await expectReject(
+      identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด", driverType: "PRO", winGroupName: "วินประตู 1" }),
+      /เบอร์เสื้อวิน/
+    );
+  });
   await test("สมัครขับโดยไม่กรอกเบอร์วิน → ได้เลขถัดไปของพื้นที่ และ token คนขับ", async () => {
-    const { driver, token } = await identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด 1234" });
+    const { driver, token } = await identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด 1234", driverType: "PUBLIC" });
     assert.equal(driver.userId, userId);
     assert.equal(driver.verificationStatus, "PENDING");
     assert.match(driver.vinNumber, /^\d+$/);
     assert.equal(verifyToken(token).role, "driver");
+    assert.equal(driver.driverType, "PUBLIC");
     driverId = driver.id;
+  });
+  await test("ส่งเอกสารตามประเภท: บุคคลทั่วไปขาดบัตรประชาชน → บอกชื่อเอกสารที่ขาด, ครบ → รอตรวจ", async () => {
+    const driverSvc = require("../src/services/driver.service");
+    const base = {
+      photoUrl: makeDoc(driverId),
+      driverLicensePhotoUrl: makeDoc(driverId),
+      vehiclePhotoUrl: makeDoc(driverId),
+      platePhotoUrl: makeDoc(driverId),
+    };
+    await expectReject(driverSvc.submitVerification(driverId, { ...base, studentCardPhotoUrl: makeDoc(driverId) }), /บัตรประชาชน/);
+    const d = await driverSvc.submitVerification(driverId, { ...base, idCardPhotoUrl: makeDoc(driverId), vestPhotoUrl: makeDoc(driverId) });
+    assert.equal(d.verificationStatus, "PENDING");
+    assert.equal(d.vestPhotoUrl, null); // เอกสารที่ไม่ใช่ของประเภทนี้ไม่ถูกเก็บ
+  });
+  await test("นิสิตสมัครขับ → เก็บรหัสนิสิต และต้องแนบบัตรนิสิตแทนบัตรประชาชน", async () => {
+    const step = await identity.verifyOtp({ phone: phone(7), code: await freshCode(phone(7)) });
+    const { user } = await identity.completeSignup({ ticket: step.ticket, fullName: "นิสิต ทดสอบ" });
+    const { driver } = await identity.becomeDriver(user.id, {
+      areaId: area.id, licensePlate: "ทด 7", driverType: "STUDENT", studentId: "6510500001",
+    });
+    assert.equal(driver.studentId, "6510500001");
+    const driverSvc = require("../src/services/driver.service");
+    const docs = {
+      photoUrl: makeDoc(driver.id),
+      driverLicensePhotoUrl: makeDoc(driver.id),
+      vehiclePhotoUrl: makeDoc(driver.id),
+      platePhotoUrl: makeDoc(driver.id),
+    };
+    await expectReject(driverSvc.submitVerification(driver.id, { ...docs, idCardPhotoUrl: makeDoc(driver.id) }), /บัตรนิสิต/);
+    await driverSvc.submitVerification(driver.id, { ...docs, studentCardPhotoUrl: makeDoc(driver.id) });
   });
   await test("สลับไปกลับได้ทั้งสองทาง และ /me บอกว่ามีโหมดคนขับ", async () => {
     assert.equal(verifyToken((await identity.switchToDriver(userId)).token).id, driverId);
@@ -155,6 +211,7 @@ main()
     await prisma.driver.deleteMany({ where: { phone: like } });
     await prisma.user.deleteMany({ where: { phone: like } });
     await prisma.phoneOtp.deleteMany({ where: { phone: like } });
+    for (const f of madeFiles) fs.rmSync(path.join(privateUpload.PRIVATE_DIR, f), { force: true });
     await prisma.$disconnect();
     console.log(`\n${passed} tests passed`);
   });

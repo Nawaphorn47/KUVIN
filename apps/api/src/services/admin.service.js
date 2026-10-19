@@ -3,6 +3,7 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { sanitizeDriver, sanitizeUser } = require("./auth.service");
+const { signedPath, toRef } = require("../utils/privateFiles");
 const { notify } = require("./notification.service");
 const queue = require("./queue.service");
 const { invalidateAccountStatus } = require("../utils/accountStatus");
@@ -238,7 +239,8 @@ async function getUserDetail(scope, id) {
     }),
   ]);
   return {
-    profile: sanitizeUser(user),
+    // เซลฟี่ยืนยันตัวตน: ลิงก์เซ็นแล้วอายุสั้น ให้หน้าแดชบอร์ดเปิดดูได้ (เห็นเฉพาะแอดมินในขอบเขตพื้นที่)
+    profile: { ...sanitizeUser(user), selfieUrl: user.selfieFile ? signedPath(toRef(user.selfieFile)) : null },
     stats: { ...stats, ratingAvg: ratingAgg._avg.score ? Number(ratingAgg._avg.score.toFixed(1)) : null, ratingCount: ratingAgg._count },
     trips,
   };
@@ -282,8 +284,13 @@ async function suspendAccount(scope, role, id, reason, io) {
   const account = role === "user" ? await findUserInScope(scope, id) : await findDriverInScope(scope, id);
   if (account.isSuspended) throw ApiError.conflict("บัญชีนี้ถูกระงับอยู่แล้ว");
 
+  // บัญชีผู้ใช้ที่มีโหมดคนขับผูกอยู่ = ระงับทั้งคน (ดู utils/accountStatus.js) → ทริปที่กำลังขับอยู่ก็นับด้วย
+  const linkedDriver = role === "user" ? await prisma.driver.findUnique({ where: { userId: id }, select: { id: true } }) : null;
   const running = await prisma.serviceRequest.count({
-    where: { [field]: id, status: { in: ["ACCEPTED", "IN_PROGRESS"] } },
+    where: {
+      OR: [{ [field]: id }, ...(linkedDriver ? [{ driverId: linkedDriver.id }] : [])],
+      status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+    },
   });
   if (running > 0) throw ApiError.conflict("บัญชีนี้มีทริปที่กำลังดำเนินการอยู่ กรุณารอให้ทริปเสร็จสิ้นก่อนระงับ");
 
@@ -295,6 +302,11 @@ async function suspendAccount(scope, role, id, reason, io) {
       where: { userId: id, status: "PENDING" },
       data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "บัญชีผู้โดยสารถูกระงับ", offeredDriverId: null, offerExpiresAt: null },
     });
+    if (linkedDriver) {
+      invalidateAccountStatus("driver", linkedDriver.id);
+      await queue.goOffline(linkedDriver.id, io);
+      await kickSockets(io, "driver", linkedDriver.id, trimmed);
+    }
   } else {
     await queue.goOffline(id, io); // ออกจากคิว + ส่งต่อข้อเสนองานที่ค้างอยู่ให้คนถัดไป
   }
@@ -311,6 +323,10 @@ async function unsuspendAccount(scope, role, id) {
 
   const fresh = await model.update({ where: { id }, data: { isSuspended: false, suspendedReason: null, suspendedAt: null } });
   invalidateAccountStatus(role, id);
+  if (role === "user") {
+    const linked = await prisma.driver.findUnique({ where: { userId: id }, select: { id: true } });
+    if (linked) invalidateAccountStatus("driver", linked.id);
+  }
   return role === "user" ? sanitizeUser(fresh) : sanitizeDriver(fresh);
 }
 

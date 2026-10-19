@@ -15,6 +15,13 @@ enum ServiceStatus {
   CANCELLED // ยกเลิก
 }
 
+// ประเภทคนขับ — คิวรับงานเดียวกันหมด ต่างกันที่เอกสารยืนยันตัวตน (ดู src/utils/driverTypes.js)
+enum DriverType {
+  STUDENT // นิสิต/นักศึกษาที่ว่างแล้วอยากขับ
+  PUBLIC // บุคคลทั่วไป
+  PRO // วินมอเตอร์ไซค์รับจ้าง (มีเสื้อวิน/สังกัดวิน)
+}
+
 enum DriverVerificationStatus {
   PENDING
   APPROVED
@@ -140,6 +147,9 @@ model Driver {
   vinNumber          String // หมายเลขวิน — ไม่ซ้ำภายในพื้นที่เดียวกัน (แต่ละพื้นที่มีวินเบอร์ 1, 2, 3 ของตัวเอง)
   licensePlate       String
   vehicleModel       String?
+  driverType         DriverType               @default(PUBLIC)
+  studentId          String? // รหัสนิสิต (ประเภท STUDENT)
+  winGroupName       String? // ชื่อวินที่สังกัด (ประเภท PRO) เช่น "วินหน้าประตู 1"
   promptPayId        String? // เบอร์โทร (10 หลัก) หรือเลขบัตร ปชช. (13 หลัก) ที่ผูกกับพร้อมเพย์ — ใช้สร้าง QR รับเงิน
   verificationStatus DriverVerificationStatus @default(PENDING)
   rejectionReason    String? // เหตุผลเมื่อ verificationStatus = REJECTED
@@ -147,6 +157,8 @@ model Driver {
   // เอกสารยืนยันตัวตน (เก็บเป็น URL ไปยังไฟล์ที่อัปโหลด)
   photoUrl              String? // รูปถ่ายหน้าตรง
   idCardPhotoUrl        String? // รูปบัตรประชาชน
+  studentCardPhotoUrl   String? // รูปบัตรนิสิต (STUDENT)
+  vestPhotoUrl          String? // รูปเสื้อวินที่มีเบอร์ (PRO)
   driverLicensePhotoUrl String? // รูปใบขับขี่ (คนละใบกับบัตรประชาชน)
   vehiclePhotoUrl       String? // รูปรถเต็มคัน
   platePhotoUrl         String? // รูปป้ายทะเบียน
@@ -269,6 +281,7 @@ model ServiceRequest {
 
   rating       Rating?
   driverRating DriverRating?
+  messages     TripMessage[]
 
   @@index([areaId, status])
   @@map("service_requests")
@@ -368,11 +381,30 @@ model SosAlert {
 
 // รหัส OTP ทางเบอร์โทร — เก็บ sha256 ของรหัส (ไม่เก็บรหัสจริง) หนึ่งเบอร์มีรหัสที่ใช้ได้ทีละหนึ่งชุด
 model PhoneOtp {
-  phone     String   @id
-  codeHash  String
-  expiresAt DateTime
-  attempts  Int      @default(0) // กรอกผิดครบโควตาแล้วรหัสนี้ใช้ไม่ได้ (กันสุ่มเดา)
-  sentAt    DateTime @default(now()) // กันกดขอรหัสถี่เกินไป
+  phone       String    @id
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0) // กรอกผิดครบโควตาแล้วรหัสนี้ใช้ไม่ได้ (กันสุ่มเดา)
+  sentAt      DateTime  @default(now()) // กันกดขอรหัสถี่เกินไป
+  // กันเดา/กันยิง SMS ต่อเบอร์ (นับข้ามรหัส ไม่รีเซ็ตเมื่อขอรหัสใหม่): ขอได้ไม่เกิน N ครั้ง/ชม., ผิดรวมเกินเกณฑ์ = ล็อก 1 ชม.
+  windowStart DateTime  @default(now())
+  sendCount   Int       @default(0)
+  failCount   Int       @default(0)
+  lockedUntil DateTime?
 
   @@map("phone_otps")
+}
+
+// แชตระหว่างผู้โดยสารกับคนขับในทริปเดียวกัน — ส่งได้เฉพาะตอนทริปกำลังดำเนินอยู่ เก็บไว้ให้แอดมินตรวจย้อนหลังเมื่อมีเหตุ
+model TripMessage {
+  id               String         @id @default(uuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  senderRole       String // "user" | "driver"
+  body             String
+  createdAt        DateTime       @default(now())
+  readAt           DateTime? // อีกฝั่งเปิดอ่านแล้ว
+
+  @@index([serviceRequestId, createdAt])
+  @@map("trip_messages")
 }

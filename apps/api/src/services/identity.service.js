@@ -12,10 +12,15 @@ const { signToken, verifyToken } = require("../utils/jwt");
 const { isValidPromptPayId } = require("../utils/promptpay");
 const { sanitizeUser, sanitizeDriver, assertNumericVinNumber } = require("./auth.service");
 const privateUpload = require("../middlewares/privateUpload");
+const { isDriverType } = require("../utils/driverTypes");
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 30 * 1000;
-const OTP_MAX_ATTEMPTS = 5;
+const OTP_MAX_ATTEMPTS = 5; // ผิดได้กี่ครั้งต่อรหัสหนึ่งชุด
+const OTP_SENDS_PER_HOUR = 5; // ขอรหัสได้กี่ครั้งต่อเบอร์ต่อชั่วโมง (กันยิง SMS จนเสียเงิน/รบกวนเจ้าของเบอร์)
+const OTP_FAILS_BEFORE_LOCK = 10; // ผิดรวมทุกรหัสกี่ครั้งถึงล็อกเบอร์ (กันขอรหัสใหม่วนเดาไปเรื่อย ๆ)
+const OTP_LOCK_MS = 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
 const TICKET_TTL = "15m";
 const INVALID_OTP = "รหัส OTP ไม่ถูกต้องหรือหมดอายุ กรุณาขอรหัสใหม่";
 
@@ -51,19 +56,49 @@ async function sendSms() {
   throw new ApiError(503, "ระบบส่ง SMS ยังไม่เปิดใช้งาน");
 }
 
+// โหมดทดสอบบนเซิร์ฟเวอร์จริง (production) = ใครก็เห็นรหัส → อนุญาตเฉพาะเบอร์ใน OTP_TEST_PHONES (คั่นด้วย ,)
+// ต้องการเปิดให้ทุกเบอร์จริง ๆ (เดโมสาธารณะ ยอมรับความเสี่ยง) ต้องตั้ง OTP_TEST_PHONES=* เอง
+function assertTestPhoneAllowed(phone) {
+  if (process.env.NODE_ENV !== "production") return;
+  const list = (process.env.OTP_TEST_PHONES ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+  if (list.includes("*")) return;
+  if (!list.includes(phone)) {
+    throw ApiError.forbidden("เบอร์นี้ยังไม่เปิดให้ทดสอบ OTP (ระบบยังไม่ส่ง SMS จริง)", "OTP_TEST_PHONE_ONLY");
+  }
+}
+
+function assertNotLocked(record) {
+  if (record?.lockedUntil && record.lockedUntil > new Date()) {
+    const mins = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+    throw new ApiError(429, `กรอกรหัสผิดหลายครั้งเกินไป เบอร์นี้ถูกพักไว้ อีก ${mins} นาทีลองใหม่ได้`, "OTP_LOCKED");
+  }
+}
+
 async function requestOtp(phone) {
   assertThaiPhone(phone);
   const mode = otpMode();
   if (mode === "off") throw new ApiError(503, "การเข้าสู่ระบบด้วย OTP ยังไม่เปิดใช้งาน", "OTP_DISABLED");
+  if (mode === "test") assertTestPhoneAllowed(phone);
 
   const existing = await prisma.phoneOtp.findUnique({ where: { phone } });
+  assertNotLocked(existing);
+  const windowExpired = !existing || Date.now() - existing.windowStart.getTime() > HOUR_MS;
+  if (!windowExpired && existing.sendCount >= OTP_SENDS_PER_HOUR) {
+    throw new ApiError(429, `ขอรหัสครบ ${OTP_SENDS_PER_HOUR} ครั้งในชั่วโมงนี้แล้ว ลองใหม่ภายหลัง`, "OTP_SEND_LIMIT");
+  }
   if (existing && Date.now() - existing.sentAt.getTime() < OTP_RESEND_MS) {
     const wait = Math.ceil((OTP_RESEND_MS - (Date.now() - existing.sentAt.getTime())) / 1000);
     throw new ApiError(429, `ขอรหัสใหม่ได้อีกครั้งใน ${wait} วินาที`, "OTP_COOLDOWN");
   }
 
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
-  const data = { codeHash: hashCode(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS), attempts: 0, sentAt: new Date() };
+  const data = {
+    codeHash: hashCode(phone, code),
+    expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    attempts: 0,
+    sentAt: new Date(),
+    ...(windowExpired ? { windowStart: new Date(), sendCount: 1 } : { sendCount: existing.sendCount + 1 }),
+  };
   await prisma.phoneOtp.upsert({ where: { phone }, create: { phone, ...data }, update: data });
 
   if (mode === "sms") await sendSms(phone, `รหัส KU VIN ของคุณคือ ${code} (ใช้ได้ 5 นาที)`);
@@ -80,13 +115,22 @@ async function requestOtp(phone) {
 async function consumeOtp(phone, code) {
   assertThaiPhone(phone);
   const record = await prisma.phoneOtp.findUnique({ where: { phone } });
+  assertNotLocked(record);
   if (!record || record.expiresAt < new Date() || record.attempts >= OTP_MAX_ATTEMPTS) {
     throw ApiError.badRequest(INVALID_OTP);
   }
   const given = Buffer.from(hashCode(phone, String(code ?? "")));
   const expected = Buffer.from(record.codeHash);
   if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
-    await prisma.phoneOtp.update({ where: { phone }, data: { attempts: { increment: 1 } } });
+    const failCount = record.failCount + 1;
+    await prisma.phoneOtp.update({
+      where: { phone },
+      data: {
+        attempts: { increment: 1 },
+        failCount,
+        ...(failCount >= OTP_FAILS_BEFORE_LOCK && { lockedUntil: new Date(Date.now() + OTP_LOCK_MS) }),
+      },
+    });
     throw ApiError.badRequest(INVALID_OTP);
   }
   await prisma.phoneOtp.delete({ where: { phone } });
@@ -222,7 +266,25 @@ async function nextVinNumber(areaId) {
   return String(max + 1);
 }
 
-async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleModel, promptPayId }) {
+// ข้อมูลเฉพาะประเภท: นิสิตต้องมีรหัสนิสิต, วินมอเตอร์ไซค์ต้องมีเบอร์เสื้อวินและชื่อวินที่สังกัด
+function typeFields({ driverType, studentId, winGroupName, vinNumber }) {
+  if (!isDriverType(driverType)) throw ApiError.badRequest("กรุณาเลือกประเภทคนขับ: นิสิต บุคคลทั่วไป หรือวินมอเตอร์ไซค์");
+  const out = { driverType, studentId: null, winGroupName: null };
+  if (driverType === "STUDENT") {
+    const id = typeof studentId === "string" ? studentId.trim() : "";
+    if (!/^\d{5,15}$/.test(id)) throw ApiError.badRequest("กรุณากรอกรหัสนิสิตเป็นตัวเลข");
+    out.studentId = id;
+  }
+  if (driverType === "PRO") {
+    const group = typeof winGroupName === "string" ? winGroupName.trim() : "";
+    if (!group || group.length > 60) throw ApiError.badRequest("กรุณากรอกชื่อวินที่สังกัด (ไม่เกิน 60 ตัวอักษร)");
+    if (!vinNumber) throw ApiError.badRequest("วินมอเตอร์ไซค์ต้องกรอกเบอร์เสื้อวิน");
+    out.winGroupName = group;
+  }
+  return out;
+}
+
+async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleModel, promptPayId, driverType, studentId, winGroupName }) {
   const user = await prisma.user.findUnique({ where: { id: userId }, include: { driver: true } });
   if (!user) throw ApiError.notFound("ไม่พบบัญชีผู้ใช้");
   assertActive(user);
@@ -233,7 +295,7 @@ async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleMo
   const legacy = await prisma.driver.findUnique({ where: { phone: user.phone } });
   if (legacy) {
     if (legacy.userId) throw ApiError.conflict("เบอร์นี้ผูกกับบัญชีอื่นไปแล้ว");
-    const linked = await prisma.driver.update({ where: { id: legacy.id }, data: { userId } });
+    const linked = await prisma.driver.update({ where: { id: legacy.id }, data: { userId } }); // ประเภทเดิม (PRO) คงไว้
     return { driver: sanitizeDriver(linked), token: issueToken(linked.id, "driver"), linked: true };
   }
 
@@ -246,11 +308,13 @@ async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleMo
   const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
   if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
   if (vinNumber) assertNumericVinNumber(vinNumber);
+  const typed = typeFields({ driverType, studentId, winGroupName, vinNumber });
 
   try {
     const driver = await prisma.driver.create({
       data: {
         userId,
+        ...typed,
         fullName: user.fullName,
         phone: user.phone,
         areaId,

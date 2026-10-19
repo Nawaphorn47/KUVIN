@@ -7,6 +7,8 @@ const { signToken } = require("../utils/jwt");
 const { isValidPromptPayId } = require("../utils/promptpay");
 const { isValidEmail } = require("../utils/email");
 const mail = require("./mail.service");
+const { signedPath } = require("../utils/privateFiles");
+const { ALL_DOCS } = require("../utils/driverTypes");
 
 const SALT_ROUNDS = 10;
 const RESET_CODE_TTL_MS = 15 * 60 * 1000; // 15 นาที
@@ -187,7 +189,8 @@ async function registerDriver({ fullName, phone, password, areaId, vinNumber, li
   let driver;
   try {
     driver = await prisma.driver.create({
-      data: { fullName, phone, passwordHash, areaId, vinNumber, licensePlate, vehicleModel, promptPayId },
+      // สมัครแบบเดิม (เบอร์+รหัสผ่านคนขับ) มีไว้ให้วินมอเตอร์ไซค์ที่มีเบอร์วินอยู่แล้ว
+      data: { fullName, phone, passwordHash, areaId, vinNumber, licensePlate, vehicleModel, promptPayId, driverType: "PRO" },
     });
   } catch (err) {
     // ชนกับ unique (เบอร์โทรทั้งระบบ / เบอร์วินภายในพื้นที่) — บอกให้ชัดว่าซ้ำตรงไหน
@@ -262,9 +265,11 @@ function sanitizeUser(user) {
   return { ...rest, hasPassword: Boolean(passwordHash), hasSelfie: Boolean(selfieFile), googleLinked: Boolean(googleSub) };
 }
 
+// เอกสารคนขับเก็บเป็นไฟล์ส่วนตัว — ส่งออกเป็นลิงก์ที่เซ็นแล้วอายุสั้นเท่านั้น (ดู utils/privateFiles.js)
 function sanitizeDriver(driver) {
   const { passwordHash, ...rest } = driver;
-  return { ...rest, hasPassword: Boolean(passwordHash) };
+  const docs = Object.fromEntries(ALL_DOCS.filter((k) => k in rest).map((k) => [k, signedPath(rest[k])]));
+  return { ...rest, ...docs, hasPassword: Boolean(passwordHash) };
 }
 
 module.exports = {
