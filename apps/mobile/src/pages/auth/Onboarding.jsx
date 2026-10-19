@@ -1,44 +1,38 @@
 import { useNavigate } from "react-router-dom";
-import { MapPinned } from "lucide-react";
 import Button from "../../components/ui/Button";
+import StopNumber from "../../components/ui/StopNumber";
 
+// หน้าต้อนรับหน้าเดียว (เดิมมีจุดบอกว่ามี 3 หน้าแต่มีหน้าเดียว) — อธิบายแนวคิดของแอปด้วยแผนผังจำลอง:
+// เลขปลายทาง + จุดแดง "คุณอยู่ที่นี่" แล้วไปเข้าสู่ระบบ
 export default function Onboarding() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-1 flex-col bg-gradient-to-b from-emerald-700 to-emerald-900 px-6 pb-10 pt-6 text-white">
-      <button
-        onClick={() => navigate("/login")}
-        className="self-end text-sm font-medium text-emerald-100"
-      >
-        ข้ามไปก่อน
-      </button>
-
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        <div className="flex h-40 w-40 items-center justify-center rounded-full bg-white/10">
-          <MapPinned className="h-16 w-16 text-emerald-200" />
+    <div className="flex min-h-0 flex-1 flex-col bg-brand-600 text-white">
+      <main className="flex min-h-0 flex-1 flex-col justify-center px-6">
+        {/* แผนผังจำลอง: ไม่ใช่แผนที่จริง ใช้เล่าว่าแอปทำงานอย่างไร */}
+        <div aria-hidden="true" className="relative mx-auto h-52 w-full max-w-xs overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/25">
+          <span className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-white/60 bg-white/15" />
+          <span className="absolute left-[22%] top-[24%]"><StopNumber n={1} className="border-white" /></span>
+          <span className="absolute left-[62%] top-[18%]"><StopNumber n={2} selected className="border-white" /></span>
+          <span className="absolute left-[70%] top-[58%]"><StopNumber n={3} className="border-white" /></span>
+          <span className="absolute left-[34%] top-[62%] flex flex-col items-center gap-1">
+            <span className="h-4 w-4 rounded-full border-[3px] border-white bg-here" />
+            <span className="rounded bg-here px-1.5 py-0.5 text-[11px] font-bold">คุณอยู่ที่นี่</span>
+          </span>
         </div>
-        <div>
-          <h2 className="text-3xl font-bold leading-snug">
-            เรียกวินได้ทุกที่
-            <br />
-            ในพื้นที่ให้บริการ
-          </h2>
-          <p className="mt-3 text-base text-emerald-100">
-            เลือกจุดรับ-ส่งบนแผนที่ได้เลย บัญชีเดียวใช้ได้ทุกพื้นที่ที่มี KU VIN
-          </p>
-        </div>
-      </div>
 
-      <div className="flex justify-center gap-2 pb-6">
-        <span className="h-1.5 w-6 rounded-full bg-white" />
-        <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-        <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-      </div>
+        <h1 className="mt-8 text-[2rem] font-bold leading-tight tracking-tight">เรียกวิน แตะเลขเดียวก็ไป</h1>
+        <p className="mt-2 text-base text-brand-100">
+          เห็นราคาก่อนกดทุกครั้ง บัญชีเดียวทั้งเรียกวินและขับวิน ใช้ได้ทุกพื้นที่ที่มี KU VIN
+        </p>
+      </main>
 
-      <Button variant="secondary" onClick={() => navigate("/login")}>
-        ถัดไป
-      </Button>
+      <div className="flex flex-none flex-col gap-1 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <Button onClick={() => navigate("/login")} className="!bg-white !text-brand-800">
+          เริ่มต้นใช้งาน
+        </Button>
+      </div>
     </div>
   );
 }

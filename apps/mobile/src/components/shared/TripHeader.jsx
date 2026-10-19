@@ -6,6 +6,7 @@ import { Siren } from "lucide-react";
  *  - value / unit : ตัวเลขใหญ่ เช่น 4 / "นาที" (ไม่มีค่า = โชว์ fallback)
  *  - onSos : ไม่ส่ง = ไม่มีปุ่ม SOS (เช่น ตอนยังหาคนขับ)
  */
+// fallback ข้อความสั้น (เช่น "กำลังเดินทาง") ใช้ตัวใหญ่ ข้อความยาว (เช่น คำอธิบายปัญหา GPS) ใช้ตัวเล็กลงไม่ให้กินพื้นที่หัวจอ
 export default function TripHeader({ status, value, unit, fallback, onSos, children }) {
   return (
     <header className="flex-none bg-brand-600 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
@@ -18,7 +19,7 @@ export default function TripHeader({ status, value, unit, fallback, onSos, child
               {unit && <span className="text-lg font-bold">{unit}</span>}
             </p>
           ) : (
-            <p className="mt-1 text-2xl font-bold leading-tight">{fallback}</p>
+            <p className={fallback.length > 24 ? "mt-1 text-base font-semibold leading-snug" : "mt-1 text-2xl font-bold leading-tight"}>{fallback}</p>
           )}
         </div>
         {onSos && (

@@ -78,8 +78,8 @@ export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
   const body = (
     <div className="flex flex-1 flex-col items-center gap-6 px-6 pb-8 pt-4 text-center">
       <div>
-        <h1 className="text-2xl font-bold text-red-500">ต้องการความช่วยเหลือ?</h1>
-        <p className="mt-2 text-sm text-slate-300">
+        <h1 className="text-[1.75rem] font-bold leading-tight text-white">ต้องการความช่วยเหลือ?</h1>
+        <p className="mt-2 text-[15px] text-slate-200">
           {phase === "sent"
             ? "เจ้าหน้าที่เห็นตำแหน่งของคุณแล้ว หากจำเป็นให้โทรเบอร์ฉุกเฉินด้านล่างต่อทันที"
             : "กดค้างปุ่มด้านล่าง 1 วินาทีเพื่อแจ้งเหตุฉุกเฉิน ระบบจะส่งตำแหน่งของคุณไปยังเจ้าหน้าที่ทันที"}
@@ -87,14 +87,14 @@ export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
       </div>
 
       <div className="relative flex h-40 w-40 items-center justify-center">
-        {phase !== "sent" && <span className="absolute inset-0 animate-pulse-ring rounded-full bg-red-500" />}
+        {phase !== "sent" && <span className="absolute inset-0 animate-pulse-ring rounded-full bg-here" />}
         <motion.button
           onPointerDown={startHold}
           onPointerUp={cancelHold}
           onPointerLeave={cancelHold}
           disabled={phase === "sent" || phase === "sending"}
           whileTap={{ scale: 0.96 }}
-          className="relative flex h-32 w-32 select-none flex-col items-center justify-center gap-1 overflow-hidden rounded-full bg-red-600 shadow-2xl disabled:opacity-90"
+          className="relative flex h-32 w-32 select-none flex-col items-center justify-center gap-1 overflow-hidden rounded-full border-4 border-white bg-here shadow-floating disabled:opacity-90"
         >
           <motion.span
             className="absolute inset-0 origin-left bg-white/25"
@@ -113,40 +113,40 @@ export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
             <span className="text-xl font-bold">
               {phase === "sending" ? "กำลังส่ง..." : phase === "sent" ? "แจ้งแล้ว" : "SOS"}
             </span>
-            <span className="text-[11px] text-white/80">
+            <span className="max-w-[6rem] text-xs leading-tight text-white">
               {phase === "holding"
-                ? "กำลังยืนยัน อย่าเพิ่งปล่อย..."
+                ? "อย่าเพิ่งปล่อย..."
                 : phase === "sent"
                   ? ""
-                  : "กดค้างเพื่อขอความช่วยเหลือ"}
+                  : "กดค้างไว้"}
             </span>
           </span>
         </motion.button>
       </div>
 
       {phase === "sent" && (
-        <button onClick={handleCancelAlert} className="text-xs text-slate-400 underline underline-offset-2">
+        <button onClick={handleCancelAlert} className="h-10 text-sm text-slate-200 underline underline-offset-2">
           กดผิด / แจ้งเหตุพลาด — ยกเลิกรายการนี้
         </button>
       )}
       {error && (
-        <p className="flex items-center gap-1.5 text-sm text-red-400">
+        <p className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-medium text-here">
           <AlertTriangle className="h-4 w-4 flex-none" /> {error}
         </p>
       )}
 
       <div className="w-full text-left">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">ติดต่อฉุกเฉิน</p>
-        <div className="flex flex-col divide-y divide-white/10 rounded-2xl bg-white/5">
+        <h2 className="mb-2 text-sm font-semibold text-slate-200">โทรหาเจ้าหน้าที่ทันที</h2>
+        <div className="flex flex-col divide-y divide-white/10 overflow-hidden rounded-xl bg-white/10">
           {emergencyContacts.map((c) => (
-            <div key={`${c.label}-${c.phone}`} className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-medium">{c.label}</span>
+            <div key={`${c.label}-${c.phone}`} className="flex items-center justify-between min-h-[3.5rem] px-4 py-3">
+              <span className="min-w-0 flex-1 pr-3 text-[15px] font-semibold">{c.label}</span>
               <a
                 href={`tel:${c.phone}`}
                 onClick={() => handleCallContact(c.phone)}
-                className="flex items-center gap-1.5 text-sm font-bold text-red-400"
+                className="tabular flex flex-none items-center gap-1.5 whitespace-nowrap text-lg font-bold text-white"
               >
-                <Phone className="h-3.5 w-3.5" /> {c.phone}
+                <Phone className="h-4 w-4" /> {c.phone}
               </a>
             </div>
           ))}
@@ -179,18 +179,20 @@ export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
         animate={{ y: 0 }}
         exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 240, damping: 26 }}
-        className="max-h-[92vh] overflow-y-auto rounded-t-3xl bg-slate-900 text-white"
+        className="max-h-[92vh] overflow-y-auto rounded-t-2xl bg-slate-900 text-white"
       >
         <div className="flex items-center gap-3 px-5 pt-4">
           {tripContext && (
-            <p className="flex-1 truncate text-xs text-slate-400">
+            <p className="flex-1 truncate text-sm text-slate-200">
               ทริปนี้ยังดำเนินอยู่: {tripContext.pickup} → {tripContext.dropoff}
               {tripContext.driverName ? ` · ${tripContext.driverName}` : ""}
             </p>
           )}
           <button
+            type="button"
             onClick={onClose}
-            className="ml-auto flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/10"
+            aria-label="ปิด"
+            className="ml-auto flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/10"
           >
             <X className="h-4 w-4" />
           </button>

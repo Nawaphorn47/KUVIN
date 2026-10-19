@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, User2 } from "lucide-react";
+import { Bot, SendHorizontal } from "lucide-react";
+import clsx from "clsx";
 import TopBar from "../../components/layout/TopBar";
 import { emergencyContactsFor } from "../../lib/emergencyContacts";
 import { useArea } from "../../context/AreaContext";
@@ -16,43 +17,49 @@ function buildFaq(area) {
     : "ค่าโดยสารขึ้นกับพื้นที่ที่ใช้บริการ";
 
   const faq = [
-  {
-    topic: "วิธีเรียกวิน",
-    keywords: ["เรียก", "จอง", "ใช้งาน", "ยังไง", "วิธี"],
-    answer:
-      "กดช่อง \"ไปไหน? ค้นหาปลายทาง\" ที่หน้าแรก เลือกสถานที่หรือปักหมุดบนแผนที่ ตรวจจุดรับ (ลากหมุดสีเขียวปรับได้) แล้วกด ยืนยันการเรียกวิน ระบบจะเสนองานให้คนขับตามคิวทีละคน เมื่อมีคนรับจะเห็นชื่อ เบอร์วิน ทะเบียน และตำแหน่งคนขับบนแผนที่",
-  },
-  {
-    topic: "ค่าโดยสาร",
-    keywords: ["ค่าโดยสาร", "ราคา", "กี่บาท", "ค่ารถ", "แพง"],
-    answer: `${fares} ดูราคาก่อนยืนยันได้ที่หน้ายืนยันการเรียกวิน`,
-  },
-  {
-    topic: "ปัญหาการชำระเงิน",
-    keywords: ["จ่าย", "ชำระ", "สลิป", "โอน", "พร้อมเพย์", "เงิน", "qr"],
-    answer:
-      "จ่ายได้ 2 แบบ: เงินสดกับคนขับ หรือสแกน QR พร้อมเพย์ของคนขับแล้วแนบสลิปในแอป ระบบตรวจสลิปให้อัตโนมัติ ถ้าไม่ผ่านจะบอกเหตุผลและส่งใหม่ได้ (เช่น สลิปไม่ชัด ยอดไม่ตรง) ถ้ายังมีปัญหาจ่ายเงินสดแล้วให้คนขับกดยืนยันการรับเงินแทนได้",
-  },
-  {
-    topic: "ลืมของบนรถ",
-    keywords: ["ลืม", "ของหาย", "หาย", "ทิ้งไว้"],
-    answer: `ถ้าคนขับยังมารับหรือยังอยู่ในทริป กดปุ่มโทรหาคนขับได้เลย ถ้าทริปจบแล้ว ติดต่อ${security.label} ${security.phone} พร้อมแจ้งเบอร์วินและเวลาเดินทาง (ดูได้ที่หน้าประวัติการเดินทาง)`,
-  },
-  {
-    topic: "พฤติกรรมคนขับ",
-    keywords: ["คนขับ", "พฤติกรรม", "ร้องเรียน", "ขับเร็ว", "ไม่สุภาพ", "แย่"],
-    answer:
-      "หลังจบทริปให้คะแนนและเขียนความคิดเห็นได้ในหน้าให้คะแนน ผู้ดูแลระบบเห็นคะแนนของคนขับทุกคนและระงับบัญชีคนขับได้ ถ้ารู้สึกไม่ปลอดภัยระหว่างทริป กดปุ่ม SOS บนหน้าแผนที่ทันที",
-  },
-  {
-    topic: "เหตุฉุกเฉิน",
-    keywords: ["ฉุกเฉิน", "sos", "อุบัติเหตุ", "ช่วย", "อันตราย", "เจ็บ"],
-    answer: `ระหว่างทริปกดปุ่ม SOS บนหน้าแผนที่ ระบบจะส่งตำแหน่งของคุณให้ผู้ดูแลระบบทันที หรือโทรเบอร์ฉุกเฉิน: ${emergencyLine}`,
-  },
+    {
+      topic: "วิธีเรียกวิน",
+      keywords: ["เรียก", "จอง", "ใช้งาน", "ยังไง", "วิธี"],
+      answer:
+        "ที่หน้าแรกแตะเลขปลายทางบนแผนผังหรือในรายการ แล้วกดปุ่ม “เรียกวินไป…” หรือกดช่องค้นหาเพื่อเลือกที่อื่น/ปักหมุดเอง ตรวจจุดรับ (กดค้างที่วงสีแล้วลากเพื่อปรับ) แล้วกด “เรียกวินเลย” ระบบจะเสนองานให้คนขับตามคิวทีละคน เมื่อมีคนรับจะเห็นชื่อ เลขเสื้อวิน ป้ายทะเบียน และตำแหน่งคนขับบนแผนที่ครั้งแรกที่เรียกต้องยืนยันเบอร์ด้วย OTP และถ่ายเซลฟี่ก่อน",
+    },
+    {
+      topic: "ค่าโดยสาร",
+      keywords: ["ค่าโดยสาร", "ราคา", "กี่บาท", "ค่ารถ", "แพง", "ค่าวิน"],
+      answer: `${fares} ดูราคาก่อนยืนยันได้ที่หน้า “เช็กก่อนเรียก”`,
+    },
+    {
+      topic: "ปัญหาการชำระเงิน",
+      keywords: ["จ่าย", "ชำระ", "สลิป", "โอน", "พร้อมเพย์", "เงิน", "qr"],
+      answer:
+        "จ่ายได้ 2 แบบ: เงินสดกับคนขับ หรือสแกน QR พร้อมเพย์ของคนขับแล้วแนบสลิปในแอป (ถ้าเปิดตรวจสลิปอัตโนมัติอยู่) ถ้าสลิปไม่ผ่านจะบอกเหตุผลและส่งใหม่ได้ ถ้ายังมีปัญหาจ่ายเงินสดแล้วให้คนขับกดยืนยันการรับเงินแทนได้",
+    },
+    {
+      topic: "ลืมของบนรถ",
+      keywords: ["ลืม", "ของหาย", "หาย", "ทิ้งไว้"],
+      answer: `ระหว่างทริปโทรหรือแชตหาคนขับได้ ถ้าทริปจบแล้วเบอร์คนขับจะไม่แสดงอีก ให้เปิด “ทริปของฉัน” แล้วกด “แจ้งปัญหา” เลือกหัวข้อ “ลืมของไว้ในรถ” แอดมินของพื้นที่จะตรวจสอบให้ หรือติดต่อ${security.label} ${security.phone} พร้อมแจ้งเลขเสื้อวินและเวลาเดินทาง`,
+    },
+    {
+      topic: "พฤติกรรมคนขับ",
+      keywords: ["คนขับ", "พฤติกรรม", "ร้องเรียน", "ขับเร็ว", "ไม่สุภาพ", "แย่", "คุกคาม"],
+      answer:
+        "หลังจบทริปให้คะแนนและเลือกแท็กได้ในหน้าให้คะแนน และกด “แจ้งปัญหา” (ที่หน้าจบทริปหรือ “ทริปของฉัน” ภายใน 7 วัน) เพื่อส่งเรื่องถึงแอดมินของพื้นที่ ซึ่งตรวจสอบและระงับบัญชีคนขับได้ ถ้ารู้สึกไม่ปลอดภัยระหว่างทริปกดปุ่ม SOS ทันที",
+    },
+    {
+      topic: "แชร์ทริปให้เพื่อน",
+      keywords: ["แชร์", "ส่งลิงก์", "ตามตำแหน่ง", "ครอบครัว", "เพื่อน", "ปลอดภัย"],
+      answer:
+        "ระหว่างที่คนขับกำลังมารับและระหว่างเดินทาง กดปุ่ม “แชร์ทริปให้คนที่ไว้ใจ” แล้วส่งลิงก์ให้เพื่อนหรือครอบครัว เขาเปิดดูตำแหน่งสด ชื่อเล่นคนขับ และป้ายทะเบียนได้โดยไม่ต้องลงแอป ลิงก์หมดอายุใน 6 ชั่วโมงและหยุดแสดงตำแหน่งเมื่อจบทริป",
+    },
+    {
+      topic: "เหตุฉุกเฉิน",
+      keywords: ["ฉุกเฉิน", "sos", "อุบัติเหตุ", "ช่วย", "อันตราย", "เจ็บ"],
+      answer: `ระหว่างทริปกดปุ่ม SOS (กดค้างสั้นๆ) ระบบจะส่งตำแหน่งของคุณให้แอดมินของพื้นที่ทันที หรือโทรเบอร์ฉุกเฉิน: ${emergencyLine}`,
+    },
   ];
 
   const fallback =
-    "ขออภัย ผู้ช่วยตอบได้เฉพาะคำถามที่พบบ่อยด้านล่าง และไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้ ถ้าเป็นเรื่องด่วนกรุณาโทร " +
+    "ขออภัย ผู้ช่วยตอบได้เฉพาะหัวข้อด้านล่าง และไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้ ถ้าเป็นเรื่องด่วนกรุณาโทร " +
     `${security.label} ${security.phone}`;
 
   return { faq, fallback };
@@ -83,7 +90,7 @@ export default function Chatbot() {
   const bottom = useRef(null);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   function send(text) {
@@ -93,69 +100,81 @@ export default function Chatbot() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-stone-50">
-      <TopBar title="KU-VIN Helper" />
-      <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-4">
-        <div className="flex flex-col gap-4">
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`flex items-end gap-2 ${m.from === "user" ? "flex-row-reverse" : ""}`}
-            >
-              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-slate-200 text-slate-600">
-                {m.from === "user" ? <User2 className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-              </span>
-              <div className={`flex max-w-[75%] flex-col gap-1 ${m.from === "user" ? "items-end" : "items-start"}`}>
-                <div
-                  className={
-                    m.from === "user"
-                      ? "rounded-tl-2xl rounded-bl-2xl rounded-br-2xl bg-emerald-600 px-4 py-3 text-sm text-white"
-                      : "rounded-tr-2xl rounded-bl-2xl rounded-br-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-card"
-                  }
-                >
-                  {m.text}
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-100">
+      <TopBar title="ถามผู้ช่วย" />
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-live="polite">
+        <p className="mx-auto mb-4 max-w-xs rounded-xl bg-white/70 px-3 py-2 text-center text-xs text-slate-600">
+          ตอบจากกติกาของระบบอัตโนมัติ ไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้
+        </p>
+        <ol className="flex flex-col gap-3">
+          {messages.map((m, i) => {
+            const mine = m.from === "user";
+            return (
+              <li key={i} className={clsx("flex flex-col", mine ? "items-end" : "items-start")}>
+                <div className={clsx("flex max-w-[85%] items-end gap-2", mine && "flex-row-reverse")}>
+                  {!mine && (
+                    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-600 text-white">
+                      <Bot className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  )}
+                  <p
+                    className={clsx(
+                      "whitespace-pre-wrap px-3.5 py-2.5 text-[15px] leading-snug",
+                      mine ? "rounded-2xl rounded-br-md bg-brand-600 text-white" : "rounded-2xl rounded-bl-md bg-white text-slate-900 ring-1 ring-slate-200"
+                    )}
+                  >
+                    {m.text}
+                  </p>
                 </div>
-                <span className="text-[10px] text-slate-400">{m.time}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+                <span className="tabular mt-0.5 px-1 text-xs text-slate-500">{m.time}</span>
+              </li>
+            );
+          })}
+        </ol>
+        <div ref={bottom} />
+      </main>
 
+      <div className="flex-none border-t border-slate-200 bg-white px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         {/* หัวข้อให้กดได้ตลอด ไม่ใช่แค่ข้อความแรก — ถามต่อได้โดยไม่ต้องพิมพ์ */}
-        <div className="mt-4 flex flex-wrap gap-2 pl-10">
+        <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 pb-2">
           {FAQ.map((f) => (
             <button
               key={f.topic}
+              type="button"
               onClick={() => send(f.topic)}
-              className="rounded-full bg-white px-4 py-2 text-sm text-emerald-600 shadow-card"
+              className="h-9 flex-none rounded-full bg-brand-50 px-3.5 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 active:scale-95"
             >
               {f.topic}
             </button>
           ))}
         </div>
-        <div ref={bottom} />
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(draft);
-        }}
-        className="flex items-center gap-3 border-t border-slate-200 bg-white/80 p-4 backdrop-blur"
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="พิมพ์คำถามที่นี่..."
-          className="h-12 flex-1 rounded-full bg-slate-100 px-5 text-sm outline-none placeholder:text-slate-400"
-        />
-        <button
-          type="submit"
-          className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-emerald-600 text-white shadow-floating"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(draft);
+          }}
+          className="flex items-center gap-2"
         >
-          <Send className="h-5 w-5" />
-        </button>
-      </form>
+          <label htmlFor="faq-input" className="sr-only">
+            พิมพ์คำถาม
+          </label>
+          <input
+            id="faq-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="พิมพ์คำถามที่นี่..."
+            className="h-11 min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white px-3 text-[15px] text-slate-900 outline-none placeholder:text-slate-500 focus:border-brand-600"
+          />
+          <button
+            type="submit"
+            aria-label="ส่งคำถาม"
+            disabled={!draft.trim()}
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-brand-600 text-white shadow-sticker transition-transform active:scale-90 disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
+          >
+            <SendHorizontal className="h-5 w-5" />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

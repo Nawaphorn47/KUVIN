@@ -48,7 +48,7 @@ export default function Login() {
   const { setMode, refreshMe } = useApp();
   const { area } = useArea();
   const config = useAuthConfig();
-  const [view, setView] = useState(location.state?.role === "driver" ? "driver" : "otp"); // otp | name | email | driver
+  const [view, setView] = useState(location.state?.view ?? (location.state?.role === "driver" ? "driver" : "otp")); // otp | name | email | driver
   const [ticket, setTicket] = useState("");
   const [googleTicket, setGoogleTicket] = useState("");
   const [fullName, setFullName] = useState("");

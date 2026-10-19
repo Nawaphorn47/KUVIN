@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Globe, LifeBuoy, Phone, ChevronRight } from "lucide-react";
-import Screen from "../../components/layout/Screen";
+import { ChevronRight, Globe, LifeBuoy, Phone } from "lucide-react";
 import TopBar from "../../components/layout/TopBar";
-import Card from "../../components/ui/Card";
 import { emergencyContactsFor } from "../../lib/emergencyContacts";
 import { useArea } from "../../context/AreaContext";
 
@@ -14,53 +12,58 @@ export default function Settings() {
   const emergencyContacts = emergencyContactsFor(area);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
       <TopBar title="ตั้งค่า" />
-      <Screen className="gap-6 pt-2">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">ภาษาและภูมิภาค</p>
-          <Card className="flex items-center gap-3 px-4 py-3.5 shadow-none ring-slate-100">
-            <Globe className="h-5 w-5 text-slate-400" />
-            <span className="flex-1 text-sm font-medium text-slate-900">ภาษา</span>
-            <span className="text-sm text-slate-400">ไทย</span>
-          </Card>
-        </div>
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-5">
+        <section aria-labelledby="lang-title">
+          <h2 id="lang-title" className="mb-2 text-sm font-semibold text-slate-600">
+            ภาษา
+          </h2>
+          <div className="flex min-h-[3.5rem] items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-slate-200">
+            <Globe className="h-5 w-5 flex-none text-slate-500" aria-hidden="true" />
+            <span className="flex-1 text-[15px] font-semibold text-slate-900">ภาษาของแอป</span>
+            <span className="text-[15px] text-slate-600">ไทย</span>
+          </div>
+        </section>
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">ช่วยเหลือ</p>
-          <Card className="p-0 shadow-none ring-slate-100">
-            <button
-              onClick={() => navigate("/chatbot")}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
-            >
-              <LifeBuoy className="h-5 w-5 text-slate-400" />
-              <span className="flex-1 text-sm font-medium text-slate-900">คำถามที่พบบ่อย</span>
-              <ChevronRight className="h-4 w-4 text-slate-300" />
-            </button>
-          </Card>
-        </div>
+        <section aria-labelledby="help-title" className="mt-6">
+          <h2 id="help-title" className="mb-2 text-sm font-semibold text-slate-600">
+            ช่วยเหลือ
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate("/chatbot")}
+            className="flex min-h-[3.5rem] w-full items-center gap-3 rounded-xl bg-white px-4 text-left ring-1 ring-slate-200 active:bg-slate-50"
+          >
+            <LifeBuoy className="h-5 w-5 flex-none text-slate-500" aria-hidden="true" />
+            <span className="flex-1 text-[15px] font-semibold text-slate-900">คำถามที่พบบ่อย</span>
+            <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+          </button>
+        </section>
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <section aria-labelledby="emg-title" className="mt-6">
+          <h2 id="emg-title" className="mb-2 text-sm font-semibold text-slate-600">
             เบอร์ฉุกเฉิน{area ? ` · ${area.displayName}` : ""}
-          </p>
-          <Card className="divide-y divide-slate-100 p-0 shadow-none ring-slate-100">
+          </h2>
+          <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
             {emergencyContacts.map((c) => (
-              <a key={c.phone} href={`tel:${c.phone}`} className="flex items-center gap-3 px-4 py-3.5">
-                <Phone className="h-5 w-5 text-slate-400" />
-                <span className="flex-1 text-sm font-medium text-slate-900">{c.label}</span>
-                <span className="text-sm font-semibold text-emerald-600">{c.phone}</span>
-              </a>
+              <li key={c.phone} className="border-b border-slate-200 last:border-b-0">
+                <a href={`tel:${c.phone}`} className="flex min-h-[3.5rem] items-center gap-3 px-4 active:bg-slate-50">
+                  <Phone className="h-5 w-5 flex-none text-here" aria-hidden="true" />
+                  <span className="flex-1 text-[15px] font-semibold text-slate-900">{c.label}</span>
+                  <span className="tabular text-lg font-bold text-slate-900">{c.phone}</span>
+                </a>
+              </li>
             ))}
-          </Card>
-        </div>
+          </ul>
+        </section>
 
-        <div className="pt-4 text-center text-xs leading-relaxed text-slate-400">
-          <p>KU VIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์</p>
-          {area && <p>พื้นที่ให้บริการ: {area.name}</p>}
-          <p>โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ มก. กำแพงแสน</p>
-        </div>
-      </Screen>
+        <p className="mt-8 text-center text-sm leading-relaxed text-slate-600">
+          KU VIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์
+          {area && <span className="block">พื้นที่ให้บริการ: {area.name}</span>}
+          <span className="block">โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ มก. กำแพงแสน</span>
+        </p>
+      </main>
     </div>
   );
 }

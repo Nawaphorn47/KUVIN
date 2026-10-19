@@ -53,6 +53,7 @@ export function AppProvider({ children }) {
           email: data.email,
           phone: data.phone,
           avatarInitial: data.fullName?.[0] ?? "?",
+          studentId: data.studentId ?? "",
           totalTrips: trips.length,
           // ยืนยันตัวตนผู้โดยสาร + โหมดคนขับของบัญชีเดียวกัน (null = ยังไม่สมัครขับ)
           phoneVerified: Boolean(data.phoneVerifiedAt),

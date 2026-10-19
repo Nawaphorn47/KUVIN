@@ -88,25 +88,25 @@ export default function Earnings() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto bg-slate-50">
         {/* หัวหน้าจอ: กำไรของช่วงที่เลือก */}
-        <div className="flex flex-col gap-4 rounded-b-[2rem] bg-gradient-to-b from-emerald-600 to-emerald-700 px-5 pb-6 pt-6 text-white">
+        <div className="flex flex-col gap-4 bg-brand-600 px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] text-white">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold">การเงินของฉัน</h1>
+            <h1 className="text-2xl font-bold tracking-tight">การเงินของฉัน</h1>
             <button
               onClick={() => setSheet({ type: "vehicle" })}
-              className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold active:bg-white/25"
+              className="flex items-center gap-1.5 h-10 rounded-lg bg-white/15 px-3 text-sm font-bold active:bg-white/25"
             >
               <Settings2 className="h-4 w-4" /> ตั้งค่ารถ
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-1 rounded-full bg-white/10 p-1">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-white/10 p-1">
             {PERIODS.map((p) => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
                 className={clsx(
-                  "rounded-full py-1.5 text-xs font-semibold transition-colors",
-                  period === p.value ? "bg-white text-emerald-700" : "text-white/75"
+                  "h-10 rounded-lg text-sm font-bold transition-colors",
+                  period === p.value ? "bg-white text-brand-800 shadow-sticker" : "text-white"
                 )}
               >
                 {p.label}
@@ -115,14 +115,14 @@ export default function Earnings() {
           </div>
 
           <div>
-            <p className="text-sm text-emerald-100">
+            <p className="text-sm font-semibold text-brand-100">
               กำไรสุทธิ · {bucket ? (isCurrent ? periodMeta.currentLabel : bucketTitle(period, bucket)) : "..."}
             </p>
-            <p className={clsx("text-4xl font-bold", bucket && bucket.profit < 0 && "text-red-200")}>
+            <p className={clsx("tabular text-fare", bucket && bucket.profit < 0 && "text-amber-200")}>
               {bucket ? baht(bucket.profit) : "—"}
             </p>
             {bucket && (
-              <p className="mt-1 text-xs text-emerald-100">
+              <p className="tabular mt-1 text-sm text-brand-100">
                 {bucket.trips} เที่ยว · {num(bucket.distanceKm)} กม.
               </p>
             )}
@@ -139,7 +139,7 @@ export default function Earnings() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 px-5 pb-6 pt-4">
+        <div className="flex flex-col gap-4 px-4 pb-6 pt-4">
           {error && (
             <p className="flex items-center gap-1.5 rounded-xl bg-red-50 p-3 text-sm text-red-600">
               <AlertTriangle className="h-4 w-4 flex-none" /> {error}
@@ -147,7 +147,7 @@ export default function Earnings() {
           )}
 
           {!summary && !error && (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-600">
               <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...
             </div>
           )}
@@ -186,7 +186,7 @@ export default function Earnings() {
             action={
               <button
                 onClick={() => setSheet({ type: "expense" })}
-                className="flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white active:bg-emerald-700"
+                className="flex h-10 items-center gap-1 rounded-lg bg-brand-600 px-3 text-sm font-bold text-white shadow-sticker active:bg-brand-700"
               >
                 <Plus className="h-4 w-4" /> จดรายจ่าย
               </button>
@@ -195,8 +195,8 @@ export default function Earnings() {
             {expenses && expenses.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-6 text-center">
                 <Wallet className="h-8 w-8 text-slate-300" />
-                <p className="text-sm text-slate-500">ยังไม่มีรายการ</p>
-                <p className="text-xs text-slate-400">จดค่าน้ำมันพร้อมเลขไมล์ทุกครั้งที่เติมเต็มถัง ระบบจะคำนวณอัตราสิ้นเปลืองจริงให้</p>
+                <p className="text-sm font-semibold text-slate-700">ยังไม่มีรายการ</p>
+                <p className="text-sm text-slate-600">จดค่าน้ำมันพร้อมเลขไมล์ทุกครั้งที่เติมเต็มถัง ระบบจะคำนวณอัตราสิ้นเปลืองจริงให้</p>
               </div>
             )}
             <div className="flex flex-col divide-y divide-slate-100">
@@ -222,23 +222,23 @@ export default function Earnings() {
 // ---------------------------------------------------------------------------
 function StatPill({ icon: Icon, label, value, hint }) {
   return (
-    <div className="rounded-2xl bg-white/10 p-3">
-      <p className="flex items-center gap-1 text-xs text-emerald-100">
+    <div className="rounded-xl bg-white/10 p-3">
+      <p className="flex items-center gap-1 text-sm text-brand-100">
         <Icon className="h-3.5 w-3.5" /> {label}
       </p>
-      <p className="text-lg font-bold">{value}</p>
-      {hint && <p className="text-[10px] text-emerald-100/80">{hint}</p>}
+      <p className="tabular text-xl font-bold">{value}</p>
+      {hint && <p className="text-xs text-brand-100">{hint}</p>}
     </div>
   );
 }
 
 function Section({ title, subtitle, action, children }) {
   return (
-    <section className="rounded-3xl bg-white p-4 shadow-card">
+    <section className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-          {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -250,8 +250,8 @@ function Section({ title, subtitle, action, children }) {
 function MiniTotal({ label, value, className }) {
   return (
     <div>
-      <p className="text-[11px] text-slate-400">{label}</p>
-      <p className={clsx("text-sm font-bold", className)}>{value}</p>
+      <p className="text-xs text-slate-600">{label}</p>
+      <p className={clsx("tabular text-base font-bold", className)}>{value}</p>
     </div>
   );
 }

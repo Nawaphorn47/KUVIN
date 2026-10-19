@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { PartyPopper, CheckCircle2, Flag } from "lucide-react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Check, Flag } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import PaymentQr from "../../components/shared/PaymentQr";
+import TripHeader from "../../components/shared/TripHeader";
 import { api } from "../../lib/api";
 
+// จบทริป: ค่าวินเป็นเลขใหญ่หัวจอ → เก็บเงิน (QR พร้อมเพย์ให้ผู้โดยสารสแกน หรือกดยืนยันรับเงินสด) → รับงานต่อ
 export default function FinishRide() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,10 +35,7 @@ export default function FinishRide() {
     return () => clearInterval(t);
   }, [request?.id, paymentStatus]);
 
-  if (!request) {
-    navigate("/driver/home");
-    return null;
-  }
+  if (!request) return <Navigate to="/driver/home" replace />;
 
   async function confirmPaid() {
     setConfirming(true);
@@ -45,71 +44,71 @@ export default function FinishRide() {
       await api.post(`/service-requests/${request.id}/payment`, { status: "PAID" });
       setPaymentStatus("PAID");
     } catch (err) {
-      setError(err.response?.data?.message || "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError(err.response?.data?.message || "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
       setConfirming(false);
     }
   }
 
+  const paid = paymentStatus === "PAID";
+
   return (
-    <div className="flex flex-1 flex-col items-center gap-5 bg-gradient-to-b from-emerald-600 to-emerald-800 px-8 pb-8 pt-10 text-center text-white">
-      <motion.div
-        initial={{ scale: 0.6, opacity: 0, rotate: -10 }}
-        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 200 }}
-      >
-        <PartyPopper className="h-14 w-14" />
-      </motion.div>
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <TripHeader status={`ส่งถึง ${request.destinationAddress ?? "ปลายทาง"} แล้ว · ค่าวิน`} value={request.fare} unit="฿">
+        {request.distanceKm != null && <p className="tabular mt-1 text-sm text-brand-100">{request.distanceKm} กม.</p>}
+      </TripHeader>
 
-      <div>
-        <h1 className="text-3xl font-bold">ส่งเสร็จแล้ว!</h1>
-        <p className="mt-1 text-sm text-emerald-100">{request.destinationAddress ?? "-"}</p>
-      </div>
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
+        {paid ? (
+          <motion.p
+            role="status"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 16 }}
+            className="flex items-center gap-3 rounded-xl bg-brand-50 p-4 text-base font-bold text-brand-800 ring-1 ring-brand-200"
+          >
+            <span className="flex h-9 w-9 flex-none -rotate-6 items-center justify-center rounded-full bg-brand-600 text-white shadow-sticker">
+              <Check className="h-5 w-5" strokeWidth={3} />
+            </span>
+            <span>
+              ได้รับเงิน {request.fare} บาทแล้ว
+              {paidBy === "SLIP" && <span className="block text-sm font-normal text-slate-600">ผู้โดยสารโอนแล้ว ตรวจสลิปกับธนาคารเรียบร้อย</span>}
+            </span>
+          </motion.p>
+        ) : (
+          <section aria-labelledby="collect-title" className="flex flex-col gap-3">
+            <h2 id="collect-title" className="text-base font-bold text-slate-900">
+              เก็บเงิน
+            </h2>
+            <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
+            {slipEnabled && (
+              <p className="text-sm text-slate-600">ผู้โดยสารโอนแล้วแนบสลิป ระบบจะตรวจและยืนยันให้เอง ถ้าจ่ายเงินสดให้กดยืนยันด้านล่าง</p>
+            )}
+            {error && (
+              <p role="alert" className="rounded-xl bg-here-soft px-3 py-2.5 text-sm font-medium text-here">
+                {error}
+              </p>
+            )}
+            <Button variant="outline" onClick={confirmPaid} disabled={confirming}>
+              {confirming ? "กำลังบันทึก..." : "ยืนยันได้รับเงินสดแล้ว"}
+            </Button>
+          </section>
+        )}
 
-      {paymentStatus === "PAID" ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/10 px-6 py-8">
-          <CheckCircle2 className="h-10 w-10" />
-          <p className="text-lg font-bold">ได้รับเงิน {request.fare} บาทแล้ว</p>
-          {paidBy === "SLIP" && <p className="text-xs text-emerald-100">ผู้โดยสารโอนแล้ว ตรวจสลิปกับธนาคารเรียบร้อย</p>}
-        </div>
-      ) : (
-        <>
-          <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
-          {slipEnabled && (
-            <p className="text-xs text-emerald-100">
-              เมื่อผู้โดยสารโอนและแนบสลิป ระบบจะตรวจและยืนยันให้อัตโนมัติ ถ้าจ่ายเงินสดให้กดยืนยันด้านล่าง
-            </p>
-          )}
-          {error && <p className="text-sm text-red-200">{error}</p>}
-          <Button variant="secondary" onClick={confirmPaid} disabled={confirming}>
-            {confirming ? "กำลังบันทึก..." : "ยืนยันได้รับเงินแล้ว"}
-          </Button>
-        </>
-      )}
-
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <div>
-          <p className="text-lg font-bold">{request.distanceKm} กม.</p>
-          <p className="text-xs text-emerald-200">ระยะทาง</p>
-        </div>
-        <div>
-          <p className="text-lg font-bold">{request.fare} ฿</p>
-          <p className="text-xs text-emerald-200">ค่าโดยสาร</p>
-        </div>
-      </div>
-
-      <div className="flex w-full flex-col gap-3">
-        <Button onClick={() => navigate("/driver/home")}>รับงานต่อ</Button>
-        <Button variant="secondary" onClick={() => navigate("/driver/earnings")}>
-          ดูรายได้วันนี้
-        </Button>
         <button
           type="button"
           onClick={() => navigate("/report-trip", { state: { request } })}
-          className="flex h-10 items-center justify-center gap-1.5 text-sm font-bold text-emerald-100"
+          className="mt-4 flex h-10 w-full items-center justify-center gap-1.5 text-sm font-bold text-slate-600"
         >
           <Flag className="h-4 w-4" aria-hidden="true" /> มีปัญหากับผู้โดยสาร? แจ้งแอดมิน
         </button>
+      </main>
+
+      <div className="flex flex-none flex-col gap-1 border-t border-slate-200 bg-white px-4 py-3">
+        <Button onClick={() => navigate("/driver/home")}>รับงานต่อ</Button>
+        <Button variant="ghost" onClick={() => navigate("/driver/earnings")}>
+          ดูรายได้วันนี้
+        </Button>
       </div>
     </div>
   );
