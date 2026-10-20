@@ -146,11 +146,9 @@ export default function Login() {
       {/* แผ่นป้ายหัว: ชื่อแอป + พื้นที่ (แบรนด์ของพื้นที่ที่เลือกอยู่) */}
       <header className="flex-none bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
-            <Logo className="h-7 w-7" />
-          </span>
+          <Logo dark className="h-14 w-14 flex-none" />
           <div>
-            <p className="text-2xl font-bold leading-none tracking-tight">KU VIN</p>
+            <p className="text-2xl font-bold leading-none tracking-tight">KUVIN</p>
             <p className="mt-1 text-sm text-brand-100">{area?.displayName ?? "เรียกวินมอเตอร์ไซค์"}</p>
           </div>
         </div>

@@ -55,11 +55,9 @@ export default function AdminLayout() {
     <div className="flex h-screen bg-stone-50">
       <aside className="flex w-64 flex-none flex-col border-r border-stone-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-800 text-white">
-            <Logo className="h-6 w-6" />
-          </span>
+          <Logo className="h-11 w-11 flex-none" />
           <div>
-            <p className="text-lg font-bold leading-tight text-emerald-900">KU VIN Admin</p>
+            <p className="text-lg font-bold leading-tight text-emerald-900">KUVIN Admin</p>
             <p className="text-xs text-stone-400">{isSuper ? "ผู้ดูแลระบบสูงสุด" : "ผู้ดูแลพื้นที่"}</p>
           </div>
         </div>

@@ -59,7 +59,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`KU VIN API listening on port ${PORT}`);
+  console.log(`KUVIN API listening on port ${PORT}`);
 });
 
 // ตรวจข้อเสนองานที่หมดเวลา (15 วิ/คน) แล้วส่งต่อให้คิวถัดไป — เช็คทุก 1 วิเพื่อให้ผู้โดยสารไม่ต้องรอเกินหน้าต่างตอบรับ

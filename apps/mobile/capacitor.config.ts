@@ -8,7 +8,7 @@ const allowHttp = process.env.CAP_ALLOW_HTTP === "1";
 
 const config: CapacitorConfig = {
   appId: "com.kuvin.app", // ต้องตรงกับ package name ที่ลงทะเบียนใน Firebase และเปลี่ยนไม่ได้หลังขึ้น Play Store
-  appName: "KU VIN",
+  appName: "KUVIN",
   webDir: "dist",
   server: allowHttp ? { cleartext: true } : undefined,
   android: {

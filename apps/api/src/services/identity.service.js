@@ -101,7 +101,7 @@ async function requestOtp(phone) {
   };
   await prisma.phoneOtp.upsert({ where: { phone }, create: { phone, ...data }, update: data });
 
-  if (mode === "sms") await sendSms(phone, `รหัส KU VIN ของคุณคือ ${code} (ใช้ได้ 5 นาที)`);
+  if (mode === "sms") await sendSms(phone, `รหัส KUVIN ของคุณคือ ${code} (ใช้ได้ 5 นาที)`);
   return {
     sent: true,
     expiresInSec: OTP_TTL_MS / 1000,

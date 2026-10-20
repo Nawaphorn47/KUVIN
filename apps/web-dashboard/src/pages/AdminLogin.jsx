@@ -43,10 +43,8 @@ export default function AdminLogin() {
         className="relative w-full max-w-md rounded-2xl border border-stone-200 bg-white p-10 shadow-xl"
       >
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-900 text-white">
-            <Logo className="h-8 w-8" />
-          </span>
-          <h1 className="text-3xl font-bold text-emerald-900">KU VIN Admin</h1>
+          <Logo variant="lockup" className="h-48 w-auto" />
+          <h1 className="text-3xl font-bold text-emerald-900">KUVIN Admin</h1>
           <p className="text-base text-stone-500">ระบบจัดการแพลตฟอร์มวินมอเตอร์ไซค์</p>
         </div>
 

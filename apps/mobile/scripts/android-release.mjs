@@ -21,7 +21,12 @@ if (!apiUrl.startsWith("https://")) {
 
 function run(cmd, args, env = {}, cwd = root) {
   console.log(`\n> ${cmd} ${args.join(" ")}`);
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: isWindows, env: { ...process.env, ...env } });
+  const merged = { ...process.env, ...env };
+  if (isWindows && env.PATH) {
+    // Windows เก็บชื่อตัวแปรแบบไม่สนตัวพิมพ์ แต่ object ของ Node แยก Path/PATH เป็นสองคีย์ — ลบตัวเดิมออกให้เหลือคีย์เดียวที่เราตั้ง
+    for (const k of Object.keys(merged)) if (k.toLowerCase() === "path" && k !== "PATH") delete merged[k];
+  }
+  const result = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: isWindows, env: merged });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
