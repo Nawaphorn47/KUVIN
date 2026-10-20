@@ -1,9 +1,9 @@
-// พื้นที่ให้บริการ (tenant) — ค้นหาพื้นที่จากพิกัด + จัดการพื้นที่ (super admin สร้าง, แอดมินพื้นที่แก้ของตัวเอง)
+// วิทยาเขตที่ให้บริการ (tenant) — ค้นหาวิทยาเขตจากพิกัด + จัดการวิทยาเขต (super admin สร้าง, แอดมินวิทยาเขตแก้ของตัวเอง)
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { distanceKm, areaCenter, isWithinService } = require("../utils/geo");
 
-// ทุกฟิลด์ของพื้นที่เปิดเผยได้ (ไม่มีข้อมูลลับ) — แอปผู้โดยสารใช้คิดราคา โชว์ชื่อ/โลโก้ และเบอร์ฉุกเฉิน
+// ทุกฟิลด์ของวิทยาเขตเปิดเผยได้ (ไม่มีข้อมูลลับ) — แอปผู้โดยสารใช้คิดราคา โชว์ชื่อ/โลโก้ และเบอร์ฉุกเฉิน
 const PUBLIC_SELECT = {
   id: true,
   slug: true,
@@ -27,11 +27,11 @@ async function listActive() {
 
 async function getPublic(id) {
   const area = await prisma.area.findFirst({ where: { id, isActive: true }, select: PUBLIC_SELECT });
-  if (!area) throw ApiError.notFound("ไม่พบพื้นที่ให้บริการนี้");
+  if (!area) throw ApiError.notFound("ไม่พบวิทยาเขตที่ให้บริการนี้");
   return area;
 }
 
-// พื้นที่ที่ใกล้ที่สุดที่ครอบคลุมจุดนี้ (null = อยู่นอกทุกพื้นที่)
+// วิทยาเขตที่ใกล้ที่สุดที่ครอบคลุมจุดนี้ (null = อยู่นอกทุกวิทยาเขต)
 async function findForPoint(point) {
   const areas = await prisma.area.findMany({ where: { isActive: true } });
   return (
@@ -41,7 +41,7 @@ async function findForPoint(point) {
   );
 }
 
-// พื้นที่ที่จะให้บริการทริปนี้ — ผู้โดยสารเลือกพื้นที่เองได้ (preferredAreaId) แต่จุดรับต้องอยู่ในระยะที่วินพื้นที่นั้นไปรับได้
+// วิทยาเขตที่จะให้บริการทริปนี้ — ผู้โดยสารเลือกวิทยาเขตเองได้ (preferredAreaId) แต่จุดรับต้องอยู่ในระยะที่วินวิทยาเขตนั้นไปรับได้
 async function resolveForPickup(pickup, preferredAreaId) {
   if (preferredAreaId) {
     const preferred = await prisma.area.findFirst({ where: { id: preferredAreaId, isActive: true } });
@@ -49,13 +49,13 @@ async function resolveForPickup(pickup, preferredAreaId) {
   }
   const area = await findForPoint(pickup);
   if (!area) {
-    throw ApiError.unprocessable("จุดรับอยู่นอกพื้นที่ให้บริการ กรุณาเลือกจุดรับใหม่", "OUT_OF_SERVICE_AREA");
+    throw ApiError.unprocessable("จุดรับอยู่นอกวิทยาเขตที่ให้บริการ กรุณาเลือกจุดรับใหม่", "OUT_OF_SERVICE_AREA");
   }
   return area;
 }
 
 // ---------------------------------------------------------------------------
-// admin: จัดการพื้นที่
+// admin: จัดการวิทยาเขต
 // ---------------------------------------------------------------------------
 const LAT_RANGE = [5, 21]; // ประเทศไทย (กันพิมพ์ lat/lng สลับกัน)
 const LNG_RANGE = [97, 106];
@@ -88,7 +88,7 @@ function cleanContacts(value) {
   });
 }
 
-// สีแบรนด์ของพื้นที่เป็นพื้นหลังของปุ่มและแถบหัวที่ใช้ตัวอักษรขาว — ต้องเข้มพอให้อ่านตัวขาวได้ (WCAG AA 4.5:1)
+// สีแบรนด์ของวิทยาเขตเป็นพื้นหลังของปุ่มและแถบหัวที่ใช้ตัวอักษรขาว — ต้องเข้มพอให้อ่านตัวขาวได้ (WCAG AA 4.5:1)
 const HEX_RE = /^#[0-9a-f]{6}$/;
 const MIN_WHITE_CONTRAST = 4.5;
 
@@ -113,11 +113,11 @@ function cleanArea(body, { partial }) {
   const has = (k) => !partial || body[k] !== undefined;
 
   if (has("slug")) {
-    const slug = text(body.slug, "รหัสพื้นที่ (slug)", { max: 40 })?.toLowerCase();
-    if (!SLUG_RE.test(slug)) throw ApiError.badRequest("รหัสพื้นที่ใช้ได้เฉพาะ a-z, 0-9 และขีด - เช่น ku-kps");
+    const slug = text(body.slug, "รหัสวิทยาเขต (slug)", { max: 40 })?.toLowerCase();
+    if (!SLUG_RE.test(slug)) throw ApiError.badRequest("รหัสวิทยาเขตใช้ได้เฉพาะ a-z, 0-9 และขีด - เช่น ku-kps");
     out.slug = slug;
   }
-  if (has("name")) out.name = text(body.name, "ชื่อพื้นที่");
+  if (has("name")) out.name = text(body.name, "ชื่อวิทยาเขต");
   if (has("displayName")) out.displayName = text(body.displayName, "ชื่อที่แสดงในแอป", { max: 40 });
   if (body.logoUrl !== undefined) out.logoUrl = text(body.logoUrl, "โลโก้", { required: false, max: 500 });
   if (body.brandColor !== undefined) out.brandColor = brandColor(body.brandColor);
@@ -129,7 +129,7 @@ function cleanArea(body, { partial }) {
   // ฟิลด์ที่มีค่าเริ่มต้นใน DB (รัศมี/ค่าโดยสาร) ไม่บังคับตอนสร้าง — ตรวจเฉพาะเมื่อส่งมา
   const given = (k) => body[k] !== undefined && body[k] !== "";
   if (given("flatRadiusKm")) out.flatRadiusKm = num(body.flatRadiusKm, "รัศมีเขตเหมาจ่าย", { min: 0.1, max: 50 });
-  if (given("serviceRadiusKm")) out.serviceRadiusKm = num(body.serviceRadiusKm, "รัศมีพื้นที่ให้บริการ", { min: 0.1, max: 100 });
+  if (given("serviceRadiusKm")) out.serviceRadiusKm = num(body.serviceRadiusKm, "รัศมีวิทยาเขตที่ให้บริการ", { min: 0.1, max: 100 });
   if (given("flatFare")) out.flatFare = num(body.flatFare, "ค่าโดยสารเหมาจ่าย", { max: 10000 });
   if (given("ratePerKm")) out.ratePerKm = num(body.ratePerKm, "ค่าโดยสารต่อกิโลเมตร", { max: 1000 });
   if (given("minFare")) out.minFare = num(body.minFare, "ค่าโดยสารขั้นต่ำ", { max: 10000 });
@@ -140,7 +140,7 @@ function cleanArea(body, { partial }) {
 
 function assertRadii(area) {
   if (area.serviceRadiusKm < area.flatRadiusKm) {
-    throw ApiError.badRequest("รัศมีพื้นที่ให้บริการต้องไม่น้อยกว่ารัศมีเขตเหมาจ่าย");
+    throw ApiError.badRequest("รัศมีวิทยาเขตที่ให้บริการต้องไม่น้อยกว่ารัศมีเขตเหมาจ่าย");
   }
 }
 
@@ -153,9 +153,9 @@ async function listAreas(scope) {
 }
 
 async function getArea(scope, id) {
-  if (!scope.isSuper && id !== scope.areaId) throw ApiError.notFound("ไม่พบพื้นที่นี้");
+  if (!scope.isSuper && id !== scope.areaId) throw ApiError.notFound("ไม่พบวิทยาเขตนี้");
   const area = await prisma.area.findUnique({ where: { id } });
-  if (!area) throw ApiError.notFound("ไม่พบพื้นที่นี้");
+  if (!area) throw ApiError.notFound("ไม่พบวิทยาเขตนี้");
   return area;
 }
 
@@ -165,12 +165,12 @@ async function createArea(body) {
   try {
     return await prisma.area.create({ data: { emergencyContacts: [], ...data } });
   } catch (err) {
-    if (err?.code === "P2002") throw ApiError.conflict("รหัสพื้นที่นี้ถูกใช้แล้ว");
+    if (err?.code === "P2002") throw ApiError.conflict("รหัสวิทยาเขตนี้ถูกใช้แล้ว");
     throw err;
   }
 }
 
-// แอดมินพื้นที่แก้ค่าของพื้นที่ตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ โลโก้ ขอบเขต) แต่เปิด/ปิดพื้นที่และเปลี่ยนรหัสได้เฉพาะ super
+// แอดมินวิทยาเขตแก้ค่าของวิทยาเขตตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ โลโก้ ขอบเขต) แต่เปิด/ปิดวิทยาเขตและเปลี่ยนรหัสได้เฉพาะ super
 async function updateArea(scope, id, body) {
   const existing = await getArea(scope, id);
   const data = cleanArea(body, { partial: true });
@@ -182,7 +182,7 @@ async function updateArea(scope, id, body) {
   try {
     return await prisma.area.update({ where: { id }, data });
   } catch (err) {
-    if (err?.code === "P2002") throw ApiError.conflict("รหัสพื้นที่นี้ถูกใช้แล้ว");
+    if (err?.code === "P2002") throw ApiError.conflict("รหัสวิทยาเขตนี้ถูกใช้แล้ว");
     throw err;
   }
 }

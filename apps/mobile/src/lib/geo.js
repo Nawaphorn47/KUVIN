@@ -1,5 +1,5 @@
-// ขอบเขต/จุดกลางมาจากพื้นที่ให้บริการที่เลือกอยู่ (AreaContext) — ต้องตรงกับ apps/api/src/utils/geo.js
-// DEFAULT_CENTER ใช้แค่ตอนยังโหลดพื้นที่ไม่เสร็จ (แผนที่ต้องมีจุดเริ่ม) — พื้นที่แรกของระบบ มก. กำแพงแสน
+// ขอบเขต/จุดกลางมาจากวิทยาเขตที่ให้บริการที่เลือกอยู่ (AreaContext) — ต้องตรงกับ apps/api/src/utils/geo.js
+// DEFAULT_CENTER ใช้แค่ตอนยังโหลดวิทยาเขตไม่เสร็จ (แผนที่ต้องมีจุดเริ่ม) — วิทยาเขตแรกของระบบ มก. กำแพงแสน
 export const DEFAULT_CENTER = { lat: 14.023, lng: 99.9739 };
 
 export function distanceKm(a, b) {
@@ -12,6 +12,6 @@ export function distanceKm(a, b) {
 
 export const areaCenter = (area) => (area ? { lat: area.centerLat, lng: area.centerLng } : DEFAULT_CENTER);
 
-// จุดนี้อยู่ในระยะที่วินของพื้นที่ไปรับได้ไหม (ไม่มีพื้นที่ = ถือว่าไม่อยู่)
+// จุดนี้อยู่ในระยะที่วินของวิทยาเขตไปรับได้ไหม (ไม่มีวิทยาเขต = ถือว่าไม่อยู่)
 export const isWithinService = (area, point) =>
   Boolean(area && point) && distanceKm(areaCenter(area), point) <= area.serviceRadiusKm;

@@ -180,10 +180,10 @@ async function registerDriver({ fullName, phone, password, areaId, vinNumber, li
   if (promptPayId && !isValidPromptPayId(promptPayId)) {
     throw ApiError.badRequest("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
   }
-  // คนขับสังกัดพื้นที่เดียว (คิวรับงาน + แอดมินที่อนุมัติ) — เลือกจากพื้นที่ที่เปิดให้บริการอยู่
-  if (!areaId) throw ApiError.badRequest("กรุณาเลือกพื้นที่ที่จะรับงาน");
+  // คนขับสังกัดวิทยาเขตเดียว (คิวรับงาน + แอดมินที่อนุมัติ) — เลือกจากวิทยาเขตที่เปิดให้บริการอยู่
+  if (!areaId) throw ApiError.badRequest("กรุณาเลือกวิทยาเขตที่จะรับงาน");
   const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
-  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
+  if (!area) throw ApiError.badRequest("ไม่พบวิทยาเขตที่เลือก หรือวิทยาเขตนี้ปิดให้บริการแล้ว");
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   let driver;
@@ -193,10 +193,10 @@ async function registerDriver({ fullName, phone, password, areaId, vinNumber, li
       data: { fullName, phone, passwordHash, areaId, vinNumber, licensePlate, vehicleModel, promptPayId, driverType: "PRO" },
     });
   } catch (err) {
-    // ชนกับ unique (เบอร์โทรทั้งระบบ / เบอร์วินภายในพื้นที่) — บอกให้ชัดว่าซ้ำตรงไหน
+    // ชนกับ unique (เบอร์โทรทั้งระบบ / เบอร์วินภายในวิทยาเขต) — บอกให้ชัดว่าซ้ำตรงไหน
     if (err?.code === "P2002") {
       const target = String(err.meta?.target ?? "");
-      if (target.includes("vinNumber")) throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้`);
+      if (target.includes("vinNumber")) throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในวิทยาเขตนี้`);
       if (target.includes("phone")) throw ApiError.conflict("เบอร์โทรศัพท์นี้สมัครเป็นคนขับไปแล้ว");
     }
     throw err;
@@ -226,7 +226,7 @@ async function loginAdmin({ email, password }) {
   return { admin: await adminProfile(admin), token: issueToken(admin.id, "admin") };
 }
 
-// โปรไฟล์แอดมินที่หน้าแดชบอร์ดใช้ตัดสินว่าจะโชว์เมนู super (จัดการพื้นที่/แอดมิน) และตัวเลือกพื้นที่หรือไม่
+// โปรไฟล์แอดมินที่หน้าแดชบอร์ดใช้ตัดสินว่าจะโชว์เมนู super (จัดการวิทยาเขต/แอดมิน) และตัวเลือกวิทยาเขตหรือไม่
 async function adminProfile(admin) {
   const area = admin.areaId
     ? await prisma.area.findUnique({ where: { id: admin.areaId }, select: { id: true, displayName: true } })

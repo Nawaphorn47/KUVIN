@@ -6,7 +6,7 @@ const prisma = require("../src/config/prisma");
 const q = require("../src/services/queue.service");
 
 const PREFIX = "0999TEST";
-const AREA = "area-ku-kps"; // พื้นที่แรกที่ migration สร้างไว้ (คิวแยกตามพื้นที่)
+const AREA = "area-ku-kps"; // วิทยาเขตแรกที่ migration สร้างไว้ (คิวแยกตามวิทยาเขต)
 let passed = 0;
 async function test(name, fn) {
   try {

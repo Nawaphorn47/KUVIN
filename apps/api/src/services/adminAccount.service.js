@@ -1,4 +1,4 @@
-// super admin จัดการบัญชีแอดมิน: สร้างแอดมินให้แต่ละพื้นที่ (เช่น ขายแฟรนไชส์ให้วินที่อื่น) เปลี่ยนพื้นที่/บทบาท รีเซ็ตรหัส
+// super admin จัดการบัญชีแอดมิน: สร้างแอดมินให้แต่ละวิทยาเขต (เช่น ขายแฟรนไชส์ให้วินที่อื่น) เปลี่ยนวิทยาเขต/บทบาท รีเซ็ตรหัส
 const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
@@ -27,13 +27,13 @@ function assertPassword(password) {
   }
 }
 
-// AREA_ADMIN ต้องผูกพื้นที่ที่มีอยู่จริง, SUPER_ADMIN ไม่ผูกพื้นที่
+// AREA_ADMIN ต้องผูกวิทยาเขตที่มีอยู่จริง, SUPER_ADMIN ไม่ผูกวิทยาเขต
 async function resolveRoleArea(role, areaId) {
   if (!ROLES.includes(role)) throw ApiError.badRequest("บทบาทต้องเป็น SUPER_ADMIN หรือ AREA_ADMIN");
   if (role === "SUPER_ADMIN") return { role, areaId: null };
-  if (!areaId) throw ApiError.badRequest("แอดมินพื้นที่ต้องเลือกพื้นที่ที่ดูแล");
+  if (!areaId) throw ApiError.badRequest("แอดมินวิทยาเขตต้องเลือกวิทยาเขตที่ดูแล");
   const area = await prisma.area.findUnique({ where: { id: areaId }, select: { id: true } });
-  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก");
+  if (!area) throw ApiError.badRequest("ไม่พบวิทยาเขตที่เลือก");
   return { role, areaId };
 }
 
@@ -76,7 +76,7 @@ async function updateAdmin(actorId, id, { fullName, role, areaId, password }) {
   }
   if (role !== undefined || areaId !== undefined) {
     const nextRole = role ?? existing.role;
-    // ลดสิทธิ์ super คนสุดท้ายไม่ได้ ไม่งั้นจะไม่เหลือใครสร้างพื้นที่/แอดมินได้อีก
+    // ลดสิทธิ์ super คนสุดท้ายไม่ได้ ไม่งั้นจะไม่เหลือใครสร้างวิทยาเขต/แอดมินได้อีก
     if (existing.role === "SUPER_ADMIN" && nextRole !== "SUPER_ADMIN" && (await countSupers(id)) === 0) {
       throw ApiError.conflict("ต้องมี super admin อย่างน้อย 1 คนเสมอ");
     }

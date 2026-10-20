@@ -29,7 +29,7 @@ async function expectReject(promise, pattern) {
 
 async function main() {
   const area = await prisma.area.findFirst({ where: { isActive: true } });
-  assert.ok(area, "ต้องมีพื้นที่ที่เปิดใช้งานอย่างน้อย 1 พื้นที่ (รัน seed ก่อน)");
+  assert.ok(area, "ต้องมีวิทยาเขตที่เปิดใช้งานอย่างน้อย 1 วิทยาเขต (รัน seed ก่อน)");
   const user = await prisma.user.create({ data: { fullName: "T-chat-user", phone: phone(1) } });
   const outsider = await prisma.user.create({ data: { fullName: "T-chat-out", phone: phone(2) } });
   const driver = await prisma.driver.create({

@@ -133,12 +133,12 @@ export default function DriverProfile() {
 
           <section aria-labelledby="bike-title" className="rounded-xl bg-white px-4 py-2 ring-1 ring-slate-200">
             <h2 id="bike-title" className="pt-2 text-sm font-semibold text-slate-600">
-              รถและพื้นที่
+              รถและวิทยาเขต
             </h2>
             <dl className="divide-y divide-slate-200">
               <Fact label="ประเภท">{DRIVER_TYPES[driver.driverType]?.label ?? "-"}</Fact>
               {driver.winGroupName && <Fact label="สังกัดวิน">{driver.winGroupName}</Fact>}
-              <Fact label="พื้นที่รับงาน">{area?.displayName ?? "-"}</Fact>
+              <Fact label="วิทยาเขตรับงาน">{area?.displayName ?? "-"}</Fact>
               <Fact label="ทะเบียน">{driver.plate}</Fact>
               <Fact label="รุ่น">{driver.vehicleModel || "-"}</Fact>
             </dl>

@@ -92,7 +92,7 @@ async function createReport(requestId, actor, { category, detail }, io) {
   if (!request.driverId) throw ApiError.conflict("ทริปนี้ยังไม่มีคนขับ แจ้งปัญหาไม่ได้");
   const endedAt = request.completedAt ?? request.cancelledAt ?? request.acceptedAt ?? request.requestedAt;
   if (Date.now() - new Date(endedAt).getTime() > REPORT_WINDOW_MS) {
-    throw ApiError.conflict("แจ้งปัญหาได้ภายใน 7 วันหลังทริป กรณีเร่งด่วนติดต่อแอดมินพื้นที่โดยตรง");
+    throw ApiError.conflict("แจ้งปัญหาได้ภายใน 7 วันหลังทริป กรณีเร่งด่วนติดต่อแอดมินวิทยาเขตโดยตรง");
   }
   const text = typeof detail === "string" ? detail.trim() : "";
   if (text.length > REPORT_DETAIL_MAX) throw ApiError.badRequest(`รายละเอียดยาวได้ไม่เกิน ${REPORT_DETAIL_MAX} ตัวอักษร`);

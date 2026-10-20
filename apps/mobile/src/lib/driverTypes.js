@@ -21,7 +21,7 @@ export const DRIVER_TYPES = {
   },
   PUBLIC: {
     label: "บุคคลทั่วไป",
-    tagline: "คนในพื้นที่ที่มีรถและใบขับขี่",
+    tagline: "คนในวิทยาเขตที่มีรถและใบขับขี่",
     icon: User,
     docs: ["photoUrl", "idCardPhotoUrl", "driverLicensePhotoUrl", "vehiclePhotoUrl", "platePhotoUrl"],
   },

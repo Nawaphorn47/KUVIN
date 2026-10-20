@@ -4,14 +4,14 @@ import { Check, ChevronDown, MapPinned, X } from "lucide-react";
 import clsx from "clsx";
 import { useArea } from "../../context/AreaContext";
 
-// ป้ายชื่อพื้นที่บนหัวหน้าจอ — กดแล้วเปิดแผ่นเลือกพื้นที่ (ผู้โดยสารใช้บัญชีเดียวได้ทุกพื้นที่)
-// readOnly = โชว์ชื่ออย่างเดียว (คนขับเปลี่ยนพื้นที่เองไม่ได้ เพราะสังกัดคิวของพื้นที่นั้น)
+// ป้ายชื่อวิทยาเขตบนหัวหน้าจอ — กดแล้วเปิดแผ่นเลือกวิทยาเขต (ผู้โดยสารใช้บัญชีเดียวได้ทุกวิทยาเขต)
+// readOnly = โชว์ชื่ออย่างเดียว (คนขับเปลี่ยนวิทยาเขตเองไม่ได้ เพราะสังกัดคิวของวิทยาเขตนั้น)
 export default function AreaSwitcher({ readOnly = false, tone = "light" }) {
   const { area, areas, setAreaId, loading } = useArea();
   const [open, setOpen] = useState(false);
   const canSwitch = !readOnly && areas.length > 1;
 
-  const label = loading ? "กำลังหาพื้นที่..." : area?.displayName ?? "ยังไม่มีพื้นที่ให้บริการ";
+  const label = loading ? "กำลังหาวิทยาเขต..." : area?.displayName ?? "ยังไม่มีวิทยาเขตที่ให้บริการ";
 
   return (
     <>
@@ -58,12 +58,12 @@ export default function AreaSwitcher({ readOnly = false, tone = "light" }) {
               onClick={(e) => e.stopPropagation()}
               className="flex max-h-[75vh] w-full max-w-[430px] flex-col gap-3 rounded-t-3xl bg-white p-5"
               role="dialog"
-              aria-label="เลือกพื้นที่ให้บริการ"
+              aria-label="เลือกวิทยาเขต"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">เลือกพื้นที่ให้บริการ</h2>
-                  <p className="text-xs text-slate-500">ราคา สถานที่ และเบอร์ฉุกเฉินจะเปลี่ยนตามพื้นที่</p>
+                  <h2 className="text-lg font-bold text-slate-900">เลือกวิทยาเขต</h2>
+                  <p className="text-xs text-slate-500">ราคา สถานที่ และเบอร์ฉุกเฉินจะเปลี่ยนตามวิทยาเขต</p>
                 </div>
                 <button
                   onClick={() => setOpen(false)}

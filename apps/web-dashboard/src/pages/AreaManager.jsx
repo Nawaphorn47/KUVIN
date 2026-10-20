@@ -9,7 +9,7 @@ import { PageHeader } from "../components/AdminLayout";
 import { api } from "../services/api";
 import { useAdminSession } from "../lib/adminSession";
 
-// super admin: ดูทุกพื้นที่ในแพลตฟอร์ม + เปิดพื้นที่ใหม่ (เช่น ขายแฟรนไชส์ให้วินที่อื่นไปใช้)
+// super admin: ดูทุกวิทยาเขตในแพลตฟอร์ม + เปิดวิทยาเขตใหม่ (เช่น ขายแฟรนไชส์ให้วินที่อื่นไปใช้)
 export default function AreaManager() {
   const navigate = useNavigate();
   const { areas, setAreaId, reloadAreas } = useAdminSession();
@@ -30,8 +30,8 @@ export default function AreaManager() {
     return (
       <div>
         <PageHeader
-          title="เพิ่มพื้นที่ใหม่"
-          subtitle="ตั้งชื่อ ขอบเขต และค่าโดยสาร — สร้างแล้วค่อยเพิ่มแอดมินพื้นที่ในหน้าบัญชีผู้ดูแล"
+          title="เพิ่มวิทยาเขตใหม่"
+          subtitle="ตั้งชื่อ ขอบเขต และค่าโดยสาร — สร้างแล้วค่อยเพิ่มแอดมินวิทยาเขตในหน้าบัญชีผู้ดูแล"
           actions={
             <Button variant="ghost" onClick={() => setCreating(false)}>
               <ArrowLeft className="h-4 w-4" /> กลับ
@@ -39,7 +39,7 @@ export default function AreaManager() {
           }
         />
         <div className="mx-auto max-w-7xl px-8 py-8">
-          <AreaForm initial={blankArea()} mode="create" canManage onSubmit={create} submitLabel="สร้างพื้นที่" />
+          <AreaForm initial={blankArea()} mode="create" canManage onSubmit={create} submitLabel="สร้างวิทยาเขต" />
         </div>
       </div>
     );
@@ -48,16 +48,16 @@ export default function AreaManager() {
   return (
     <div>
       <PageHeader
-        title="พื้นที่ทั้งหมด"
-        subtitle="แต่ละพื้นที่มีคิวคนขับ ค่าโดยสาร สถานที่ และแอดมินของตัวเอง ผู้โดยสารใช้บัญชีเดียวได้ทุกพื้นที่"
+        title="วิทยาเขตทั้งหมด"
+        subtitle="แต่ละวิทยาเขตมีคิวคนขับ ค่าโดยสาร สถานที่ และแอดมินของตัวเอง ผู้โดยสารใช้บัญชีเดียวได้ทุกวิทยาเขต"
         actions={
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> เพิ่มพื้นที่
+            <Plus className="h-4 w-4" /> เพิ่มวิทยาเขต
           </Button>
         }
       />
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-8 py-8 md:grid-cols-2 xl:grid-cols-3">
-        {areas.length === 0 && <p className="text-stone-500">ยังไม่มีพื้นที่</p>}
+        {areas.length === 0 && <p className="text-stone-500">ยังไม่มีวิทยาเขต</p>}
         {areas.map((a) => (
           <button
             key={a.id}

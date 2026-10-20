@@ -23,7 +23,7 @@ export default function AdminLogin() {
     try {
       const { data } = await api.post("/auth/admin/login", { email, password });
       setToken(data.token);
-      await reload(); // โหลดบทบาท (super/พื้นที่) + รายการพื้นที่ก่อนเข้าแดชบอร์ด
+      await reload(); // โหลดบทบาท (super/วิทยาเขต) + รายการวิทยาเขตก่อนเข้าแดชบอร์ด
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
@@ -93,7 +93,7 @@ export default function AdminLogin() {
         </form>
 
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-stone-200 pt-6 text-center">
-          <p className="text-sm text-stone-500">แอดมินพื้นที่เห็นเฉพาะข้อมูลพื้นที่ที่ตัวเองดูแล</p>
+          <p className="text-sm text-stone-500">แอดมินวิทยาเขตเห็นเฉพาะข้อมูลวิทยาเขตที่ตัวเองดูแล</p>
         </div>
       </motion.div>
     </div>

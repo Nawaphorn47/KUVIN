@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
-// ปุ่มแบบแผ่นป้าย: สีแบรนด์ของพื้นที่ ตัวหนา มุมโค้งเล็กน้อย กดแล้วยุบแบบสปริง
+// ปุ่มแบบแผ่นป้าย: สีแบรนด์ของวิทยาเขต ตัวหนา มุมโค้งเล็กน้อย กดแล้วยุบแบบสปริง
 // disabled ไม่ใช้ opacity (ตัวอักษรจะจางจนอ่านไม่ออกกลางแดด) แต่เปลี่ยนเป็นพื้นอ่อนตัวเข้มแทน
 const variants = {
   primary: "bg-brand-600 text-white shadow-sticker active:bg-brand-700 disabled:bg-brand-100 disabled:text-brand-800 disabled:shadow-none",

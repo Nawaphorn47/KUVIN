@@ -7,8 +7,8 @@ import { PageHeader } from "../components/AdminLayout";
 import { api } from "../services/api";
 import { useAdminSession } from "../lib/adminSession";
 
-// super admin จัดการบัญชีผู้ดูแล: สร้างแอดมินให้แต่ละพื้นที่ เปลี่ยนบทบาท/พื้นที่ ตั้งรหัสผ่านใหม่ ลบบัญชี
-const ROLE_LABEL = { SUPER_ADMIN: "ผู้ดูแลระบบสูงสุด", AREA_ADMIN: "แอดมินพื้นที่" };
+// super admin จัดการบัญชีผู้ดูแล: สร้างแอดมินให้แต่ละวิทยาเขต เปลี่ยนบทบาท/วิทยาเขต ตั้งรหัสผ่านใหม่ ลบบัญชี
+const ROLE_LABEL = { SUPER_ADMIN: "ผู้ดูแลระบบสูงสุด", AREA_ADMIN: "แอดมินวิทยาเขต" };
 
 export default function AdminAccounts() {
   const { admin: me, areas } = useAdminSession();
@@ -44,7 +44,7 @@ export default function AdminAccounts() {
     <div>
       <PageHeader
         title="บัญชีผู้ดูแล"
-        subtitle="แอดมินพื้นที่เห็นและจัดการได้เฉพาะพื้นที่ของตัวเอง ส่วนผู้ดูแลระบบสูงสุดเห็นทุกพื้นที่"
+        subtitle="แอดมินวิทยาเขตเห็นและจัดการได้เฉพาะวิทยาเขตของตัวเอง ส่วนผู้ดูแลระบบสูงสุดเห็นทุกวิทยาเขต"
         actions={
           <Button onClick={() => setEditing({})} disabled={areas.length === 0}>
             <Plus className="h-4 w-4" /> เพิ่มแอดมิน
@@ -64,7 +64,7 @@ export default function AdminAccounts() {
                 <th className="px-4 py-3">ชื่อ</th>
                 <th className="px-4 py-3">อีเมล</th>
                 <th className="px-4 py-3">บทบาท</th>
-                <th className="px-4 py-3">พื้นที่ที่ดูแล</th>
+                <th className="px-4 py-3">วิทยาเขตที่ดูแล</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -89,7 +89,7 @@ export default function AdminAccounts() {
                       {ROLE_LABEL[a.role]}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-stone-600">{a.role === "SUPER_ADMIN" ? "ทุกพื้นที่" : (a.area?.displayName ?? "-")}</td>
+                  <td className="px-4 py-3 text-stone-600">{a.role === "SUPER_ADMIN" ? "ทุกวิทยาเขต" : (a.area?.displayName ?? "-")}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button
@@ -184,12 +184,12 @@ function AdminModal({ target, areas, isSelf, onClose, onSaved }) {
         </Label>
         <Label text="บทบาท">
           <select value={role} onChange={(e) => setRole(e.target.value)} disabled={isSelf} className={inputCls}>
-            <option value="AREA_ADMIN">แอดมินพื้นที่ — จัดการเฉพาะพื้นที่ที่กำหนด</option>
-            <option value="SUPER_ADMIN">ผู้ดูแลระบบสูงสุด — เห็นทุกพื้นที่ สร้างพื้นที่/แอดมินได้</option>
+            <option value="AREA_ADMIN">แอดมินวิทยาเขต — จัดการเฉพาะวิทยาเขตที่กำหนด</option>
+            <option value="SUPER_ADMIN">ผู้ดูแลระบบสูงสุด — เห็นทุกวิทยาเขต สร้างวิทยาเขต/แอดมินได้</option>
           </select>
         </Label>
         {role === "AREA_ADMIN" && (
-          <Label text="พื้นที่ที่ดูแล">
+          <Label text="วิทยาเขตที่ดูแล">
             <select value={areaId} onChange={(e) => setAreaId(e.target.value)} required className={inputCls}>
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>

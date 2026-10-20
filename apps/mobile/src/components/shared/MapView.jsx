@@ -108,7 +108,7 @@ function CenterWatcher({ onCenterChange }) {
  *  - interactive : เปิดให้ลาก/ซูมแผนที่ (ปิดไว้ในแผนที่ย่อที่อยู่ในหน้าเลื่อน กันนิ้วเลื่อนหน้าแล้วไปลากแผนที่แทน)
  *  - onPickupChange : ส่งมา = ลากหมุดจุดรับเพื่อปรับตำแหน่งได้
  *  - onCenterChange : รับตำแหน่งกึ่งกลางแผนที่ (ใช้กับหมุดปักกลางจอ)
- *  - zone : { lat, lng, radiusKm } เขตเหมาจ่ายของพื้นที่ วาดเป็นผืนสีแบรนด์ขอบประ
+ *  - zone : { lat, lng, radiusKm } เขตเหมาจ่ายของวิทยาเขต วาดเป็นผืนสีแบรนด์ขอบประ
  *  - stops : [{ id, n, lat, lng }] หมุดเลขของป้ายแผนผัง / selectedStopId + onStopSelect เชื่อมกับรายการใต้แผนที่
  *  - focus : { lat, lng } เลื่อนไปซูมที่จุดนี้เมื่อค่าเปลี่ยน (ไม่ส่ง = ไม่เลื่อน)
  *  - hereLabel : ข้อความกำกับจุด "คุณอยู่ที่นี่" (me)
@@ -139,7 +139,7 @@ export default function MapView({
     return [pickup, destination, driver, me].filter(Boolean).map((p) => [p.lat, p.lng]);
   }, [fit, pickup, destination, driver, me]);
 
-  // ไม่มีหมุดให้จัดมุมมอง → เริ่มที่จุดกลางของพื้นที่ที่เลือกอยู่
+  // ไม่มีหมุดให้จัดมุมมอง → เริ่มที่จุดกลางของวิทยาเขตที่เลือกอยู่
   const { area } = useArea();
   const center = areaCenter(area);
   const initialCenter = fitPoints[0] ?? [center.lat, center.lng];
@@ -167,7 +167,7 @@ export default function MapView({
         {route?.length > 1 && (
           <>
             <Polyline positions={route} pathOptions={{ color: "#ffffff", weight: 9, opacity: 0.9 }} />
-            {/* สีเส้นทางมาจาก CSS (.kv-route) ให้ตรงกับสีแบรนด์ของพื้นที่ */}
+            {/* สีเส้นทางมาจาก CSS (.kv-route) ให้ตรงกับสีแบรนด์ของวิทยาเขต */}
             <Polyline positions={route} pathOptions={{ weight: 5, opacity: 1, className: "kv-route" }} />
           </>
         )}

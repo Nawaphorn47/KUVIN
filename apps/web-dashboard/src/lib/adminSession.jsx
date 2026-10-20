@@ -2,9 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api, setScopeAreaId } from "../services/api";
 import { getToken, clearToken } from "./auth";
 
-// ข้อมูลแอดมินที่ล็อกอินอยู่ + พื้นที่ที่กำลังดู
-// - SUPER_ADMIN: เลือกดู "ทุกพื้นที่" หรือเจาะพื้นที่เดียวได้ (ส่ง header X-Area-Id ให้ backend กรอง)
-// - AREA_ADMIN: เห็นเฉพาะพื้นที่ตัวเองเสมอ (backend บังคับอยู่แล้ว ไม่ว่าจะส่ง header อะไรมา)
+// ข้อมูลแอดมินที่ล็อกอินอยู่ + วิทยาเขตที่กำลังดู
+// - SUPER_ADMIN: เลือกดู "ทุกวิทยาเขต" หรือเจาะวิทยาเขตเดียวได้ (ส่ง header X-Area-Id ให้ backend กรอง)
+// - AREA_ADMIN: เห็นเฉพาะวิทยาเขตตัวเองเสมอ (backend บังคับอยู่แล้ว ไม่ว่าจะส่ง header อะไรมา)
 const AREA_KEY = "kuvin_admin_area";
 
 function readSavedArea() {
@@ -42,7 +42,7 @@ export function AdminSessionProvider({ children }) {
       if (me.role !== "admin") throw new Error("not admin");
       const list = await reloadAreas();
       if (me.adminRole === "SUPER_ADMIN") {
-        // พื้นที่ที่จำไว้ถูกลบ/ไม่มีแล้ว → กลับไปดูทุกพื้นที่
+        // วิทยาเขตที่จำไว้ถูกลบ/ไม่มีแล้ว → กลับไปดูทุกวิทยาเขต
         const saved = readSavedArea();
         const valid = list.some((a) => a.id === saved) ? saved : "";
         setScopeAreaId(valid || null);
@@ -89,7 +89,7 @@ export function AdminSessionProvider({ children }) {
       admin,
       isSuper,
       areas,
-      areaId, // "" = ทุกพื้นที่ (super เท่านั้น)
+      areaId, // "" = ทุกวิทยาเขต (super เท่านั้น)
       area: areas.find((a) => a.id === areaId) ?? null,
       setAreaId,
       reloadAreas,

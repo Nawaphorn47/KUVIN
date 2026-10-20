@@ -1,5 +1,5 @@
-// geo helpers — ค่าโดยสารและขอบเขตพื้นที่มาจากแถว Area ของแต่ละพื้นที่ (เดิมฝังค่า มก. กำแพงแสนไว้ในไฟล์นี้)
-// NOTE: proposal บทที่ 3.2 ระบุให้ตรวจขอบเขตด้วย PostGIS (polygon จริง) — ตอนนี้ใช้ "รัศมีจากจุดกลางของพื้นที่"
+// geo helpers — ค่าโดยสารและขอบเขตวิทยาเขตมาจากแถว Area ของแต่ละวิทยาเขต (เดิมฝังค่า มก. กำแพงแสนไว้ในไฟล์นี้)
+// NOTE: proposal บทที่ 3.2 ระบุให้ตรวจขอบเขตด้วย PostGIS (polygon จริง) — ตอนนี้ใช้ "รัศมีจากจุดกลางของวิทยาเขต"
 // เป็นค่าประมาณ เพราะยังไม่มีข้อมูลขอบเขตจริง ค่อยเปลี่ยนเป็น ST_Contains กับ polygon ทีหลังได้ที่ isWithinFlatZone จุดเดียว
 
 function toRad(deg) {
@@ -21,12 +21,12 @@ function distanceKm(a, b) {
 
 const areaCenter = (area) => ({ lat: area.centerLat, lng: area.centerLng });
 
-// อยู่ในเขตเหมาจ่ายของพื้นที่ (เช่น ในมหาวิทยาลัย)
+// อยู่ในเขตเหมาจ่ายของวิทยาเขต (เช่น ในมหาวิทยาลัย)
 function isWithinFlatZone(area, point) {
   return distanceKm(areaCenter(area), point) <= area.flatRadiusKm;
 }
 
-// จุดนี้อยู่ในระยะที่วินของพื้นที่นี้ไปรับได้
+// จุดนี้อยู่ในระยะที่วินของวิทยาเขตนี้ไปรับได้
 function isWithinService(area, point) {
   return distanceKm(areaCenter(area), point) <= area.serviceRadiusKm;
 }

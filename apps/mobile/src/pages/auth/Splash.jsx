@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Logo from "../../components/ui/Logo";
 import { useArea } from "../../context/AreaContext";
 
-// หน้าเปิดแอป: สติกเกอร์เด้งเข้ามา ชื่อแอป และชื่อพื้นที่ที่ตรวจเจอ (แบรนด์สีเปลี่ยนตามพื้นที่)
+// หน้าเปิดแอป: สติกเกอร์เด้งเข้ามา ชื่อแอป และชื่อวิทยาเขตที่ตรวจเจอ (แบรนด์สีเปลี่ยนตามวิทยาเขต)
 export default function Splash() {
   const navigate = useNavigate();
   const { area } = useArea();

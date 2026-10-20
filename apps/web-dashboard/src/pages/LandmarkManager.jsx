@@ -9,7 +9,7 @@ import { api } from "../services/api";
 import { PageHeader } from "../components/AdminLayout";
 import { useAdminSession } from "../lib/adminSession";
 
-// จุดกลางสำรองตอนยังไม่มีพื้นที่ (มก. กำแพงแสน) — ปกติใช้จุดกลางของพื้นที่ที่กำลังดู
+// จุดกลางสำรองตอนยังไม่มีวิทยาเขต (มก. กำแพงแสน) — ปกติใช้จุดกลางของวิทยาเขตที่กำลังดู
 const FALLBACK_CENTER = [14.023, 99.9739];
 
 const pin = (color, size, ring) =>
@@ -75,7 +75,7 @@ export default function LandmarkManager() {
   const { isSuper, areaId, area, areas } = useAdminSession();
   const viewArea = area ?? (areas.length === 1 ? areas[0] : null);
   const center = viewArea ? [viewArea.centerLat, viewArea.centerLng] : FALLBACK_CENTER;
-  const canCreate = !isSuper || Boolean(areaId); // super ต้องเลือกพื้นที่ก่อนว่าจะเพิ่มสถานที่ให้พื้นที่ไหน
+  const canCreate = !isSuper || Boolean(areaId); // super ต้องเลือกวิทยาเขตก่อนว่าจะเพิ่มสถานที่ให้วิทยาเขตไหน
   const [landmarks, setLandmarks] = useState(null);
   const [draft, setDraft] = useState(null); // null = ยังไม่ได้เลือก/สร้าง
   const [flyKey, setFlyKey] = useState(0);
@@ -164,7 +164,7 @@ export default function LandmarkManager() {
 
   const draftPos = draft ? [Number(draft.lat), Number(draft.lng)] : null;
   const validPos = draftPos && Number.isFinite(draftPos[0]) && Number.isFinite(draftPos[1]);
-  // เตือนเมื่อหมุดอยู่นอกรัศมีให้บริการของพื้นที่ (ผู้โดยสารเรียกวินไปที่นั่นไม่ได้)
+  // เตือนเมื่อหมุดอยู่นอกรัศมีให้บริการของวิทยาเขต (ผู้โดยสารเรียกวินไปที่นั่นไม่ได้)
   const serviceKm = viewArea?.serviceRadiusKm ?? 6;
   const farKm = validPos ? distanceKm(center, draftPos) : 0;
 
@@ -172,7 +172,7 @@ export default function LandmarkManager() {
     <div className="flex h-full flex-col">
       <PageHeader
         title="สถานที่"
-        subtitle={viewArea ? `จุดรับ-ส่งยอดนิยมของ ${viewArea.displayName}` : "ทุกพื้นที่ — เลือกพื้นที่ทางซ้ายเพื่อเพิ่มสถานที่"}
+        subtitle={viewArea ? `จุดรับ-ส่งยอดนิยมของ ${viewArea.displayName}` : "ทุกวิทยาเขต — เลือกวิทยาเขตทางซ้ายเพื่อเพิ่มสถานที่"}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[380px_1fr]">
@@ -193,7 +193,7 @@ export default function LandmarkManager() {
                 <input type="checkbox" checked={onlyEstimated} onChange={(e) => setOnlyEstimated(e.target.checked)} />
                 เฉพาะพิกัดที่ยังเป็นค่าประมาณ ({estimatedCount})
               </label>
-              <Button onClick={startNew} disabled={!canCreate} title={canCreate ? undefined : "เลือกพื้นที่ก่อน"} className="px-3 py-1.5">
+              <Button onClick={startNew} disabled={!canCreate} title={canCreate ? undefined : "เลือกวิทยาเขตก่อน"} className="px-3 py-1.5">
                 <Plus className="h-3.5 w-3.5" /> เพิ่ม
               </Button>
             </div>
@@ -256,7 +256,7 @@ export default function LandmarkManager() {
               <p className="text-xs text-stone-500">ลากหมุดสีน้ำเงินบนแผนที่ หรือคลิกตำแหน่งที่ถูกต้อง เพื่อย้ายพิกัด</p>
               {viewArea && farKm > serviceKm && (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  พิกัดนี้อยู่ห่างจากจุดกลางพื้นที่ {farKm.toFixed(1)} กม. เกินรัศมีให้บริการ ({serviceKm} กม.) ตรวจให้แน่ใจว่าถูกต้อง
+                  พิกัดนี้อยู่ห่างจากจุดกลางวิทยาเขต {farKm.toFixed(1)} กม. เกินรัศมีให้บริการ ({serviceKm} กม.) ตรวจให้แน่ใจว่าถูกต้อง
                 </p>
               )}
               <label className="flex items-center gap-2 text-sm text-stone-700">

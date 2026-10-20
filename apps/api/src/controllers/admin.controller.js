@@ -96,7 +96,7 @@ exports.unsuspendDriver = asyncHandler(async (req, res) => {
   res.json(await adminService.unsuspendAccount(scope(req), "driver", req.params.id));
 });
 
-// ---- พื้นที่ให้บริการ ----
+// ---- วิทยาเขตที่ให้บริการ ----
 exports.areas = asyncHandler(async (req, res) => {
   res.json(await areaService.listAreas(scope(req)));
 });

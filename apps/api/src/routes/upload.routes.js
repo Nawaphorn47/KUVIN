@@ -6,7 +6,7 @@ const { requireRealImage } = require("../utils/imageCheck");
 
 const router = Router();
 
-// อัปโหลดรูปที่เปิดดูได้สาธารณะ (เช่น โลโก้พื้นที่) — เฉพาะแอดมิน
+// อัปโหลดรูปที่เปิดดูได้สาธารณะ (เช่น โลโก้วิทยาเขต) — เฉพาะแอดมิน
 // เอกสารส่วนตัว (บัตร/ใบขับขี่/เซลฟี่) ไม่ผ่านทางนี้แล้ว ใช้ POST /drivers/me/documents และ /users/me/selfie แทน
 router.post("/", requireAuth(["admin"]), upload.single("file"), requireRealImage, ctrl.uploadFile);
 

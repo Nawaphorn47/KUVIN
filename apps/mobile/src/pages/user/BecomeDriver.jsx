@@ -142,10 +142,10 @@ export default function BecomeDriver() {
 
           {driverType && (
             <div className="mt-7 flex flex-col gap-4">
-              <h2 className="text-lg font-bold text-slate-900">ข้อมูลรถและพื้นที่</h2>
+              <h2 className="text-lg font-bold text-slate-900">ข้อมูลรถและวิทยาเขต</h2>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="driver-area" className="text-sm font-semibold text-slate-700">
-                  พื้นที่ที่จะรับงาน
+                  วิทยาเขตที่จะรับงาน
                 </label>
                 <span className="relative flex items-center">
                   <MapPinned aria-hidden="true" className="pointer-events-none absolute left-4 h-5 w-5 text-slate-500" />

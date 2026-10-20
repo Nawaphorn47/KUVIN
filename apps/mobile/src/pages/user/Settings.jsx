@@ -60,7 +60,7 @@ export default function Settings() {
 
         <p className="mt-8 text-center text-sm leading-relaxed text-slate-600">
           KUVIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์
-          {area && <span className="block">พื้นที่ให้บริการ: {area.name}</span>}
+          {area && <span className="block">วิทยาเขตที่ให้บริการ: {area.name}</span>}
           <span className="block">โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ มก. กำแพงแสน</span>
         </p>
       </main>

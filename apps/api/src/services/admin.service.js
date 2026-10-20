@@ -1,5 +1,5 @@
-// งานของแอดมิน — ทุกฟังก์ชันรับ scope (req.adminScope) ข้อมูลนอกพื้นที่ของแอดมินพื้นที่จะตอบว่า "ไม่พบ"
-// ผู้โดยสารไม่ได้สังกัดพื้นที่ (บัญชีเดียวใช้ได้ทุกที่) แอดมินพื้นที่จึงเห็นเฉพาะผู้โดยสารที่เคยใช้บริการในพื้นที่ตัวเอง
+// งานของแอดมิน — ทุกฟังก์ชันรับ scope (req.adminScope) ข้อมูลนอกวิทยาเขตของแอดมินวิทยาเขตจะตอบว่า "ไม่พบ"
+// ผู้โดยสารไม่ได้สังกัดวิทยาเขต (บัญชีเดียวใช้ได้ทุกที่) แอดมินวิทยาเขตจึงเห็นเฉพาะผู้โดยสารที่เคยใช้บริการในวิทยาเขตตัวเอง
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { sanitizeDriver, sanitizeUser } = require("./auth.service");
@@ -18,7 +18,7 @@ async function findDriverInScope(scope, driverId) {
   return driver;
 }
 
-// ผู้โดยสารอยู่ในขอบเขตของแอดมินพื้นที่ = เคยมีคำขอในพื้นที่นั้น
+// ผู้โดยสารอยู่ในขอบเขตของแอดมินวิทยาเขต = เคยมีคำขอในวิทยาเขตนั้น
 const userInScopeWhere = (scope) => (scope.areaId ? { requests: { some: { areaId: scope.areaId } } } : {});
 
 async function findUserInScope(scope, userId) {
@@ -239,7 +239,7 @@ async function getUserDetail(scope, id) {
     }),
   ]);
   return {
-    // เซลฟี่ยืนยันตัวตน: ลิงก์เซ็นแล้วอายุสั้น ให้หน้าแดชบอร์ดเปิดดูได้ (เห็นเฉพาะแอดมินในขอบเขตพื้นที่)
+    // เซลฟี่ยืนยันตัวตน: ลิงก์เซ็นแล้วอายุสั้น ให้หน้าแดชบอร์ดเปิดดูได้ (เห็นเฉพาะแอดมินในขอบเขตวิทยาเขต)
     profile: { ...sanitizeUser(user), selfieUrl: user.selfieFile ? signedPath(toRef(user.selfieFile)) : null },
     stats: { ...stats, ratingAvg: ratingAgg._avg.score ? Number(ratingAgg._avg.score.toFixed(1)) : null, ratingCount: ratingAgg._count },
     trips,
@@ -274,7 +274,7 @@ async function kickSockets(io, role, id, reason) {
 
 // ระงับบัญชี — ไม่ระงับระหว่างที่มีทริปวิ่งอยู่ (ผู้โดยสารหรือคนขับอีกฝั่งจะค้างกลางทาง) ให้รอทริปจบก่อน
 // ผู้ใช้ที่มีคำขอ PENDING (ยังหาคนขับอยู่) จะถูกยกเลิกคำขอให้อัตโนมัติ
-// การระงับผู้โดยสารมีผลทุกพื้นที่ (บัญชีเดียว) — แอดมินพื้นที่ระงับได้เฉพาะคนที่เคยใช้บริการในพื้นที่ตัวเอง
+// การระงับผู้โดยสารมีผลทุกวิทยาเขต (บัญชีเดียว) — แอดมินวิทยาเขตระงับได้เฉพาะคนที่เคยใช้บริการในวิทยาเขตตัวเอง
 async function suspendAccount(scope, role, id, reason, io) {
   const trimmed = typeof reason === "string" ? reason.trim() : "";
   if (!trimmed) throw ApiError.badRequest("ต้องระบุเหตุผลที่ระงับบัญชี");
@@ -330,7 +330,7 @@ async function unsuspendAccount(scope, role, id) {
   return role === "user" ? sanitizeUser(fresh) : sanitizeDriver(fresh);
 }
 
-// รูปเซลฟี่ยืนยันตัวตนผู้โดยสาร — แอดมินดูได้เฉพาะผู้ใช้ที่อยู่ในขอบเขตพื้นที่ของตัวเอง (เช็คเหมือนหน้ารายละเอียด)
+// รูปเซลฟี่ยืนยันตัวตนผู้โดยสาร — แอดมินดูได้เฉพาะผู้ใช้ที่อยู่ในขอบเขตวิทยาเขตของตัวเอง (เช็คเหมือนหน้ารายละเอียด)
 async function getUserSelfiePath(scope, id) {
   await findUserInScope(scope, id);
   return require("./identity.service").selfiePath(id);
