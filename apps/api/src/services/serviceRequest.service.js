@@ -26,7 +26,7 @@ async function resolvePoint({ landmarkId, lat, lng, address }) {
 
 const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "IN_PROGRESS"];
 
-// พรีวิวระยะทาง/ค่าโดยสารก่อนกดยืนยันจริง (ไม่เขียนลง DB) — คิดตามอัตราของพื้นที่ที่ให้บริการจุดรับนี้
+// พรีวิวระยะทาง/ค่าโดยสารก่อนกดยืนยันจริง (ไม่เขียนลง DB) — คิดตามอัตราของวิทยาเขตที่ให้บริการจุดรับนี้
 async function estimateFare(payload) {
   const pickup = await resolvePoint({
     landmarkId: payload.pickupLandmarkId,
@@ -43,7 +43,7 @@ async function estimateFare(payload) {
   const route = await getRoute(pickup, destination);
   const fareInfo = calculateFare(area, { pickup, destination, routeDistanceKm: route.distanceKm });
   return {
-    // พื้นที่ที่ server เลือกจริงจากจุดรับ (อาจไม่ใช่พื้นที่ที่แอปเลือกไว้ ถ้าจุดรับอยู่ในพื้นที่อื่น) พร้อมอัตราที่ใช้คิด
+    // วิทยาเขตที่ server เลือกจริงจากจุดรับ (อาจไม่ใช่วิทยาเขตที่แอปเลือกไว้ ถ้าจุดรับอยู่ในวิทยาเขตอื่น) พร้อมอัตราที่ใช้คิด
     area: { id: area.id, displayName: area.displayName, flatFare: area.flatFare, ratePerKm: area.ratePerKm },
     isWithinCampus: fareInfo.isWithinCampus,
     distanceKm: Number(fareInfo.distanceKm.toFixed(2)),
@@ -80,7 +80,7 @@ async function createRequest(userId, payload, io) {
     address: payload.destinationAddress,
   });
 
-  // พื้นที่ที่ให้บริการ (เลือกจากจุดรับ) กำหนดทั้งอัตราค่าโดยสารและคิวคนขับที่จะเสนองาน
+  // วิทยาเขตที่ให้บริการ (เลือกจากจุดรับ) กำหนดทั้งอัตราค่าโดยสารและคิวคนขับที่จะเสนองาน
   const area = await areaService.resolveForPickup(pickup, payload.areaId);
 
   // ค่าโดยสารนอกเขตเหมาจ่ายคิดจากระยะทางตามถนนจริง (fallback เป็นเส้นตรงถ้าบริการแผนที่ไม่ตอบ)
@@ -307,7 +307,7 @@ async function getById(requestId, actor) {
   });
   if (!request) throw ApiError.notFound("ไม่พบคำขอนี้");
 
-  // แอดมินดูรายละเอียดทริปผ่าน /api/admin/* ที่กรองตามพื้นที่แล้ว — ตรงนี้ให้เฉพาะคู่กรณีของทริป
+  // แอดมินดูรายละเอียดทริปผ่าน /api/admin/* ที่กรองตามวิทยาเขตแล้ว — ตรงนี้ให้เฉพาะคู่กรณีของทริป
   const allowed =
     (actor.role === "user" && request.userId === actor.id) ||
     (actor.role === "driver" && request.driverId === actor.id);

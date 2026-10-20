@@ -9,7 +9,7 @@ const q = require("../src/services/queue.service");
 
 const B = `http://localhost:${process.env.PORT || 4000}/api`;
 const PREFIX = "0998TEST";
-const AREA = "area-ku-kps"; // พื้นที่แรกที่ migration สร้างไว้
+const AREA = "area-ku-kps"; // วิทยาเขตแรกที่ migration สร้างไว้
 let passed = 0;
 
 async function call(method, path, token, body) {

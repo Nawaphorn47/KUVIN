@@ -3,10 +3,10 @@ const ApiError = require("../utils/ApiError");
 const { areaWhere, assertInScope } = require("../middlewares/adminScope");
 const { findForPoint } = require("./area.service");
 
-// room ของแอดมินที่ต้องเห็นเหตุในพื้นที่นี้ (ดู sockets/index.js) — super เห็นทุกพื้นที่เสมอ
+// room ของแอดมินที่ต้องเห็นเหตุในวิทยาเขตนี้ (ดู sockets/index.js) — super เห็นทุกวิทยาเขตเสมอ
 const adminRooms = (areaId) => (areaId ? ["admin:super", `admin:area:${areaId}`] : ["admin:super"]);
 
-// พื้นที่ของเหตุ: ทริปที่กำลังวิ่ง > พื้นที่ที่คนขับสังกัด > พื้นที่ที่ครอบคลุมพิกัด
+// วิทยาเขตของเหตุ: ทริปที่กำลังวิ่ง > วิทยาเขตที่คนขับสังกัด > วิทยาเขตที่ครอบคลุมพิกัด
 async function resolveAlertArea(actorType, actorId, { serviceRequestId, lat, lng }) {
   if (serviceRequestId) {
     const request = await prisma.serviceRequest.findUnique({ where: { id: serviceRequestId }, select: { areaId: true } });

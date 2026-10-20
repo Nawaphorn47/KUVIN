@@ -63,7 +63,7 @@ export default function Home() {
   // มีทริปที่ยังไม่จบ/ยังไม่จ่ายเงินค้างอยู่ไหม — ถ้ามีพาไปหน้านั้นเลยแทนที่จะโชว์หน้าแรกเหมือนไม่มีอะไรเกิดขึ้น
   const checkingActiveTrip = useResumeActiveTrip("user");
 
-  // สถานที่ของพื้นที่ที่เลือกอยู่ — เปลี่ยนพื้นที่แล้วโหลดใหม่
+  // สถานที่ของวิทยาเขตที่เลือกอยู่ — เปลี่ยนวิทยาเขตแล้วโหลดใหม่
   useEffect(() => {
     if (!area) return;
     setLandmarks(null);
@@ -134,7 +134,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
-      {/* แผ่นป้ายหัว: พื้นที่ (กดเปลี่ยนได้) แจ้งเตือน SOS และคำถามหลักของหน้า */}
+      {/* แผ่นป้ายหัว: วิทยาเขต (กดเปลี่ยนได้) แจ้งเตือน SOS และคำถามหลักของหน้า */}
       <header className="flex-none bg-brand-600 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -178,7 +178,7 @@ export default function Home() {
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
         {areaError && (
           <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
-            <span>โหลดพื้นที่ให้บริการไม่สำเร็จ</span>
+            <span>โหลดวิทยาเขตที่ให้บริการไม่สำเร็จ</span>
             <button type="button" onClick={reloadAreas} className="font-bold underline underline-offset-2">
               ลองใหม่
             </button>
@@ -186,12 +186,12 @@ export default function Home() {
         )}
         {!areaLoading && !areaError && !area && (
           <p className="mx-4 mt-4 rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-900">
-            ยังไม่มีพื้นที่ที่เปิดให้บริการในขณะนี้
+            ยังไม่มีวิทยาเขตที่เปิดให้บริการในขณะนี้
           </p>
         )}
 
         {area && (
-          <section aria-label="แผนผังพื้นที่" className="px-4 pt-4">
+          <section aria-label="แผนผังวิทยาเขต" className="px-4 pt-4">
             <MapView
               height="h-64"
               zone={zone}
@@ -221,7 +221,7 @@ export default function Home() {
           )}
           {landmarks !== null && stops.length === 0 && (
             <p className="rounded-xl bg-white px-4 py-4 text-sm text-slate-600 ring-1 ring-slate-200">
-              ยังไม่มีปลายทางยอดนิยมในพื้นที่นี้ ค้นหาจากช่องด้านบนได้เลย
+              ยังไม่มีปลายทางยอดนิยมในวิทยาเขตนี้ ค้นหาจากช่องด้านบนได้เลย
             </p>
           )}
           {landmarks !== null && stops.length > 0 && (

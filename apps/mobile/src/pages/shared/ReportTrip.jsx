@@ -12,7 +12,7 @@ const DETAIL_MAX = 1000; // ตรงกับ tripSafety.service.js
 const dateTime = (iso) =>
   iso ? new Date(iso).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 
-// แจ้งปัญหาหลังทริป (ผู้โดยสารหรือคนขับ) — ส่งถึงแอดมินของพื้นที่ทริปนั้น ใช้ตรวจสอบ/ระงับบัญชี และเก็บเป็นฟีดแบ็ก
+// แจ้งปัญหาหลังทริป (ผู้โดยสารหรือคนขับ) — ส่งถึงแอดมินของวิทยาเขตทริปนั้น ใช้ตรวจสอบ/ระงับบัญชี และเก็บเป็นฟีดแบ็ก
 // state.request = ทริปที่จะแจ้ง (มาจากหน้าจบทริปหรือประวัติ)
 export default function ReportTrip() {
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ export default function ReportTrip() {
             <Check className="h-8 w-8" strokeWidth={3} />
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">ส่งถึงแอดมินแล้ว</h1>
-          <p className="text-[15px] text-slate-600">เรื่องนี้ขึ้นในหน้าแอดมินของพื้นที่แล้ว เพื่อให้ตรวจสอบต่อ</p>
+          <p className="text-[15px] text-slate-600">เรื่องนี้ขึ้นในหน้าแอดมินของวิทยาเขตแล้ว เพื่อให้ตรวจสอบต่อ</p>
         </div>
         <div className="border-t border-slate-200 bg-white px-4 py-3">
           <Button onClick={() => navigate(role === "driver" ? "/driver/home" : "/home", { replace: true })}>กลับหน้าแรก</Button>

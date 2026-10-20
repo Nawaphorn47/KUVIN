@@ -112,8 +112,8 @@ export default function PeopleManager() {
         title="ผู้ใช้และคนขับ"
         subtitle={
           area
-            ? `คนขับของ ${area.displayName} และผู้โดยสารที่เคยใช้บริการในพื้นที่นี้`
-            : "ผู้โดยสารใช้บัญชีเดียวได้ทุกพื้นที่ ส่วนคนขับสังกัดพื้นที่เดียว"
+            ? `คนขับของ ${area.displayName} และผู้โดยสารที่เคยใช้บริการในวิทยาเขตนี้`
+            : "ผู้โดยสารใช้บัญชีเดียวได้ทุกวิทยาเขต ส่วนคนขับสังกัดวิทยาเขตเดียว"
         }
       />
 
@@ -172,7 +172,7 @@ export default function PeopleManager() {
               ) : (
                 <tr>
                   <th className="px-4 py-3">ชื่อ</th>
-                  {showArea && <th className="px-4 py-3">พื้นที่</th>}
+                  {showArea && <th className="px-4 py-3">วิทยาเขต</th>}
                   <th className="px-4 py-3">เบอร์วิน</th>
                   <th className="px-4 py-3">เบอร์โทร</th>
                   <th className="px-4 py-3">ทะเบียนรถ</th>
@@ -341,7 +341,7 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
               <Field label="เบอร์โทร" value={p.phone} />
               {isDriver ? (
                 <>
-                  <Field label="พื้นที่" value={p.area?.displayName ?? "-"} />
+                  <Field label="วิทยาเขต" value={p.area?.displayName ?? "-"} />
                   <Field label="สถานะการยืนยัน" value={VERIFICATION[p.verificationStatus].label} />
                   <Field label="รุ่นรถ" value={p.vehicleModel ?? "-"} />
                   <Field label="พร้อมเพย์" value={p.promptPayId ?? "ยังไม่ได้ตั้งค่า"} />

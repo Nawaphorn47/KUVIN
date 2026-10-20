@@ -131,10 +131,10 @@ export default function Profile() {
             </ul>
           </section>
 
-          {/* บัญชีเดียวใช้ได้ทุกพื้นที่ — เปลี่ยนพื้นที่ตรงนี้ได้ (ปกติระบบเลือกให้จาก GPS) */}
+          {/* บัญชีเดียวใช้ได้ทุกวิทยาเขต — เปลี่ยนวิทยาเขตตรงนี้ได้ (ปกติระบบเลือกให้จาก GPS) */}
           <section aria-labelledby="area-title">
             <h2 id="area-title" className="mb-2 text-sm font-semibold text-slate-600">
-              พื้นที่ที่ใช้อยู่
+              วิทยาเขตที่ใช้อยู่
             </h2>
             <div className="rounded-xl bg-white p-3 ring-1 ring-slate-200">
               <AreaSwitcher />

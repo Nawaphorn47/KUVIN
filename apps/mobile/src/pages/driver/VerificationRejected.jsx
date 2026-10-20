@@ -6,7 +6,7 @@ import StatusScreen from "../../components/shared/StatusScreen";
 export default function VerificationRejected() {
   const navigate = useNavigate();
   const location = useLocation();
-  const reason = location.state?.reason || "แอดมินไม่ได้ระบุเหตุผล ติดต่อแอดมินของพื้นที่เพื่อสอบถาม";
+  const reason = location.state?.reason || "แอดมินไม่ได้ระบุเหตุผล ติดต่อแอดมินของวิทยาเขตเพื่อสอบถาม";
 
   return (
     <StatusScreen

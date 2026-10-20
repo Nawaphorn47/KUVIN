@@ -121,7 +121,7 @@ async function submitVerification(driverId, payload) {
     });
     return sanitizeDriver(driver);
   } catch (err) {
-    if (err?.code === "P2002") throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้`);
+    if (err?.code === "P2002") throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในวิทยาเขตนี้`);
     throw err;
   }
 }

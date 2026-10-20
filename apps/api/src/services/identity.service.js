@@ -259,7 +259,7 @@ async function switchToUser(driverId) {
   return { user: sanitizeUser(user), token: issueToken(user.id, "user") };
 }
 
-// เบอร์วินไม่บังคับแล้ว (ใครก็สมัครขับได้) — ไม่กรอก = ได้เลขถัดไปของพื้นที่ ใช้เป็นเลขประจำตัวในคิว
+// เบอร์วินไม่บังคับแล้ว (ใครก็สมัครขับได้) — ไม่กรอก = ได้เลขถัดไปของวิทยาเขต ใช้เป็นเลขประจำตัวในคิว
 async function nextVinNumber(areaId) {
   const rows = await prisma.driver.findMany({ where: { areaId }, select: { vinNumber: true } });
   const max = rows.reduce((m, r) => Math.max(m, Number.parseInt(r.vinNumber, 10) || 0), 0);
@@ -284,16 +284,16 @@ function typeFields({ driverType, studentId, winGroupName, vinNumber }) {
   return out;
 }
 
-// ตรวจข้อมูลใบสมัครคนขับ (ป้ายทะเบียน พร้อมเพย์ พื้นที่ เบอร์วิน) — คืนป้ายทะเบียนที่ตัดช่องว่างแล้ว
+// ตรวจข้อมูลใบสมัครคนขับ (ป้ายทะเบียน พร้อมเพย์ วิทยาเขต เบอร์วิน) — คืนป้ายทะเบียนที่ตัดช่องว่างแล้ว
 async function validateApplication({ licensePlate, promptPayId, areaId, vinNumber }) {
   const plate = typeof licensePlate === "string" ? licensePlate.trim() : "";
   if (!plate || plate.length > 40) throw ApiError.badRequest("กรุณากรอกป้ายทะเบียนรถ");
   if (promptPayId && !isValidPromptPayId(promptPayId)) {
     throw ApiError.badRequest("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
   }
-  if (!areaId) throw ApiError.badRequest("กรุณาเลือกพื้นที่ที่จะรับงาน");
+  if (!areaId) throw ApiError.badRequest("กรุณาเลือกวิทยาเขตที่จะรับงาน");
   const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
-  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
+  if (!area) throw ApiError.badRequest("ไม่พบวิทยาเขตที่เลือก หรือวิทยาเขตนี้ปิดให้บริการแล้ว");
   if (vinNumber) assertNumericVinNumber(vinNumber);
   return plate;
 }
@@ -333,7 +333,7 @@ async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleMo
     return { driver: sanitizeDriver(driver), token: issueToken(driver.id, "driver") };
   } catch (err) {
     if (err?.code === "P2002" && String(err.meta?.target ?? "").includes("vinNumber")) {
-      throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในพื้นที่นี้ เว้นว่างให้ระบบตั้งให้ได้`);
+      throw ApiError.conflict(`เบอร์วิน ${vinNumber} มีคนขับใช้แล้วในวิทยาเขตนี้ เว้นว่างให้ระบบตั้งให้ได้`);
     }
     throw err;
   }

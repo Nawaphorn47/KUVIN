@@ -24,7 +24,7 @@ export default function Onboarding() {
 
         <h1 className="mt-8 text-[2rem] font-bold leading-tight tracking-tight">เรียกวิน แตะเลขเดียวก็ไป</h1>
         <p className="mt-2 text-base text-brand-100">
-          เห็นราคาก่อนกดทุกครั้ง บัญชีเดียวทั้งเรียกวินและขับวิน ใช้ได้ทุกพื้นที่ที่มี KUVIN
+          เห็นราคาก่อนกดทุกครั้ง บัญชีเดียวทั้งเรียกวินและขับวิน ใช้ได้ทุกวิทยาเขตที่มี KUVIN
         </p>
       </main>
 

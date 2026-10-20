@@ -1,5 +1,5 @@
-// ทดสอบแพลตฟอร์มหลายพื้นที่ + สิทธิ์แอดมิน 2 ระดับ + การเงินคนขับ — รัน: npm run test:platform (ไม่ต้องเปิด API)
-// สร้างพื้นที่ทดสอบ (เชียงใหม่ — ไกลจาก มก. กำแพงแสนมาก) พร้อมคนขับ/ผู้ใช้/แอดมินชั่วคราว แล้วลบทิ้งทั้งหมดตอนจบ
+// ทดสอบแพลตฟอร์มหลายวิทยาเขต + สิทธิ์แอดมิน 2 ระดับ + การเงินคนขับ — รัน: npm run test:platform (ไม่ต้องเปิด API)
+// สร้างวิทยาเขตทดสอบ (เชียงใหม่ — ไกลจาก มก. กำแพงแสนมาก) พร้อมคนขับ/ผู้ใช้/แอดมินชั่วคราว แล้วลบทิ้งทั้งหมดตอนจบ
 require("dotenv").config();
 const assert = require("node:assert/strict");
 const prisma = require("../src/config/prisma");
@@ -42,7 +42,7 @@ async function expectReject(promise, pattern) {
 }
 
 const superScope = { adminId: "x", isSuper: true, areaId: null };
-let cm; // พื้นที่ทดสอบ
+let cm; // วิทยาเขตทดสอบ
 let cmScope;
 let kpsScope;
 const created = { drivers: [], users: [], admins: [] };
@@ -75,7 +75,7 @@ async function mkUser() {
 async function main() {
   cm = await areaService.createArea({
     slug: SLUG,
-    name: "พื้นที่ทดสอบเชียงใหม่",
+    name: "วิทยาเขตทดสอบเชียงใหม่",
     displayName: "ทดสอบ CM",
     centerLat: CM.lat,
     centerLng: CM.lng,
@@ -89,8 +89,8 @@ async function main() {
   cmScope = { adminId: "x", isSuper: false, areaId: cm.id };
   kpsScope = { adminId: "x", isSuper: false, areaId: KPS };
 
-  console.log("พื้นที่ + ค่าโดยสาร");
-  await test("ค่าโดยสารคิดตามอัตราของพื้นที่นั้น (เหมาจ่าย / ต่อ กม. / ขั้นต่ำ)", () => {
+  console.log("วิทยาเขต + ค่าโดยสาร");
+  await test("ค่าโดยสารคิดตามอัตราของวิทยาเขตนั้น (เหมาจ่าย / ต่อ กม. / ขั้นต่ำ)", () => {
     const near = { lat: CM.lat + 0.001, lng: CM.lng };
     assert.equal(geo.calculateFare(cm, { pickup: CM, destination: near }).fare, 30);
     const far = geo.calculateFare(cm, { pickup: CM, destination: CM, routeDistanceKm: 5 });
@@ -100,39 +100,39 @@ async function main() {
     assert.equal(geo.calculateFare(cm, { pickup: CM, destination: out, routeDistanceKm: 5 }).fare, 60);
     assert.equal(geo.calculateFare(cm, { pickup: CM, destination: out, routeDistanceKm: 1 }).fare, 25); // ขั้นต่ำ
   });
-  await test("หาพื้นที่จากพิกัด: เชียงใหม่ → พื้นที่ทดสอบ, กำแพงแสน → KPS, กรุงเทพฯ → ไม่อยู่ในพื้นที่ใด", async () => {
+  await test("หาวิทยาเขตจากพิกัด: เชียงใหม่ → วิทยาเขตทดสอบ, กำแพงแสน → KPS, กรุงเทพฯ → ไม่อยู่ในวิทยาเขตใด", async () => {
     assert.equal((await areaService.findForPoint(CM)).id, cm.id);
     assert.equal((await areaService.findForPoint({ lat: 14.023, lng: 99.9739 })).id, KPS);
     assert.equal(await areaService.findForPoint({ lat: 13.7563, lng: 100.5018 }), null);
   });
-  await test("เลือกพื้นที่เองแต่จุดรับอยู่นอกพื้นที่นั้น → ใช้พื้นที่ที่ครอบคลุมจุดรับแทน; นอกทุกพื้นที่ → ปฏิเสธ", async () => {
+  await test("เลือกวิทยาเขตเองแต่จุดรับอยู่นอกวิทยาเขตนั้น → ใช้วิทยาเขตที่ครอบคลุมจุดรับแทน; นอกทุกวิทยาเขต → ปฏิเสธ", async () => {
     assert.equal((await areaService.resolveForPickup(CM, KPS)).id, cm.id);
-    await expectReject(areaService.resolveForPickup({ lat: 13.7563, lng: 100.5018 }), /นอกพื้นที่ให้บริการ/);
+    await expectReject(areaService.resolveForPickup({ lat: 13.7563, lng: 100.5018 }), /นอกวิทยาเขตที่ให้บริการ/);
   });
-  await test("ปิดพื้นที่แล้วหาไม่เจอ และพื้นที่ใหม่ต้องมีรหัสไม่ซ้ำ", async () => {
+  await test("ปิดวิทยาเขตแล้วหาไม่เจอ และวิทยาเขตใหม่ต้องมีรหัสไม่ซ้ำ", async () => {
     await expectReject(areaService.createArea({ slug: SLUG, name: "x", displayName: "x", centerLat: 18, centerLng: 99 }), /ถูกใช้แล้ว/);
     await areaService.updateArea(superScope, cm.id, { isActive: false });
     assert.equal(await areaService.findForPoint(CM), null);
     await areaService.updateArea(superScope, cm.id, { isActive: true });
   });
 
-  console.log("คนขับ + คิวแยกตามพื้นที่");
-  await test("เบอร์วินซ้ำได้ข้ามพื้นที่ แต่ซ้ำในพื้นที่เดียวกันไม่ได้", async () => {
+  console.log("คนขับ + คิวแยกตามวิทยาเขต");
+  await test("เบอร์วินซ้ำได้ข้ามวิทยาเขต แต่ซ้ำในวิทยาเขตเดียวกันไม่ได้", async () => {
     const vin = String(90000 + (stamp % 9000));
     await mkDriver(KPS, vin);
     await mkDriver(cm.id, vin);
     await expectReject(
       auth.registerDriver({ fullName: "T", phone: phone(), password: "x1234567", areaId: cm.id, vinNumber: vin, licensePlate: "T" }),
-      /มีคนขับใช้แล้วในพื้นที่นี้/
+      /มีคนขับใช้แล้วในวิทยาเขตนี้/
     );
   });
-  await test("สมัครคนขับต้องเลือกพื้นที่ที่เปิดอยู่", async () => {
+  await test("สมัครคนขับต้องเลือกวิทยาเขตที่เปิดอยู่", async () => {
     await expectReject(
       auth.registerDriver({ fullName: "T", phone: phone(), password: "x1234567", vinNumber: "5", licensePlate: "T" }),
-      /เลือกพื้นที่/
+      /เลือกวิทยาเขต/
     );
   });
-  await test("คำขอในพื้นที่ทดสอบเสนองานให้คนขับในพื้นที่นั้นเท่านั้น แม้คนขับ KPS เข้าคิวก่อน", async () => {
+  await test("คำขอในวิทยาเขตทดสอบเสนองานให้คนขับในวิทยาเขตนั้นเท่านั้น แม้คนขับ KPS เข้าคิวก่อน", async () => {
     const kpsDriver = await mkDriver(KPS, `K${stamp % 100000}`);
     const cmDriver = await mkDriver(cm.id, `C${stamp % 100000}`);
     await q.goOnline(kpsDriver.id); // เข้าคิวก่อน
@@ -150,7 +150,7 @@ async function main() {
   });
 
   console.log("สิทธิ์แอดมิน");
-  await test("แอดมินพื้นที่เห็นเฉพาะคนขับ/ทริป/สถิติของพื้นที่ตัวเอง", async () => {
+  await test("แอดมินวิทยาเขตเห็นเฉพาะคนขับ/ทริป/สถิติของวิทยาเขตตัวเอง", async () => {
     const cmDrivers = await adminService.listDrivers(cmScope, { q: "T-plat" });
     assert.ok(cmDrivers.length > 0 && cmDrivers.every((d) => d.areaId === cm.id));
     const trips = await adminService.listTrips(cmScope);
@@ -161,7 +161,7 @@ async function main() {
     const stats = await adminService.getStats(cmScope);
     assert.equal(stats.approvedDrivers, cmDrivers.filter((d) => d.verificationStatus === "APPROVED").length);
   });
-  await test("แอดมินพื้นที่เห็นเฉพาะผู้โดยสารที่เคยใช้บริการในพื้นที่ตัวเอง", async () => {
+  await test("แอดมินวิทยาเขตเห็นเฉพาะผู้โดยสารที่เคยใช้บริการในวิทยาเขตตัวเอง", async () => {
     const kpsOnlyUser = await mkUser();
     await prisma.serviceRequest.create({
       data: { userId: kpsOnlyUser.id, areaId: KPS, status: "CANCELLED", pickupLat: 14, pickupLng: 99, destinationLat: 14, destinationLng: 99, fare: 20 },
@@ -170,23 +170,23 @@ async function main() {
     await expectReject(adminService.suspendAccount(cmScope, "user", kpsOnlyUser.id, "x", null), /ไม่พบผู้ใช้นี้/);
     assert.equal((await adminService.getUserDetail(kpsScope, kpsOnlyUser.id)).profile.id, kpsOnlyUser.id);
   });
-  await test("สถานที่: แอดมินพื้นที่สร้างได้แค่ในพื้นที่ตัวเอง แก้ของพื้นที่อื่นไม่ได้, super ต้องเลือกพื้นที่", async () => {
+  await test("สถานที่: แอดมินวิทยาเขตสร้างได้แค่ในวิทยาเขตตัวเอง แก้ของวิทยาเขตอื่นไม่ได้, super ต้องเลือกวิทยาเขต", async () => {
     const lm = await landmarkService.createLandmark(cmScope, { name: "T-plat-lm", lat: CM.lat, lng: CM.lng, areaId: KPS });
     assert.equal(lm.areaId, cm.id);
     await expectReject(landmarkService.updateLandmark(kpsScope, lm.id, { name: "x" }), /ไม่พบสถานที่นี้/);
-    await expectReject(landmarkService.createLandmark(superScope, { name: "x", lat: CM.lat, lng: CM.lng }), /เลือกพื้นที่/);
+    await expectReject(landmarkService.createLandmark(superScope, { name: "x", lat: CM.lat, lng: CM.lng }), /เลือกวิทยาเขต/);
     const list = await landmarkService.listLandmarks({ areaId: cm.id });
     assert.deepEqual(list.map((l) => l.id), [lm.id]);
   });
-  await test("ตั้งค่าพื้นที่: แอดมินพื้นที่แก้ค่าโดยสารได้ แต่ปิดพื้นที่/เปลี่ยนรหัส/แก้พื้นที่อื่นไม่ได้", async () => {
+  await test("ตั้งค่าวิทยาเขต: แอดมินวิทยาเขตแก้ค่าโดยสารได้ แต่ปิดวิทยาเขต/เปลี่ยนรหัส/แก้วิทยาเขตอื่นไม่ได้", async () => {
     const updated = await areaService.updateArea(cmScope, cm.id, { flatFare: 35, isActive: false, slug: "hacked" });
     assert.equal(updated.flatFare, 35);
     assert.equal(updated.isActive, true);
     assert.equal(updated.slug, SLUG);
-    await expectReject(areaService.updateArea(cmScope, KPS, { flatFare: 1 }), /ไม่พบพื้นที่นี้/);
+    await expectReject(areaService.updateArea(cmScope, KPS, { flatFare: 1 }), /ไม่พบวิทยาเขตนี้/);
     await expectReject(areaService.updateArea(cmScope, cm.id, { flatRadiusKm: 20 }), /ไม่น้อยกว่ารัศมีเขตเหมาจ่าย/);
   });
-  await test("แอดมินพื้นที่ส่ง X-Area-Id ของพื้นที่อื่นมา ก็ยังถูกจำกัดที่พื้นที่ตัวเอง", async () => {
+  await test("แอดมินวิทยาเขตส่ง X-Area-Id ของวิทยาเขตอื่นมา ก็ยังถูกจำกัดที่วิทยาเขตตัวเอง", async () => {
     const admin = await adminAccounts.createAdmin({
       fullName: "T-plat-admin",
       email: `plat-admin-${stamp}@example.com`,
@@ -199,10 +199,10 @@ async function main() {
     await new Promise((resolve, reject) => adminScope(req, {}, (err) => (err ? reject(err) : resolve())));
     assert.deepEqual(req.adminScope, { adminId: admin.id, isSuper: false, areaId: cm.id });
   });
-  await test("บัญชีแอดมิน: แอดมินพื้นที่ต้องผูกพื้นที่, ลดสิทธิ์ super คนสุดท้าย/ลบตัวเองไม่ได้", async () => {
+  await test("บัญชีแอดมิน: แอดมินวิทยาเขตต้องผูกวิทยาเขต, ลดสิทธิ์ super คนสุดท้าย/ลบตัวเองไม่ได้", async () => {
     await expectReject(
       adminAccounts.createAdmin({ fullName: "x", email: `x-${stamp}@example.com`, password: "test-password-123", role: "AREA_ADMIN" }),
-      /เลือกพื้นที่/
+      /เลือกวิทยาเขต/
     );
     const supers = await prisma.admin.findMany({ where: { role: "SUPER_ADMIN" } });
     if (supers.length === 1) {
@@ -210,7 +210,7 @@ async function main() {
     }
     await expectReject(adminAccounts.deleteAdmin(created.admins[0], created.admins[0]), /ลบบัญชีของตัวเองไม่ได้/);
   });
-  await test("SOS ของคนขับพื้นที่ทดสอบผูกกับพื้นที่นั้น แอดมิน KPS เห็น/ปิดเคสไม่ได้", async () => {
+  await test("SOS ของคนขับวิทยาเขตทดสอบผูกกับวิทยาเขตนั้น แอดมิน KPS เห็น/ปิดเคสไม่ได้", async () => {
     const cmDriver = (await adminService.listDrivers(cmScope, { q: "T-plat" }))[0];
     const alert = await sosService.createAlert({ role: "driver", id: cmDriver.id }, { lat: CM.lat, lng: CM.lng }, null);
     assert.equal(alert.areaId, cm.id);

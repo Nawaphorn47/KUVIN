@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { areaWhere, assertInScope, targetArea } = require("../middlewares/adminScope");
 
-// สถานที่ของพื้นที่เดียว (แอปส่ง areaId ของพื้นที่ที่เลือกอยู่) — ไม่ส่ง areaId = ทุกพื้นที่ที่เปิดให้บริการ
+// สถานที่ของวิทยาเขตเดียว (แอปส่ง areaId ของวิทยาเขตที่เลือกอยู่) — ไม่ส่ง areaId = ทุกวิทยาเขตที่เปิดให้บริการ
 async function listLandmarks({ areaId, popularOnly = false, query } = {}) {
   return prisma.landmark.findMany({
     where: {
@@ -16,7 +16,7 @@ async function listLandmarks({ areaId, popularOnly = false, query } = {}) {
   });
 }
 
-// ---- admin: จัดการสถานที่ (เฉพาะพื้นที่ในขอบเขตของแอดมินคนนั้น) ----
+// ---- admin: จัดการสถานที่ (เฉพาะวิทยาเขตในขอบเขตของแอดมินคนนั้น) ----
 // พิกัดต้องอยู่ในช่วงที่เป็นไปได้ในไทย (กันพิมพ์สลับ lat/lng หรือ typo ที่ทำให้คำนวณค่าโดยสารเพี้ยนทั้งระบบ)
 const LAT_RANGE = [5, 21];
 const LNG_RANGE = [97, 106];
@@ -52,7 +52,7 @@ async function listForAdmin(scope) {
 async function createLandmark(scope, body) {
   const areaId = targetArea(scope, body.areaId);
   const area = await prisma.area.findUnique({ where: { id: areaId }, select: { id: true } });
-  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก");
+  if (!area) throw ApiError.badRequest("ไม่พบวิทยาเขตที่เลือก");
   return prisma.landmark.create({ data: { ...cleanInput(body, { partial: false }), areaId } });
 }
 

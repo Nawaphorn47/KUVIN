@@ -5,7 +5,7 @@ const ctrl = require("../controllers/admin.controller");
 
 const router = Router();
 
-// ทุก route ต้องเป็นแอดมิน และถูกจำกัดข้อมูลตามพื้นที่ที่ดูแล (ดู middlewares/adminScope.js)
+// ทุก route ต้องเป็นแอดมิน และถูกจำกัดข้อมูลตามวิทยาเขตที่ดูแล (ดู middlewares/adminScope.js)
 router.use(requireAuth(["admin"]), adminScope);
 
 router.get("/stats", ctrl.stats);
@@ -34,7 +34,7 @@ router.post("/sos/:id/resolve", ctrl.resolveSos);
 router.get("/reports", ctrl.reports);
 router.post("/reports/:id/resolve", ctrl.resolveReport);
 
-// พื้นที่: แอดมินพื้นที่ดู/แก้ค่าพื้นที่ตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ ขอบเขต) สร้างใหม่ได้เฉพาะ super
+// วิทยาเขต: แอดมินวิทยาเขตดู/แก้ค่าวิทยาเขตตัวเองได้ (ค่าโดยสาร เบอร์ฉุกเฉิน ชื่อ ขอบเขต) สร้างใหม่ได้เฉพาะ super
 router.get("/areas", ctrl.areas);
 router.get("/areas/:id", ctrl.area);
 router.post("/areas", requireSuper, ctrl.createArea);

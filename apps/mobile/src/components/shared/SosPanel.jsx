@@ -15,7 +15,7 @@ const LOGGABLE_NUMBERS = ["1669", "191"]; // ต้องตรงกับ VALI
 // tripContext (เฉพาะ sheet): { pickup, dropoff, driverName? } โชว์ให้เห็นว่ายังอยู่ในบริบททริปเดิม ไม่ได้หลุดไปไหน
 export default function SosPanel({ variant = "sheet", tripContext, onClose }) {
   const hasSession = Boolean(getToken());
-  const emergencyContacts = emergencyContactsFor(useArea().area); // เบอร์ของพื้นที่ที่อยู่ + เบอร์ระดับประเทศ
+  const emergencyContacts = emergencyContactsFor(useArea().area); // เบอร์ของวิทยาเขตที่อยู่ + เบอร์ระดับประเทศ
   const [phase, setPhase] = useState("idle"); // idle | holding | sending | sent | error
   const [alertId, setAlertId] = useState(null);
   const [error, setError] = useState("");

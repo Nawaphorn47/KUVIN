@@ -12,7 +12,7 @@ export default function PickOnMap() {
   const navigate = useNavigate();
   const { setBooking } = useApp();
   const { area } = useArea();
-  const start = areaCenter(area); // เริ่มที่จุดกลางของพื้นที่ที่เลือกอยู่
+  const start = areaCenter(area); // เริ่มที่จุดกลางของวิทยาเขตที่เลือกอยู่
   const [center, setCenter] = useState(start);
   const inZone = area ? distanceKm(start, center) <= area.flatRadiusKm : true;
 

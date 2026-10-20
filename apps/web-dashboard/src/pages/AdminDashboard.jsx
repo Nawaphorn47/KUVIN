@@ -55,7 +55,7 @@ const QUEUE_LABEL = {
 
 export default function AdminDashboard() {
   const { isSuper, areaId, area } = useAdminSession();
-  const showArea = isSuper && !areaId; // super ดูทุกพื้นที่ → โชว์คอลัมน์พื้นที่
+  const showArea = isSuper && !areaId; // super ดูทุกวิทยาเขต → โชว์คอลัมน์วิทยาเขต
   const [stats, setStats] = useState(null);
   const [pendingDrivers, setPendingDrivers] = useState(null);
   const [trips, setTrips] = useState(null);
@@ -81,8 +81,8 @@ export default function AdminDashboard() {
     loadAll();
   }, [loadAll]);
 
-  // SOS ใหม่แบบ real-time — backend ส่งเข้าห้องของพื้นที่ (admin:area:<id>) และห้อง super (admin:super)
-  // super ที่เลือกดูพื้นที่เดียวอยู่จะได้รับของทุกพื้นที่ จึงกรองซ้ำฝั่งนี้
+  // SOS ใหม่แบบ real-time — backend ส่งเข้าห้องของวิทยาเขต (admin:area:<id>) และห้อง super (admin:super)
+  // super ที่เลือกดูวิทยาเขตเดียวอยู่จะได้รับของทุกวิทยาเขต จึงกรองซ้ำฝั่งนี้
   useEffect(() => {
     connectWithAuth();
     function handleNewSos(alert) {
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
     <div>
       <PageHeader
         title="ภาพรวม"
-        subtitle={area ? `พื้นที่ ${area.displayName}` : isSuper ? "ทุกพื้นที่ในแพลตฟอร์ม" : undefined}
+        subtitle={area ? `วิทยาเขต ${area.displayName}` : isSuper ? "ทุกวิทยาเขตในแพลตฟอร์ม" : undefined}
         actions={
           <>
             {updatedAt && (
@@ -464,7 +464,7 @@ function DriversPanel({ drivers, showArea, onReview }) {
         <span>ผู้สมัคร</span>
         <span>ประเภท</span>
         <span>รถ</span>
-        {showArea && <span>พื้นที่</span>}
+        {showArea && <span>วิทยาเขต</span>}
         <span className="text-right">เอกสาร</span>
       </div>
 
@@ -583,7 +583,7 @@ function TripsPanel({ trips, showArea, onResolveDispute }) {
           <thead className="bg-stone-50 text-stone-600">
             <tr>
               <th className="px-6 py-2.5 font-medium">วันที่/เวลา</th>
-              {showArea && <th className="px-4 py-2.5 font-medium">พื้นที่</th>}
+              {showArea && <th className="px-4 py-2.5 font-medium">วิทยาเขต</th>}
               <th className="px-4 py-2.5 font-medium">คนขับ</th>
               <th className="px-4 py-2.5 font-medium">เส้นทาง</th>
               <th className="px-4 py-2.5 text-right font-medium">ค่าโดยสาร</th>

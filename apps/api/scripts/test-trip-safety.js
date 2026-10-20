@@ -34,7 +34,7 @@ async function expectReject(promise, pattern) {
 async function main() {
   const area = await prisma.area.findFirst({ where: { isActive: true } });
   const otherArea = await prisma.area.findFirst({ where: { isActive: true, id: { not: area.id } } });
-  assert.ok(area, "ต้องมีพื้นที่ที่เปิดใช้งานอย่างน้อย 1 พื้นที่ (รัน seed ก่อน)");
+  assert.ok(area, "ต้องมีวิทยาเขตที่เปิดใช้งานอย่างน้อย 1 วิทยาเขต (รัน seed ก่อน)");
   const user = await prisma.user.create({ data: { fullName: "สมใจ ทดสอบปลอดภัย", phone: phone(1) } });
   const stranger = await prisma.user.create({ data: { fullName: "คนแปลกหน้า", phone: phone(2) } });
   const driver = await prisma.driver.create({
@@ -111,7 +111,7 @@ async function main() {
     const old = await mkTrip("COMPLETED", { completedAt: new Date(Date.now() - 8 * 24 * 3600 * 1000) });
     await expectReject(safety.createReport(old.id, asUser, { category: "LOST_ITEM" }), /7 วัน/);
   });
-  await test("แอดมินพื้นที่เห็น/ปิดเคสได้เฉพาะพื้นที่ตัวเอง และเคสด่วนถูกติดป้าย", async () => {
+  await test("แอดมินวิทยาเขตเห็น/ปิดเคสได้เฉพาะวิทยาเขตตัวเอง และเคสด่วนถูกติดป้าย", async () => {
     const mine = await safety.listReports({ areaId: area.id }, { status: "OPEN" });
     const found = mine.find((r) => r.id === report.id);
     assert.ok(found);

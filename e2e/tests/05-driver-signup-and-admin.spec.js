@@ -62,7 +62,7 @@ test.describe.serial("05 สมัครขับวิน + แอดมิน�
     await page.getByRole("radio", { name: /วินมอเตอร์ไซค์/ }).click();
     await page.getByLabel("ป้ายทะเบียน").fill("1กข 5555");
     await expect(page.getByRole("button", { name: "ต่อไป แนบเอกสาร" })).toBeDisabled(); // ยังขาดเบอร์เสื้อวิน + ชื่อวิน
-    // เบอร์วินห้ามซ้ำในพื้นที่เดียวกัน — ใช้เลขไม่ซ้ำทุกรอบ
+    // เบอร์วินห้ามซ้ำในวิทยาเขตเดียวกัน — ใช้เลขไม่ซ้ำทุกรอบ
     await page.getByLabel("เบอร์เสื้อวิน").fill(String(Date.now()).slice(-8));
     await page.getByLabel("ชื่อวินที่สังกัด").fill("วินหน้าประตู 1");
     await shot(page, "pro-form");

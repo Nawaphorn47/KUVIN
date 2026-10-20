@@ -38,7 +38,7 @@ export default function ConfirmBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // รอพื้นที่โหลดเสร็จก่อน — ใช้จุดกลาง/ระยะให้บริการของพื้นที่ที่เลือกเป็นค่าสำรองของจุดรับ
+  // รอวิทยาเขตโหลดเสร็จก่อน — ใช้จุดกลาง/ระยะให้บริการของวิทยาเขตที่เลือกเป็นค่าสำรองของจุดรับ
   useEffect(() => {
     if (!area || pickupPoint) return;
     getPickupCoords(area).then(({ point, note }) => {
@@ -65,7 +65,7 @@ export default function ConfirmBooking() {
       .catch((err) => {
         if (cancelled) return;
         setEstimate(null);
-        // เช่น จุดรับอยู่นอกพื้นที่ให้บริการ — บอกเหตุผลจาก server ให้ผู้ใช้ลากหมุดใหม่
+        // เช่น จุดรับอยู่นอกวิทยาเขตที่ให้บริการ — บอกเหตุผลจาก server ให้ผู้ใช้ลากหมุดใหม่
         setEstimateError(err.response?.data?.message || "");
       })
       .finally(() => !cancelled && setLoadingEstimate(false));
@@ -145,7 +145,7 @@ export default function ConfirmBooking() {
           route={estimate?.route?.coordinates}
           onPickupChange={handlePickupDrag}
         />
-        {/* จุดรับถูกแทนด้วยจุดกลางพื้นที่ (ไม่มี GPS/อยู่ไกล) — เตือนให้เห็นชัด ไม่งั้นผู้ใช้เรียกวินไปโดยไม่รู้ตัว
+        {/* จุดรับถูกแทนด้วยจุดกลางวิทยาเขต (ไม่มี GPS/อยู่ไกล) — เตือนให้เห็นชัด ไม่งั้นผู้ใช้เรียกวินไปโดยไม่รู้ตัว
             แล้วคนขับไปรอผิดที่ */}
         {pickupNote ? (
           <output className="mt-2 flex items-start gap-2 rounded-xl bg-amber-100 px-3 py-2.5 text-sm font-medium text-amber-900">
@@ -209,7 +209,7 @@ export default function ConfirmBooking() {
                     isWithinCampus ? "border-dashed bg-brand-200" : "bg-white"
                   )}
                 />
-                {/* อัตราของพื้นที่ที่ให้บริการทริปนี้ (แต่ละพื้นที่ตั้งเองได้) */}
+                {/* อัตราของวิทยาเขตที่ให้บริการทริปนี้ (แต่ละวิทยาเขตตั้งเองได้) */}
                 {isWithinCampus
                   ? `อยู่ในเขตเหมาจ่าย${areaName} จ่ายราคาเดียว ${estimate?.area?.flatFare ?? "-"} บาท`
                   : `ออกนอกเขตเหมาจ่าย คิดตามระยะทางถนนจริง ${estimate?.area?.ratePerKm ?? "-"} บาท/กม.`}
@@ -259,8 +259,8 @@ export default function ConfirmBooking() {
   );
 }
 
-// พิกัดจุดรับเริ่มต้นจาก GPS — ถ้าใช้ GPS ไม่ได้ (ไม่อนุญาต/เปิดผ่าน HTTP ในวง LAN) หรืออยู่นอกระยะให้บริการของพื้นที่
-// ที่เลือก จะใช้จุดกลางของพื้นที่แทน แล้วบอกผู้ใช้ให้ลากหมุดปรับเอง ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
+// พิกัดจุดรับเริ่มต้นจาก GPS — ถ้าใช้ GPS ไม่ได้ (ไม่อนุญาต/เปิดผ่าน HTTP ในวง LAN) หรืออยู่นอกระยะให้บริการของวิทยาเขต
+// ที่เลือก จะใช้จุดกลางของวิทยาเขตแทน แล้วบอกผู้ใช้ให้ลากหมุดปรับเอง ดีกว่าปล่อยให้เรียกวินไม่ได้เลย
 async function getPickupCoords(area) {
   const fallback = (note) => ({ point: areaCenter(area), note });
 
@@ -274,7 +274,7 @@ async function getPickupCoords(area) {
         resolve(
           isWithinService(area, point)
             ? { point, note: "" }
-            : fallback(`ตำแหน่งของคุณอยู่นอกพื้นที่ ${area.displayName} จึงใช้จุดกลางพื้นที่แทน ลากหมุดเพื่อปรับ`)
+            : fallback(`ตำแหน่งของคุณอยู่นอกวิทยาเขต ${area.displayName} จึงใช้จุดกลางวิทยาเขตแทน ลากหมุดเพื่อปรับ`)
         );
       },
       () => resolve(fallback("ยังใช้ตำแหน่ง GPS ไม่ได้ กรุณาลากหมุดจุดรับไปยังจุดที่ต้องการให้รับ")),

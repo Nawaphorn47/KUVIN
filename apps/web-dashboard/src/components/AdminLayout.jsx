@@ -16,12 +16,12 @@ import Logo from "./Logo";
 import { useAdminSession } from "../lib/adminSession";
 import { applyBrand, DEFAULT_BRAND } from "../theme/brand";
 
-// โครงหน้าแอดมิน: แถบเมนูซ้าย + ตัวเลือกพื้นที่ (super) / ชื่อพื้นที่ (แอดมินพื้นที่)
+// โครงหน้าแอดมิน: แถบเมนูซ้าย + ตัวเลือกวิทยาเขต (super) / ชื่อวิทยาเขต (แอดมินวิทยาเขต)
 export default function AdminLayout() {
   const navigate = useNavigate();
   const { admin, isSuper, areas, areaId, area, setAreaId, logout, ready } = useAdminSession();
 
-  // สีของแดชบอร์ดตามพื้นที่ที่กำลังดู (ดูทุกพื้นที่ = สีเริ่มต้น)
+  // สีของแดชบอร์ดตามวิทยาเขตที่กำลังดู (ดูทุกวิทยาเขต = สีเริ่มต้น)
   const brandColor = area?.brandColor ?? DEFAULT_BRAND;
   useEffect(() => applyBrand(brandColor), [brandColor]);
 
@@ -38,11 +38,11 @@ export default function AdminLayout() {
     { to: "/dashboard", label: "ภาพรวม", icon: LayoutDashboard },
     { to: "/people", label: "ผู้ใช้และคนขับ", icon: Users },
     { to: "/landmarks", label: "สถานที่", icon: MapIcon },
-    // ตั้งค่าพื้นที่: แอดมินพื้นที่แก้ของตัวเอง / super ต้องเลือกพื้นที่ก่อน
-    (!isSuper || areaId) && { to: "/area-settings", label: "ตั้งค่าพื้นที่", icon: Settings2 },
+    // ตั้งค่าวิทยาเขต: แอดมินวิทยาเขตแก้ของตัวเอง / super ต้องเลือกวิทยาเขตก่อน
+    (!isSuper || areaId) && { to: "/area-settings", label: "ตั้งค่าวิทยาเขต", icon: Settings2 },
   ].filter(Boolean);
   const superNav = [
-    { to: "/areas", label: "พื้นที่ทั้งหมด", icon: Building2 },
+    { to: "/areas", label: "วิทยาเขตทั้งหมด", icon: Building2 },
     { to: "/admins", label: "บัญชีผู้ดูแล", icon: ShieldCheck },
   ];
 
@@ -58,13 +58,13 @@ export default function AdminLayout() {
           <Logo className="h-11 w-11 flex-none" />
           <div>
             <p className="text-lg font-bold leading-tight text-emerald-900">KUVIN Admin</p>
-            <p className="text-xs text-stone-400">{isSuper ? "ผู้ดูแลระบบสูงสุด" : "ผู้ดูแลพื้นที่"}</p>
+            <p className="text-xs text-stone-400">{isSuper ? "ผู้ดูแลระบบสูงสุด" : "ผู้ดูแลวิทยาเขต"}</p>
           </div>
         </div>
 
         <div className="px-4 pb-4">
           <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-stone-500">
-            <MapPinned className="h-3.5 w-3.5" /> พื้นที่ที่กำลังดู
+            <MapPinned className="h-3.5 w-3.5" /> วิทยาเขตที่กำลังดู
           </p>
           {isSuper ? (
             <select
@@ -72,7 +72,7 @@ export default function AdminLayout() {
               onChange={(e) => setAreaId(e.target.value)}
               className="w-full rounded-lg border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-stone-900 outline-none focus:border-emerald-700"
             >
-              <option value="">ทุกพื้นที่</option>
+              <option value="">ทุกวิทยาเขต</option>
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.displayName}
@@ -113,7 +113,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* key = พื้นที่ → เปลี่ยนพื้นที่แล้วหน้าโหลดข้อมูลใหม่ทั้งหน้า ไม่ค้างข้อมูลพื้นที่เดิม */}
+      {/* key = วิทยาเขต → เปลี่ยนวิทยาเขตแล้วหน้าโหลดข้อมูลใหม่ทั้งหน้า ไม่ค้างข้อมูลวิทยาเขตเดิม */}
       <main className="min-w-0 flex-1 overflow-y-auto">
         <Outlet key={areaId || "all"} />
       </main>

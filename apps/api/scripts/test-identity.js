@@ -54,7 +54,7 @@ async function main() {
   process.env.OTP_MODE = "test";
   delete process.env.PASSENGER_VERIFICATION;
   const area = await prisma.area.findFirst({ where: { isActive: true } });
-  assert.ok(area, "ต้องมีพื้นที่ที่เปิดใช้งานอย่างน้อย 1 พื้นที่ (รัน seed ก่อน)");
+  assert.ok(area, "ต้องมีวิทยาเขตที่เปิดใช้งานอย่างน้อย 1 วิทยาเขต (รัน seed ก่อน)");
 
   console.log("OTP");
   await test("โหมดทดสอบคืนรหัส 6 หลัก และขอซ้ำทันทีไม่ได้", async () => {
@@ -132,7 +132,7 @@ async function main() {
       /เบอร์เสื้อวิน/
     );
   });
-  await test("สมัครขับโดยไม่กรอกเบอร์วิน → ได้เลขถัดไปของพื้นที่ และ token คนขับ", async () => {
+  await test("สมัครขับโดยไม่กรอกเบอร์วิน → ได้เลขถัดไปของวิทยาเขต และ token คนขับ", async () => {
     const { driver, token } = await identity.becomeDriver(userId, { areaId: area.id, licensePlate: "ทด 1234", driverType: "PUBLIC" });
     assert.equal(driver.userId, userId);
     assert.equal(driver.verificationStatus, "PENDING");

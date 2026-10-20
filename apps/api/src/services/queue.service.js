@@ -35,7 +35,7 @@ const includeParties = {
 //  - SKIP LOCKED: แถวที่ transaction อื่นกำลังจัดการอยู่ (กำลังเสนองานให้ / กำลังรับงาน) จะถูกข้าม ไม่รอ
 //  - NOT EXISTS : คนที่มีข้อเสนอค้างอยู่กับคำขออื่นแล้ว ห้ามถูกเสนองานซ้อน (ครอบคลุมช่วงที่ transaction ก่อนหน้า commit แล้ว)
 //  - excludeDriverIds: คนที่ถูกเสนองานนี้ไปแล้ว (ปฏิเสธ/หมดเวลา) ไม่วนกลับมาในคำขอเดียวกัน
-//  - areaId: คิวแยกตามพื้นที่ — เสนองานให้เฉพาะคนขับที่สังกัดพื้นที่ของคำขอ
+//  - areaId: คิวแยกตามวิทยาเขต — เสนองานให้เฉพาะคนขับที่สังกัดวิทยาเขตของคำขอ
 // ---------------------------------------------------------------------------
 async function getNextDriverInQueue(tx, areaId, excludeDriverIds = []) {
   // ข้ามคนที่ตรวจแล้วว่ามีข้อเสนอค้างอยู่ (ดูด้านล่าง) แล้วหาคนถัดไป — จำกัดรอบกันวนไม่จบ
@@ -367,7 +367,7 @@ async function goOffline(driverId, io) {
 // ภาพรวมคิว (หน้าคนขับ) + sweeper
 // ---------------------------------------------------------------------------
 async function getQueueOverview(driverId) {
-  // คิวของพื้นที่ที่คนขับคนนี้สังกัดเท่านั้น
+  // คิวของวิทยาเขตที่คนขับคนนี้สังกัดเท่านั้น
   const self = await prisma.driver.findUnique({ where: { id: driverId }, select: { areaId: true } });
   if (!self) throw ApiError.notFound("Driver not found");
   const { areaId } = self;

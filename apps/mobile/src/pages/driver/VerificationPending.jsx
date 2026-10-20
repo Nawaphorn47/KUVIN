@@ -15,7 +15,7 @@ export default function VerificationPending() {
       <ol className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
         {[
           ["ส่งเอกสารแล้ว", "done"],
-          ["แอดมินของพื้นที่ตรวจเอกสาร", "now"],
+          ["แอดมินของวิทยาเขตตรวจเอกสาร", "now"],
           ["เริ่มรับงานได้", "next"],
         ].map(([label, state]) => (
           <li key={label} className="flex items-center gap-3 border-b border-slate-200 px-4 py-3.5 last:border-b-0">

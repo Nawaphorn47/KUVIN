@@ -63,7 +63,7 @@ test.describe.serial("04 ความปลอดภัยและความ�
     expect(driverList[0].user.phone).toBeNull();
   });
 
-  test("TC-04-04 แจ้งปัญหาหลังทริปจากหน้าประวัติ → ส่งสำเร็จ → แอดมินพื้นที่เห็นเคส", async ({ browser }) => {
+  test("TC-04-04 แจ้งปัญหาหลังทริปจากหน้าประวัติ → ส่งสำเร็จ → แอดมินวิทยาเขตเห็นเคส", async ({ browser }) => {
     const { context, page } = await userPage(browser, passenger.token);
     await page.goto("/history");
     await expect(page.getByRole("heading", { name: "ทริปของฉัน" })).toBeVisible();

@@ -50,7 +50,7 @@ function privateFile(owner, bytes = [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0
 async function main() {
   process.env.OTP_MODE = "test";
   const area = await prisma.area.findFirst({ where: { isActive: true } });
-  assert.ok(area, "ต้องมีพื้นที่ที่เปิดใช้งานอย่างน้อย 1 พื้นที่ (รัน seed ก่อน)");
+  assert.ok(area, "ต้องมีวิทยาเขตที่เปิดใช้งานอย่างน้อย 1 วิทยาเขต (รัน seed ก่อน)");
 
   console.log("OTP");
   await test("ขอรหัสได้ไม่เกิน 5 ครั้ง/ชม. ต่อเบอร์ (แม้รอพ้นช่วงกันขอถี่แล้ว)", async () => {

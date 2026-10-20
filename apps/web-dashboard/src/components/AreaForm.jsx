@@ -6,7 +6,7 @@ import { AlertTriangle, Check, ImagePlus, Loader2, Phone, Plus, Trash2 } from "l
 import Button from "./Button";
 import { api } from "../services/api";
 
-// ฟอร์มตั้งค่าพื้นที่ — ใช้ทั้งตอนสร้างพื้นที่ใหม่ (super) และแก้พื้นที่ (แอดมินพื้นที่/ super)
+// ฟอร์มตั้งค่าวิทยาเขต — ใช้ทั้งตอนสร้างวิทยาเขตใหม่ (super) และแก้วิทยาเขต (แอดมินวิทยาเขต/ super)
 // ค่าทั้งหมดตรงกับ model Area ใน apps/api/prisma/schema.prisma และตรวจซ้ำที่ area.service.js
 
 const CENTER_ICON = L.divIcon({
@@ -67,7 +67,7 @@ function FitCircle({ center, radiusKm }) {
 }
 
 export default function AreaForm({ initial, mode, canManage, onSubmit, submitLabel = "บันทึก" }) {
-  // mode: "create" | "edit"; canManage = super admin (แก้รหัสพื้นที่/เปิดปิดพื้นที่ได้)
+  // mode: "create" | "edit"; canManage = super admin (แก้รหัสวิทยาเขต/เปิดปิดวิทยาเขตได้)
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -132,7 +132,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
   return (
     <form onSubmit={submit} className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="flex flex-col gap-6">
-        <Section title="ชื่อและโลโก้" hint="แสดงในแอปผู้โดยสาร/คนขับ ตอนเลือกพื้นที่และบนหัวหน้าจอ">
+        <Section title="ชื่อและโลโก้" hint="แสดงในแอปผู้โดยสาร/คนขับ ตอนเลือกวิทยาเขตและบนหัวหน้าจอ">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -164,7 +164,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
               )}
             </div>
           </div>
-          <Field label="ชื่อเต็มของพื้นที่" hint="เช่น มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน">
+          <Field label="ชื่อเต็มของวิทยาเขต" hint="เช่น มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน">
             <input value={form.name} onChange={(e) => set({ name: e.target.value })} className={inputCls} required />
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -177,7 +177,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
                 required
               />
             </Field>
-            <Field label="รหัสพื้นที่ (slug)" hint={canManage ? "a-z 0-9 และ - เช่น ku-kps" : "แก้ได้เฉพาะ super admin"}>
+            <Field label="รหัสวิทยาเขต (slug)" hint={canManage ? "a-z 0-9 และ - เช่น ku-kps" : "แก้ได้เฉพาะ super admin"}>
               <input
                 value={form.slug}
                 onChange={(e) => set({ slug: e.target.value.toLowerCase() })}
@@ -191,7 +191,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
           {canManage && (
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} />
-              เปิดให้บริการ (ปิด = ผู้โดยสารเลือกพื้นที่นี้ไม่ได้ และเรียกวินในพื้นที่นี้ไม่ได้)
+              เปิดให้บริการ (ปิด = ผู้โดยสารเลือกวิทยาเขตนี้ไม่ได้ และเรียกวินในวิทยาเขตนี้ไม่ได้)
             </label>
           )}
         </Section>
@@ -213,7 +213,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
           </p>
         </Section>
 
-        <Section title="เบอร์ฉุกเฉินของพื้นที่" hint="แสดงในปุ่ม SOS และหน้าตั้งค่า (เบอร์ 191 และ 1669 แอปใส่ให้อัตโนมัติอยู่แล้ว)">
+        <Section title="เบอร์ฉุกเฉินของวิทยาเขต" hint="แสดงในปุ่ม SOS และหน้าตั้งค่า (เบอร์ 191 และ 1669 แอปใส่ให้อัตโนมัติอยู่แล้ว)">
           {form.emergencyContacts.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
@@ -256,7 +256,7 @@ export default function AreaForm({ initial, mode, canManage, onSubmit, submitLab
       </div>
 
       <div className="flex flex-col gap-6">
-        <Section title="ขอบเขตพื้นที่" hint="คลิกบนแผนที่หรือลากหมุดเพื่อย้ายจุดกลาง วงเขียวเข้ม = เขตเหมาจ่าย วงเขียวอ่อน = ระยะที่วินไปรับได้">
+        <Section title="ขอบเขตวิทยาเขต" hint="คลิกบนแผนที่หรือลากหมุดเพื่อย้ายจุดกลาง วงเขียวเข้ม = เขตเหมาจ่าย วงเขียวอ่อน = ระยะที่วินไปรับได้">
           <div className="relative isolate h-80 overflow-hidden rounded-xl border border-stone-200">
             {validCenter && (
               <MapContainer center={center} zoom={13} style={{ position: "absolute", inset: 0 }}>
@@ -345,12 +345,12 @@ function contrastWithWhite(hex) {
   return 1.05 / (lum + 0.05);
 }
 
-// สีแบรนด์ของพื้นที่: แถบหัว/ปุ่ม/หมุดในแอปทั้งหมดเปลี่ยนตามสีนี้ (ต้องเข้มพอให้ตัวหนังสือขาวอ่านได้)
+// สีแบรนด์ของวิทยาเขต: แถบหัว/ปุ่ม/หมุดในแอปทั้งหมดเปลี่ยนตามสีนี้ (ต้องเข้มพอให้ตัวหนังสือขาวอ่านได้)
 function BrandColorField({ value, onChange }) {
   const ratio = contrastWithWhite(value);
   const tooLight = ratio != null && ratio < 4.5;
   return (
-    <Field label="สีประจำพื้นที่" hint="สีแถบหัว ปุ่ม และหมุดในแอป — ใช้สีที่ตัวหนังสือสีขาวอ่านชัด">
+    <Field label="สีประจำวิทยาเขต" hint="สีแถบหัว ปุ่ม และหมุดในแอป — ใช้สีที่ตัวหนังสือสีขาวอ่านชัด">
       <div className="flex items-center gap-3">
         <input
           type="color"

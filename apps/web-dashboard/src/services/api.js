@@ -13,7 +13,7 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// พื้นที่ที่ super admin เลือกดูอยู่ (null = ทุกพื้นที่) — ตั้งจาก AdminSessionProvider
+// วิทยาเขตที่ super admin เลือกดูอยู่ (null = ทุกวิทยาเขต) — ตั้งจาก AdminSessionProvider
 let scopeAreaId = null;
 export function setScopeAreaId(id) {
   scopeAreaId = id;

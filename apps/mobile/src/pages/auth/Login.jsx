@@ -143,7 +143,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
-      {/* แผ่นป้ายหัว: ชื่อแอป + พื้นที่ (แบรนด์ของพื้นที่ที่เลือกอยู่) */}
+      {/* แผ่นป้ายหัว: ชื่อแอป + วิทยาเขต (แบรนด์ของวิทยาเขตที่เลือกอยู่) */}
       <header className="flex-none bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
         <div className="flex items-center gap-3">
           <Logo dark className="h-14 w-14 flex-none" />

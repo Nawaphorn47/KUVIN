@@ -1,6 +1,6 @@
-// ชั้นแบรนด์ของพื้นที่: สร้างชุดสี 50–950 จากสีแบรนด์ของพื้นที่ (Area.brandColor) แล้วตั้งเป็นตัวแปร CSS
+// ชั้นแบรนด์ของวิทยาเขต: สร้างชุดสี 50–950 จากสีแบรนด์ของวิทยาเขต (Area.brandColor) แล้วตั้งเป็นตัวแปร CSS
 // tailwind.config.js ผูกสี "brand" (และชื่อเดิม "emerald" ที่หน้าเก่ายังใช้) เข้ากับตัวแปรชุดนี้
-// เปลี่ยนพื้นที่ = เปลี่ยนสีทั้งแอปในที่เดียว ไม่มีหน้าไหนฝังสีของ มก. ไว้เอง
+// เปลี่ยนวิทยาเขต = เปลี่ยนสีทั้งแอปในที่เดียว ไม่มีหน้าไหนฝังสีของ มก. ไว้เอง
 export const DEFAULT_BRAND = "#006664"; // เขียว มก. (ค่าชั่วคราว — เทียบกับคู่มือ CI ก่อนใช้จริง) ต้องตรงกับค่าเริ่มต้นใน schema.prisma
 
 // สัดส่วนสีแบรนด์ที่ผสมกับขาว (เฉดอ่อน) หรือดำ (เฉดเข้ม); 600 = สีแบรนด์ตรงๆ
@@ -38,6 +38,6 @@ export function brandScale(hex) {
 export function applyBrand(hex) {
   const root = document.documentElement;
   for (const [step, rgb] of Object.entries(brandScale(hex))) root.style.setProperty(`--brand-${step}`, rgb.join(" "));
-  // สีแถบสถานะของเบราว์เซอร์/แอป Android ให้ตรงกับแถบหัวของพื้นที่
+  // สีแถบสถานะของเบราว์เซอร์/แอป Android ให้ตรงกับแถบหัวของวิทยาเขต
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", parseHex(hex) ? hex : DEFAULT_BRAND);
 }

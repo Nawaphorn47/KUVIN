@@ -152,7 +152,7 @@ export default function VerifyStep1() {
 
             <p className="mt-5 flex items-start gap-2 text-sm text-slate-600">
               <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-brand-600" aria-hidden="true" />
-              เอกสารใช้ยืนยันตัวตนเพื่อความปลอดภัยของผู้โดยสาร แอดมินของพื้นที่เป็นผู้ตรวจ
+              เอกสารใช้ยืนยันตัวตนเพื่อความปลอดภัยของผู้โดยสาร แอดมินของวิทยาเขตเป็นผู้ตรวจ
             </p>
           </>
         )}

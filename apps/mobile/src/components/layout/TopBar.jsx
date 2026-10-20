@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 
-// แถบหัว: ปกติพื้นขาวเส้นบางด้านล่าง / board = แผ่นป้ายสีแบรนด์ของพื้นที่ (ใช้กับหน้าหลักของแต่ละโหมด)
+// แถบหัว: ปกติพื้นขาวเส้นบางด้านล่าง / board = แผ่นป้ายสีแบรนด์ของวิทยาเขต (ใช้กับหน้าหลักของแต่ละโหมด)
 // dark ยังรองรับหน้าเก่า (เช่น หน้าระหว่างเดินทาง) ที่ใช้พื้นเข้ม
 export default function TopBar({ title, onBack, transparent = false, dark = false, board = false, right }) {
   const navigate = useNavigate();
