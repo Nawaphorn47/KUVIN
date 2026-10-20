@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut, MapPinned, Settings, ShieldCheck, Star, Wallet } from "lucide-react";
 import BottomNav from "../../components/layout/BottomNav";
-import Avatar from "../../components/ui/Avatar";
+import AvatarPicker from "../../components/shared/AvatarPicker";
 import Badge from "../../components/ui/Badge";
 import StopNumber from "../../components/ui/StopNumber";
 import { useApp } from "../../context/AppContext";
@@ -78,7 +78,14 @@ export default function DriverProfile() {
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
         <header className="bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
           <div className="flex items-center gap-4">
-            <Avatar initial={driver.name[0]} size="lg" className="border-[3px] border-white bg-brand-700 text-white shadow-sticker" />
+            <AvatarPicker
+              src={driver.avatarUrl}
+              initial={driver.name[0]}
+              size="lg"
+              showRemove={false}
+              onChanged={refreshMe}
+              avatarClassName="border-[3px] border-white bg-brand-700 text-white shadow-sticker"
+            />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-2xl font-bold tracking-tight">{driver.name}</h1>
               <p className="tabular truncate text-sm text-brand-100">{driver.phone}</p>

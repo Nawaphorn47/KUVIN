@@ -44,4 +44,4 @@ export async function uploadDriverDocument(file) {
 
 // ลิงก์ไฟล์ส่วนตัวจาก server เป็น path "/api/private-files/..." — แปลงเป็น URL เต็มของ API
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
-export const fileUrl = (u) => (typeof u === "string" && u.startsWith("/api/") ? API_ORIGIN + u : u);
+export const fileUrl = (u) => (typeof u === "string" && (u.startsWith("/api/") || u.startsWith("/uploads/")) ? API_ORIGIN + u : u);

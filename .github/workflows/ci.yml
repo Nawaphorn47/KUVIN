@@ -91,6 +91,10 @@ jobs:
         working-directory: apps/api
         run: npm run test:trip-safety
 
+      - name: ทดสอบรูปโปรไฟล์ (ตั้ง/เปลี่ยน/ลบ, โหมดคนขับ, อีกฝ่ายในทริปเห็นรูป)
+        working-directory: apps/api
+        run: npm run test:profile
+
       - name: เปิด API server (พื้นหลัง) สำหรับชุดทดสอบที่ยิง HTTP จริง
         working-directory: apps/api
         run: |

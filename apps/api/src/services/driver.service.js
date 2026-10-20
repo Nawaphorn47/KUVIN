@@ -22,10 +22,13 @@ async function ratingSummary(driverId) {
 
 // โปรไฟล์เต็มของคนขับเอง (ใช้ตอน login/getMe/self-update เท่านั้น) — มีเบอร์โทร, เอกสาร, ตำแหน่งสด, fcmToken
 async function getDriver(id) {
-  const driver = await prisma.driver.findUnique({ where: { id } });
+  const driver = await prisma.driver.findUnique({ where: { id }, include: { user: { select: { avatarFile: true } } } });
   if (!driver) throw ApiError.notFound("Driver not found");
 
-  return { ...sanitizeDriver(driver), ...(await ratingSummary(id)) };
+  // รูปโปรไฟล์อยู่ที่บัญชีผู้ใช้เจ้าของโหมดคนขับ (ใช้รูปเดียวกันทั้งสองโหมด)
+  const { user: owner, ...own } = driver;
+  const avatarUrl = owner?.avatarFile ? `/uploads/avatars/${owner.avatarFile}` : null;
+  return { ...sanitizeDriver(own), avatarUrl, ...(await ratingSummary(id)) };
 }
 
 // โปรไฟล์สาธารณะที่ผู้ใช้อื่นเห็นได้ (เช่น ผู้โดยสารดูโปรไฟล์คนขับ) — ไม่รวมเบอร์โทร/เอกสาร/ตำแหน่งสด/fcmToken

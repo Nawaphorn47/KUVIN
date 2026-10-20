@@ -261,8 +261,14 @@ async function getMe({ id, role }) {
 
 // ไม่ส่งชื่อไฟล์เซลฟี่/รหัส Google ออกไป — บอกแค่สถานะว่ามีหรือยัง
 function sanitizeUser(user) {
-  const { passwordHash, resetToken, resetTokenExpiresAt, resetAttempts, selfieFile, googleSub, ...rest } = user;
-  return { ...rest, hasPassword: Boolean(passwordHash), hasSelfie: Boolean(selfieFile), googleLinked: Boolean(googleSub) };
+  const { passwordHash, resetToken, resetTokenExpiresAt, resetAttempts, selfieFile, googleSub, avatarFile, ...rest } = user;
+  return {
+    ...rest,
+    hasPassword: Boolean(passwordHash),
+    hasSelfie: Boolean(selfieFile),
+    googleLinked: Boolean(googleSub),
+    avatarUrl: avatarFile ? `/uploads/avatars/${avatarFile}` : null,
+  };
 }
 
 // เอกสารคนขับเก็บเป็นไฟล์ส่วนตัว — ส่งออกเป็นลิงก์ที่เซ็นแล้วอายุสั้นเท่านั้น (ดู utils/privateFiles.js)

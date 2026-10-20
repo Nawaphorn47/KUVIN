@@ -1,6 +1,9 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
+const fs = require("node:fs");
+const path = require("node:path");
 const { sanitizeUser } = require("./auth.service");
+const { AVATAR_DIR } = require("../middlewares/avatarUpload");
 
 async function updateFcmToken(userId, fcmToken) {
   const user = await prisma.user.update({ where: { id: userId }, data: { fcmToken: fcmToken || null } });
@@ -33,4 +36,39 @@ async function updateProfile(userId, { fullName, phone, studentId }) {
   }
 }
 
-module.exports = { updateFcmToken, updateProfile };
+// รูปโปรไฟล์: บัญชีเดียวใช้รูปเดียวทั้งโหมดผู้โดยสารและคนขับ — โหมดคนขับ (token คนขับ) หาบัญชีผู้ใช้จาก driver.userId
+async function ownerUserId(auth) {
+  if (auth.role === "user") return auth.id;
+  const driver = await prisma.driver.findUnique({ where: { id: auth.id }, select: { userId: true } });
+  if (!driver?.userId) throw ApiError.badRequest("บัญชีคนขับแบบเก่ายังตั้งรูปโปรไฟล์ไม่ได้ กรุณาสมัครผ่านบัญชีผู้ใช้");
+  return driver.userId;
+}
+
+function removeAvatarFile(name) {
+  if (name) fs.promises.unlink(path.join(AVATAR_DIR, path.basename(name))).catch(() => {});
+}
+
+async function saveAvatar(auth, file) {
+  if (!file) throw ApiError.badRequest("ไม่พบไฟล์รูป (field name ต้องเป็น file)");
+  let userId;
+  try {
+    userId = await ownerUserId(auth);
+  } catch (err) {
+    removeAvatarFile(file.filename);
+    throw err;
+  }
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: { avatarFile: true } });
+  const user = await prisma.user.update({ where: { id: userId }, data: { avatarFile: file.filename } });
+  removeAvatarFile(before?.avatarFile);
+  return sanitizeUser(user);
+}
+
+async function removeAvatar(auth) {
+  const userId = await ownerUserId(auth);
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: { avatarFile: true } });
+  const user = await prisma.user.update({ where: { id: userId }, data: { avatarFile: null } });
+  removeAvatarFile(before?.avatarFile);
+  return sanitizeUser(user);
+}
+
+module.exports = { updateFcmToken, updateProfile, saveAvatar, removeAvatar };

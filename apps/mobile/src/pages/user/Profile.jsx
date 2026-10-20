@@ -65,7 +65,7 @@ export default function Profile() {
         <header className="bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <Avatar initial={user.avatarInitial} size="lg" className="border-[3px] border-white bg-brand-700 text-white shadow-sticker" />
+              <Avatar src={user.avatarUrl} initial={user.avatarInitial} size="lg" className="border-[3px] border-white bg-brand-700 text-white shadow-sticker" />
               <button
                 type="button"
                 onClick={() => navigate("/profile/edit")}

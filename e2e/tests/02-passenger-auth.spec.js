@@ -80,4 +80,33 @@ test.describe("02 ผู้โดยสาร: สมัคร/เข้าร�
     await expect(page.getByRole("button", { name: /^เรียกวินเลย/ })).toBeVisible({ timeout: 20_000 });
     await shot(page, "confirm-ready");
   });
+
+  test("TC-02-06 ตั้งรูปโปรไฟล์ → เห็นในหน้าโปรไฟล์ → ลบรูปแล้วกลับเป็นตัวอักษร", async ({ page }) => {
+    await requestOtp(page, testPhone());
+    await page.getByRole("button", { name: "ใส่ให้" }).click();
+    await page.getByLabel("ชื่อ-นามสกุล").fill("โปรไฟล์ ทดสอบ");
+    await page.getByRole("button", { name: "เริ่มใช้งาน" }).click();
+    await expect(page.getByRole("heading", { name: "ไปไหนดี?" })).toBeVisible();
+
+    await page.goto("/profile/edit");
+    await expect(page.getByLabel("ชื่อ-นามสกุล")).toHaveValue("โปรไฟล์ ทดสอบ");
+    await expect(page.getByRole("button", { name: "ตั้งรูปโปรไฟล์" })).toBeVisible();
+    await page.getByTestId("avatar-input").setInputFiles({ name: "me.png", mimeType: "image/png", buffer: PNG });
+    await expect(page.getByRole("button", { name: "เปลี่ยนรูปโปรไฟล์" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator("img[src*=\"/uploads/avatars/\"]")).toBeVisible();
+    await shot(page, "avatar-set");
+
+    // รูปต้องอยู่ต่อหลังโหลดหน้าใหม่ และเปิดไฟล์รูปจริงจาก API ได้
+    await page.goto("/profile");
+    const img = page.locator("img[src*=\"/uploads/avatars/\"]");
+    await expect(img).toBeVisible();
+    const status = await page.evaluate(async (src) => (await fetch(src)).status, await img.getAttribute("src"));
+    expect(status).toBe(200);
+    await shot(page, "avatar-profile");
+
+    await page.goto("/profile/edit");
+    await page.getByRole("button", { name: "ลบรูป" }).click();
+    await expect(page.getByRole("button", { name: "ตั้งรูปโปรไฟล์" })).toBeVisible();
+    await expect(page.locator("img[src*=\"/uploads/avatars/\"]")).toHaveCount(0);
+  });
 });

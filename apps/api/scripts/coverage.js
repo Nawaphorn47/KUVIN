@@ -13,7 +13,7 @@ fs.mkdirSync(tmp, { recursive: true });
 
 // ชุดที่เรียก service ตรง + ชุดที่ยิง HTTP/socket เข้า server จริง (suspension, payment) — server เปิดชั่วคราวที่พอร์ตแยก
 // (ไม่ชนกับ API ที่รันอยู่) พร้อมวัด coverage ด้วย แล้วปิดแบบปกติตอนจบเพื่อให้ไฟล์ coverage ถูกเขียน
-const suites = ["queue", "auth", "platform", "identity", "chat", "security", "trip-safety", "suspension", "payment"];
+const suites = ["queue", "auth", "platform", "identity", "chat", "security", "trip-safety", "profile", "suspension", "payment"];
 const PORT = process.env.COVERAGE_PORT || "4100";
 const env = { ...process.env, NODE_V8_COVERAGE: tmp, QUEUE_RACE_ROUNDS: "5", PORT, SLIP_PROVIDER: "mock" };
 

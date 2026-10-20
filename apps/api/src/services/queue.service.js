@@ -25,8 +25,13 @@ const MAX_TIMEOUTS = 3; // timeout ครบกี่ครั้งถึงถ
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000 };
 
 const includeParties = {
-  user: { select: { id: true, fullName: true, phone: true } },
-  driver: { select: { id: true, fullName: true, phone: true, driverType: true, vinNumber: true, vehicleModel: true, licensePlate: true, currentLat: true, currentLng: true } },
+  user: { select: { id: true, fullName: true, phone: true, avatarFile: true } },
+  driver: {
+    select: {
+      id: true, fullName: true, phone: true, driverType: true, vinNumber: true, vehicleModel: true, licensePlate: true, currentLat: true, currentLng: true,
+      user: { select: { avatarFile: true } }, // รูปโปรไฟล์ของคนขับอยู่ที่บัญชีผู้ใช้เจ้าของโหมดคนขับ
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
