@@ -16,7 +16,7 @@ function parseServiceAccount(raw) {
   let text = String(raw).trim();
   const isQuote = (c) => c === "'" || c === '"';
   while (text.length > 0 && isQuote(text[0])) text = text.slice(1);
-  while (text.length > 0 && isQuote(text[text.length - 1])) text = text.slice(0, -1);
+  while (text.length > 0 && isQuote(text.at(-1))) text = text.slice(0, -1);
   return JSON.parse(text);
 }
 
