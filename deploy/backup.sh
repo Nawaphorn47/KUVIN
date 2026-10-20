@@ -28,7 +28,13 @@ mkdir -p "$DEST"
 chmod 700 "$DEST"
 
 # 1) ฐานข้อมูล — ชื่อ user/db อ่านจากตัวแปรใน container เอง ไม่ต้องอ่านรหัสผ่านจาก .env
-docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' | gzip > "$DEST/db-$STAMP.sql.gz"
+# เขียนเป็นไฟล์ .sql ก่อนแล้วค่อยบีบ — ถ้า pipe ตรงเข้า gzip แล้ว pg_dump ล้มเหลว (เช่น container ไม่ได้รัน) gzip จะยังคืนสถานะสำเร็จ
+# และได้ไฟล์ว่างที่ดูเหมือนสำรองสำเร็จ (sh ไม่มี pipefail)
+cleanup() { rm -f "$DEST/db-$STAMP.sql" "$DEST/db-$STAMP.sql.gz" "$DEST/uploads-$STAMP.tar.gz"; }
+trap 'rc=$?; [ "$rc" -eq 0 ] || { cleanup; echo "สำรองไม่สำเร็จ (ไม่ได้ลบของเก่า)"; }' EXIT
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' > "$DEST/db-$STAMP.sql"
+[ "$(wc -c < "$DEST/db-$STAMP.sql")" -gt 1000 ] || { echo "สำรองฐานข้อมูลได้ไฟล์เล็กผิดปกติ — ตรวจว่า container db รันอยู่"; exit 1; }
+gzip "$DEST/db-$STAMP.sql"
 
 # 2) โฟลเดอร์อัปโหลดทั้งหมด (รวม .private)
 docker compose exec -T api tar czf - -C /app/apps/api uploads > "$DEST/uploads-$STAMP.tar.gz"
@@ -36,7 +42,7 @@ docker compose exec -T api tar czf - -C /app/apps/api uploads > "$DEST/uploads-$
 # ตรวจว่าไฟล์ไม่ว่างและ gzip อ่านได้ ก่อนลบของเก่า (กันสำรองพังแล้วลบของดีทิ้ง)
 gzip -t "$DEST/db-$STAMP.sql.gz"
 gzip -t "$DEST/uploads-$STAMP.tar.gz"
-[ -s "$DEST/db-$STAMP.sql.gz" ] || { echo "สำรองฐานข้อมูลได้ไฟล์ว่าง"; exit 1; }
+[ -s "$DEST/uploads-$STAMP.tar.gz" ] || { echo "สำรองไฟล์อัปโหลดได้ไฟล์ว่าง"; exit 1; }
 
 find "$DEST" -maxdepth 1 -type f \( -name 'db-*.sql.gz' -o -name 'uploads-*.tar.gz' \) -mtime +"$KEEP_DAYS" -delete
 
