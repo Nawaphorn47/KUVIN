@@ -18,12 +18,13 @@
    ```powershell
    (Get-Content "$env:USERPROFILE\Downloads\<ชื่อไฟล์>.json" -Raw | ConvertFrom-Json | ConvertTo-Json -Compress) | Set-Clipboard
    ```
-4. SSH เข้า VPS แล้วเพิ่มลง `.env` (วางจากคลิปบอร์ดระหว่างเครื่องหมาย `'`):
+4. SSH เข้า VPS (อยู่ในโฟลเดอร์ `~/app`) แล้วเพิ่มลง `.env` — **ไม่ต้องมีเครื่องหมาย `'` หรือ `"` ครอบ** วางต่อท้ายชื่อตัวแปรเลย:
    ```bash
    cd ~/app
-   nano .env      # เพิ่มบรรทัดเดียว:  FIREBASE_SERVICE_ACCOUNT_JSON='<วางที่นี่>'
+   nano .env      # เพิ่มบรรทัดเดียว:  FIREBASE_SERVICE_ACCOUNT_JSON=<วางที่นี่>   (ไปล่างสุดของไฟล์ แล้ว Ctrl+O, Enter, Ctrl+X)
    docker compose up -d api
-   docker compose logs api | grep fcm     # ต้องเห็น: [fcm] Firebase Admin initialized — push notifications are live
+   # ตรวจว่ากุญแจอ่านได้ (พิมพ์แค่ชื่อโปรเจกต์ ต้องเห็น OK ... kuvin-747e0):
+   docker compose exec api node -e "try{const {cert}=require('firebase-admin/app');const j=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);cert(j);console.log('OK กุญแจอ่านได้ project:',j.project_id)}catch(e){console.log('ผิดรูปแบบ:',e.message)}"
    ```
 5. ลบไฟล์ `.json` ที่ดาวน์โหลดทิ้ง (เก็บไว้ในที่ปลอดภัยถ้าจำเป็น) และอย่าให้คนอื่นเห็น `.env`
 
@@ -35,7 +36,8 @@
 
 ## ถ้าไม่เด้ง
 
-- `docker compose logs api | grep fcm`: ถ้าเห็น `[fcm:stub]` = ยังไม่มีกุญแจหรืออ่านไม่ได้, `Failed to initialize` = JSON ผิดรูปแบบ (ตรวจว่าอยู่บรรทัดเดียวและมีเครื่องหมาย `'` ครอบ)
+- ถ้าคำสั่งตรวจบอก `Unexpected non-whitespace character after JSON` = มีเครื่องหมาย `'` เกินท้ายบรรทัด ลบออกแล้ว `docker compose up -d --force-recreate api` (รุ่นหลังจาก PR นี้ API ทนต่อเรื่องนี้เอง)
+- `docker compose logs api | grep fcm`: log นี้ขึ้นตอนส่งแจ้งเตือนครั้งแรกเท่านั้น (ไม่ใช่ตอนเปิด API) ถ้าเห็น `[fcm:stub]` = ยังไม่มีกุญแจหรืออ่านไม่ได้, `Failed to initialize` = JSON ผิดรูปแบบ (ตรวจว่าอยู่บรรทัดเดียวและมีเครื่องหมาย `'` ครอบ)
 - Android 13 ขึ้นไป: ตั้งค่า → แอป → KUVIN → การแจ้งเตือน ต้องเปิดอยู่
 - ปิดโหมดประหยัดแบตเตอรี่ของแอปนี้ (บางยี่ห้อ เช่น Xiaomi/Oppo/Vivo ฆ่าแอปเบื้องหลัง ทำให้แจ้งเตือนมาช้า)
 - โทเค็นหมดอายุ/ลบแอปแล้วลงใหม่: ล็อกอินใหม่หนึ่งครั้งเพื่อลงทะเบียนโทเค็นอีกครั้ง
