@@ -170,7 +170,7 @@ export default function AdminDashboard() {
         <StatStrip stats={stats} />
 
         <section className="overflow-hidden rounded-xl border border-stone-200 bg-white" aria-label="คิวงานที่ต้องจัดการ">
-          <div role="tablist" aria-label="คิวงาน" className="flex gap-x-1 overflow-x-auto whitespace-nowrap border-b border-stone-200 bg-stone-50 px-3">
+          <div role="tablist" aria-label="คิวงาน" className="flex gap-x-1 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b border-stone-200 bg-stone-50 px-3">
             {QUEUE_ORDER.map((key) => (
               <QueueTab key={key} id={key} active={active === key} count={counts[key]} onClick={() => setTab(key)} />
             ))}
