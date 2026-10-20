@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Bike, AlertTriangle } from "lucide-react";
+import { Mail, Lock, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../components/Button";
+import Logo from "../components/Logo";
 import { api } from "../services/api";
 import { setToken } from "../lib/auth";
 import { useAdminSession } from "../lib/adminSession";
@@ -43,7 +44,7 @@ export default function AdminLogin() {
       >
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-900 text-white">
-            <Bike className="h-6 w-6" />
+            <Logo className="h-8 w-8" />
           </span>
           <h1 className="text-3xl font-bold text-emerald-900">KU VIN Admin</h1>
           <p className="text-base text-stone-500">ระบบจัดการแพลตฟอร์มวินมอเตอร์ไซค์</p>

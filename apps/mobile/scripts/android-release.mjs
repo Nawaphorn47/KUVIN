@@ -49,5 +49,7 @@ if (!process.env.ANDROID_HOME && isWindows && process.env.LOCALAPPDATA) {
 const androidDir = join(root, "android");
 const gradlew = join(androidDir, isWindows ? "gradlew.bat" : "gradlew");
 run(isWindows ? `"${gradlew}"` : gradlew, ["--stop"], gradleEnv, androidDir); // ปิด daemon เก่าที่อาจเปิดด้วย JDK คนละตัว
-run(isWindows ? `"${gradlew}"` : gradlew, ["assembleRelease"], gradleEnv, androidDir);
+// -Dorg.gradle.java.home บังคับ JVM ของ daemon ตรงๆ (ตัวแปร PATH/JAVA_HOME อย่างเดียวไม่พอบน Windows ถ้ามี JDK ใหม่เกินอยู่ใน PATH)
+const jvmArg = gradleEnv.JAVA_HOME ? [`"-Dorg.gradle.java.home=${gradleEnv.JAVA_HOME}"`] : [];
+run(isWindows ? `"${gradlew}"` : gradlew, ["assembleRelease", ...jvmArg], gradleEnv, androidDir);
 console.log(`\nAPK: ${join(androidDir, "app", "build", "outputs", "apk", "release", "app-release.apk")}`);

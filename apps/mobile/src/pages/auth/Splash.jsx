@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Bike } from "lucide-react";
+import Logo from "../../components/ui/Logo";
 import { useArea } from "../../context/AreaContext";
 
 // หน้าเปิดแอป: สติกเกอร์เด้งเข้ามา ชื่อแอป และชื่อพื้นที่ที่ตรวจเจอ (แบรนด์สีเปลี่ยนตามพื้นที่)
@@ -23,7 +23,7 @@ export default function Splash() {
         className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-brand-700 shadow-floating"
         aria-hidden="true"
       >
-        <Bike className="h-11 w-11" />
+        <Logo className="h-14 w-14" />
       </motion.span>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h1 className="text-5xl font-bold tracking-tight">KU VIN</h1>

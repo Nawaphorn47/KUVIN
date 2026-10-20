@@ -1,0 +1,17 @@
+{
+  "name": "KU VIN",
+  "short_name": "KU VIN",
+  "description": "เรียกวินมอเตอร์ไซค์ภายในมหาวิทยาลัย",
+  "lang": "th",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#006664",
+  "background_color": "#006664",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

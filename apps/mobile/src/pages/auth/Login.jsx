@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bike, ChevronLeft, Lock, Mail, Phone, User, Zap } from "lucide-react";
+import { ChevronLeft, Lock, Mail, Phone, User, Zap } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import OtpForm from "../../components/shared/OtpForm";
 import { Capacitor } from "@capacitor/core";
+import Logo from "../../components/ui/Logo";
 import GoogleButton from "../../components/shared/GoogleButton";
 import { api } from "../../lib/api";
 import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
@@ -146,7 +147,7 @@ export default function Login() {
       <header className="flex-none bg-brand-600 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
-            <Bike className="h-6 w-6" aria-hidden="true" />
+            <Logo className="h-7 w-7" />
           </span>
           <div>
             <p className="text-2xl font-bold leading-none tracking-tight">KU VIN</p>

@@ -4,6 +4,7 @@ import { Bike, Check, ChevronLeft, IdCard, Lock, Mail, Phone, User } from "lucid
 import clsx from "clsx";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Logo from "../../components/ui/Logo";
 import { api } from "../../lib/api";
 import { setToken } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
@@ -66,7 +67,7 @@ export default function Register() {
         </button>
         <div className="mt-3 flex items-center gap-3">
           <span className="flex h-11 w-11 flex-none -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
-            <Bike className="h-5 w-5" aria-hidden="true" />
+            <Logo className="h-6 w-6" />
           </span>
           <div>
             <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight">สมัครด้วยอีเมล</h1>

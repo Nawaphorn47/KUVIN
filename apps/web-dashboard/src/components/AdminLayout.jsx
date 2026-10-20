@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import {
-  Bike,
   Building2,
   LayoutDashboard,
   Loader2,
@@ -13,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import clsx from "clsx";
+import Logo from "./Logo";
 import { useAdminSession } from "../lib/adminSession";
 import { applyBrand, DEFAULT_BRAND } from "../theme/brand";
 
@@ -56,7 +56,7 @@ export default function AdminLayout() {
       <aside className="flex w-64 flex-none flex-col border-r border-stone-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-800 text-white">
-            <Bike className="h-5 w-5" />
+            <Logo className="h-6 w-6" />
           </span>
           <div>
             <p className="text-lg font-bold leading-tight text-emerald-900">KU VIN Admin</p>
