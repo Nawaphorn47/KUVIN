@@ -10,7 +10,7 @@ export default function DriverInfoCard({ driver }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <Avatar initial={name[0]} size="lg" />
+        <Avatar src={driver.avatarUrl} initial={name[0]} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2">
             <span className="truncate text-lg font-bold text-slate-900">{name}</span>

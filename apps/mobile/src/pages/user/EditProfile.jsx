@@ -4,6 +4,7 @@ import { Check, IdCard, Phone, User } from "lucide-react";
 import TopBar from "../../components/layout/TopBar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import AvatarPicker from "../../components/shared/AvatarPicker";
 import { useApp } from "../../context/AppContext";
 import { api } from "../../lib/api";
 
@@ -50,6 +51,7 @@ export default function EditProfile() {
       <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
         <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5">
           <div className="flex flex-col gap-4">
+            <AvatarPicker src={user.avatarUrl} initial={user.avatarInitial} onChanged={refreshMe} className="pb-1" />
             <Input label="ชื่อ-นามสกุล" icon={User} autoComplete="name" maxLength={80} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             <div>
               <Input

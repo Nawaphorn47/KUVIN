@@ -111,6 +111,7 @@ model User {
   phoneVerifiedAt DateTime?
   selfieFile      String?
   selfieAt        DateTime?
+  avatarFile      String? // รูปโปรไฟล์ที่เจ้าของเลือกเอง (uploads/avatars เสิร์ฟสาธารณะ ชื่อไฟล์ UUID) — อีกฝ่ายในทริปเห็นรูปนี้
   googleSub       String?   @unique // บัญชี Google ที่ผูกไว้ (sub จาก ID token)
 
   // รีเซ็ตรหัสผ่าน: resetToken เก็บ sha256 ของรหัส 6 หลักที่ส่งทางอีเมล (ไม่เก็บรหัสจริง) — ไม่ unique เพราะ

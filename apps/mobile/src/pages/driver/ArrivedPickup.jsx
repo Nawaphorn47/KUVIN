@@ -44,7 +44,7 @@ export default function ArrivedPickup() {
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
         <section aria-label="ผู้โดยสาร" className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <div className="flex items-center gap-3">
-            <Avatar initial={user.fullName[0]} size="lg" />
+            <Avatar src={user.avatarUrl} initial={user.fullName[0]} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-bold text-slate-900">{user.fullName}</p>
               <p className="truncate text-sm text-slate-600">รอที่ {request.pickupAddress ?? "จุดนัดพบ"}</p>

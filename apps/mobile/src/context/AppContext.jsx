@@ -53,6 +53,7 @@ export function AppProvider({ children }) {
           email: data.email,
           phone: data.phone,
           avatarInitial: data.fullName?.[0] ?? "?",
+          avatarUrl: data.avatarUrl ?? null,
           studentId: data.studentId ?? "",
           totalTrips: trips.length,
           // ยืนยันตัวตนผู้โดยสาร + โหมดคนขับของบัญชีเดียวกัน (null = ยังไม่สมัครขับ)
@@ -69,6 +70,7 @@ export function AppProvider({ children }) {
         setMe({
           role: "driver",
           name: full.fullName,
+          avatarUrl: full.avatarUrl ?? null,
           phone: full.phone,
           vinNumber: full.vinNumber,
           plate: full.licensePlate,

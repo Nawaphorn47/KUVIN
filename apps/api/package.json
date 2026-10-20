@@ -19,6 +19,7 @@
     "test:chat": "node scripts/test-chat.js",
     "test:security": "node scripts/test-security.js",
     "test:trip-safety": "node scripts/test-trip-safety.js",
+    "test:profile": "node scripts/test-profile.js",
     "test:coverage": "node scripts/coverage.js"
   },
   "prisma": {
