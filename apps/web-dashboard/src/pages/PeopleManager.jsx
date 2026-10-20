@@ -215,7 +215,7 @@ export default function PeopleManager() {
                       </td>
                       <td className="px-4 py-3 text-stone-600">{formatDate(r.createdAt)}</td>
                       <td className="px-4 py-3">
-                        {r.isSuspended ? <Badge tone="danger">ถูกระงับ</Badge> : <Badge tone="success">ปกติ</Badge>}
+                        {r.isSuspended ? <Badge size="sm" tone="danger">ถูกระงับ</Badge> : <Badge size="sm" tone="success">ปกติ</Badge>}
                       </td>
                     </>
                   ) : (
@@ -230,11 +230,11 @@ export default function PeopleManager() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {r.isSuspended ? (
-                            <Badge tone="danger">ถูกระงับ</Badge>
+                            <Badge size="sm" tone="danger">ถูกระงับ</Badge>
                           ) : (
-                            <Badge tone={VERIFICATION[r.verificationStatus].tone}>{VERIFICATION[r.verificationStatus].label}</Badge>
+                            <Badge size="sm" tone={VERIFICATION[r.verificationStatus].tone}>{VERIFICATION[r.verificationStatus].label}</Badge>
                           )}
-                          {r.isOnline && !r.isSuspended && <Badge tone="info">ออนไลน์</Badge>}
+                          {r.isOnline && !r.isSuspended && <Badge size="sm" tone="info">ออนไลน์</Badge>}
                         </div>
                       </td>
                     </>
@@ -425,7 +425,7 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
                     </p>
                   </div>
                   <div className="flex flex-none flex-col items-end gap-1">
-                    <Badge tone={TRIP_STATUS[t.status].tone} className="px-2 py-0.5 text-xs">
+                    <Badge size="sm" tone={TRIP_STATUS[t.status].tone} className="px-2 py-0.5 text-xs">
                       {TRIP_STATUS[t.status].label}
                     </Badge>
                     <span className="text-xs text-stone-500">{t.fare ?? "-"} ฿</span>
