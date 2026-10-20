@@ -40,7 +40,7 @@ run("npx", ["cap", "sync", "android"], { CAP_ALLOW_HTTP: "" });
 
 // Gradle ต้องการ JDK 21 — ใช้ JDK ที่มากับ Android Studio แทน JAVA_HOME ของเครื่อง (อาจเป็นเวอร์ชันใหม่เกินไป)
 const gradleEnv = {};
-const studioJbr = isWindows ? "C:\Program Files\Android\Android Studio\jbr" : null;
+const studioJbr = isWindows ? "C:\\Program Files\\Android\\Android Studio\\jbr" : null;
 if (studioJbr && existsSync(studioJbr)) {
   gradleEnv.JAVA_HOME = studioJbr;
   // นำ java ของ Android Studio ขึ้นหน้า PATH ด้วย — เครื่องที่มี JDK ใหม่เกิน (เช่น 25) ใน PATH จะทำให้ Gradle ที่ค้างอยู่ใช้ JDK ผิดตัว

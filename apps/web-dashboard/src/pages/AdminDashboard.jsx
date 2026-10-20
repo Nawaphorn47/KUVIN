@@ -143,12 +143,15 @@ export default function AdminDashboard() {
   const loaded = sosAlerts && reports && pendingDrivers && trips;
   const urgent = QUEUE_ORDER.find((k) => counts[k] > 0) ?? "trips";
   const active = tab ?? (loaded ? urgent : null);
+  let subtitle;
+  if (area) subtitle = `วิทยาเขต ${area.displayName}`;
+  else if (isSuper) subtitle = "ทุกวิทยาเขตในแพลตฟอร์ม";
 
   return (
     <div>
       <PageHeader
         title="ภาพรวม"
-        subtitle={area ? `วิทยาเขต ${area.displayName}` : isSuper ? "ทุกวิทยาเขตในแพลตฟอร์ม" : undefined}
+        subtitle={subtitle}
         actions={
           <>
             {updatedAt && (
@@ -395,7 +398,7 @@ function ReportRow({ report: r, open, onToggle, onResolve }) {
           </div>
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5 text-sm font-medium text-stone-700">
-              บันทึกการจัดการ (ไม่บังคับ)
+              <span>บันทึกการจัดการ (ไม่บังคับ)</span>
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -438,7 +441,8 @@ function DriversPanel({ drivers, showArea, onReview }) {
   }
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-stone-200 px-6 py-3" role="group" aria-label="กรองตามประเภทคนขับ">
+      <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-2 border-0 border-b border-stone-200 px-6 py-3">
+        <legend className="sr-only">กรองตามประเภทคนขับ</legend>
         {[["ALL", "ทั้งหมด", drivers.length], ...Object.entries(DRIVER_TYPE_LABEL).map(([k, v]) => [k, v, byType(k)])].map(([key, label, n]) => (
           <button
             key={key}
@@ -453,7 +457,7 @@ function DriversPanel({ drivers, showArea, onReview }) {
             {label} <span className="tabular-nums opacity-80">{n}</span>
           </button>
         ))}
-      </div>
+      </fieldset>
 
       <div
         className={clsx(
@@ -566,7 +570,7 @@ function TripsPanel({ trips, showArea, onResolveDispute }) {
           />
         </label>
         <label className="flex items-center gap-2 text-sm text-stone-700">
-          สถานะ
+          <span>สถานะ</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm">
             <option value="">ทั้งหมด</option>
             {Object.entries(STATUS_LABEL).map(([k, v]) => (
@@ -652,6 +656,11 @@ function DriverReviewDrawer({ driver, onClose, onApprove, onReject }) {
   const [busy, setBusy] = useState(false);
   const [showReject, setShowReject] = useState(false);
 
+  const typeParts = [DRIVER_TYPE_LABEL[driver.driverType] ?? "-"];
+  if (driver.winGroupName) typeParts.push(driver.winGroupName);
+  if (driver.studentId) typeParts.push(`รหัส ${driver.studentId}`);
+  const typeSummary = typeParts.join(" · ");
+
   const docs = DOC_FIELDS.filter(([key]) => driver[key]).map(([key, label]) => ({
     label: key === "driverLicensePhotoUrl" && driver.driverType === "PRO" ? "ใบขับขี่สาธารณะ" : label,
     url: fileUrl(driver[key]),
@@ -678,7 +687,7 @@ function DriverReviewDrawer({ driver, onClose, onApprove, onReject }) {
 
   return (
     <Overlay onClose={onClose} className="flex justify-end" backdropClassName="bg-black/30">
-      <aside role="dialog" aria-modal="true" aria-labelledby="review-title" className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
+      <dialog open aria-modal="true" aria-labelledby="review-title" className="relative m-0 flex h-full max-h-none w-full max-w-xl flex-col border-0 bg-white p-0 text-inherit shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-stone-200 px-6 py-4">
           <div>
             <h2 id="review-title" className="text-xl font-semibold text-stone-900">
@@ -696,7 +705,7 @@ function DriverReviewDrawer({ driver, onClose, onApprove, onReject }) {
             <Info label="เบอร์โทรศัพท์" value={driver.phone} />
             <Info
               label="ประเภท"
-              value={`${DRIVER_TYPE_LABEL[driver.driverType] ?? "-"}${driver.winGroupName ? ` · ${driver.winGroupName}` : ""}${driver.studentId ? ` · รหัส ${driver.studentId}` : ""}`}
+              value={typeSummary}
             />
             <Info label="เบอร์วิน" value={driver.vinNumber} />
             <Info label="รถ / ทะเบียน" value={`${driver.vehicleModel ?? "-"} / ${driver.licensePlate}`} />
@@ -747,7 +756,7 @@ function DriverReviewDrawer({ driver, onClose, onApprove, onReject }) {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} อนุมัติ
           </Button>
         </div>
-      </aside>
+      </dialog>
     </Overlay>
   );
 }

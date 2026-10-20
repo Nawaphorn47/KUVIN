@@ -13,7 +13,10 @@ let initError = null;
 // อ่านกุญแจจากตัวแปร env แบบทนต่อความผิดพลาดที่พบบ่อยตอนวางใน .env: มีเครื่องหมาย ' หรือ " ครอบ/ตกค้างหัวท้าย
 // (docker compose ตัด ' ตัวแรกแต่ปล่อยตัวท้ายไว้) — ตัดช่องว่างและอัญประกาศที่หัวท้ายแล้วค่อย parse
 function parseServiceAccount(raw) {
-  const text = String(raw).trim().replace(/^['"]+|['"]+$/g, "");
+  let text = String(raw).trim();
+  const isQuote = (c) => c === "'" || c === '"';
+  while (text.length > 0 && isQuote(text[0])) text = text.slice(1);
+  while (text.length > 0 && isQuote(text[text.length - 1])) text = text.slice(0, -1);
   return JSON.parse(text);
 }
 
