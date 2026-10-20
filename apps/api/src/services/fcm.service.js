@@ -10,6 +10,13 @@ const { getMessaging } = require("firebase-admin/messaging");
 let app = null;
 let initError = null;
 
+// อ่านกุญแจจากตัวแปร env แบบทนต่อความผิดพลาดที่พบบ่อยตอนวางใน .env: มีเครื่องหมาย ' หรือ " ครอบ/ตกค้างหัวท้าย
+// (docker compose ตัด ' ตัวแรกแต่ปล่อยตัวท้ายไว้) — ตัดช่องว่างและอัญประกาศที่หัวท้ายแล้วค่อย parse
+function parseServiceAccount(raw) {
+  const text = String(raw).trim().replace(/^['"]+|['"]+$/g, "");
+  return JSON.parse(text);
+}
+
 function init() {
   if (app || initError) return app;
 
@@ -18,7 +25,7 @@ function init() {
 
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       // เหมาะกับ deploy platform ที่ mount ไฟล์ไม่ได้ (เช่น Railway/Render) — วาง JSON ทั้งก้อนใน env var
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      const serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
       credential = cert(serviceAccount);
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       // ชี้ไปที่ไฟล์ service-account.json บนเครื่อง/เซิร์ฟเวอร์
@@ -61,4 +68,4 @@ async function sendPush({ token, title, body }) {
   }
 }
 
-module.exports = { sendPush };
+module.exports = { sendPush, parseServiceAccount };
