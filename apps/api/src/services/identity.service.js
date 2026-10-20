@@ -3,8 +3,8 @@
 //
 // token ยังแยก role เหมือนเดิม ({ id, role: "user" | "driver" }) — สิทธิ์ทุก endpoint เดิมจึงไม่ต้องแก้
 // การ "สลับโหมด" คือออก token ของอีกบทบาทให้บัญชีที่ผูกกันไว้ (Driver.userId)
-const crypto = require("crypto");
-const fs = require("fs");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { suspendedMessage } = require("../utils/accountStatus");
@@ -51,7 +51,7 @@ function otpMode() {
 
 const hashCode = (phone, code) => crypto.createHash("sha256").update(`${phone}:${code}`).digest("hex");
 
-async function sendSms() {
+async function sendSms(_phone, _message) {
   // ยังไม่ได้เลือกผู้ให้บริการ SMS — ต่อของจริงตรงนี้ (เช่น ThaiBulkSMS) แล้วตั้ง OTP_MODE=sms
   throw new ApiError(503, "ระบบส่ง SMS ยังไม่เปิดใช้งาน");
 }
@@ -60,9 +60,9 @@ async function sendSms() {
 // ต้องการเปิดให้ทุกเบอร์จริง ๆ (เดโมสาธารณะ ยอมรับความเสี่ยง) ต้องตั้ง OTP_TEST_PHONES=* เอง
 function assertTestPhoneAllowed(phone) {
   if (process.env.NODE_ENV !== "production") return;
-  const list = (process.env.OTP_TEST_PHONES ?? "").split(",").map((p) => p.trim()).filter(Boolean);
-  if (list.includes("*")) return;
-  if (!list.includes(phone)) {
+  const list = new Set((process.env.OTP_TEST_PHONES ?? "").split(",").map((p) => p.trim()).filter(Boolean));
+  if (list.has("*")) return;
+  if (!list.has(phone)) {
     throw ApiError.forbidden("เบอร์นี้ยังไม่เปิดให้ทดสอบ OTP (ระบบยังไม่ส่ง SMS จริง)", "OTP_TEST_PHONE_ONLY");
   }
 }
@@ -284,6 +284,20 @@ function typeFields({ driverType, studentId, winGroupName, vinNumber }) {
   return out;
 }
 
+// ตรวจข้อมูลใบสมัครคนขับ (ป้ายทะเบียน พร้อมเพย์ พื้นที่ เบอร์วิน) — คืนป้ายทะเบียนที่ตัดช่องว่างแล้ว
+async function validateApplication({ licensePlate, promptPayId, areaId, vinNumber }) {
+  const plate = typeof licensePlate === "string" ? licensePlate.trim() : "";
+  if (!plate || plate.length > 40) throw ApiError.badRequest("กรุณากรอกป้ายทะเบียนรถ");
+  if (promptPayId && !isValidPromptPayId(promptPayId)) {
+    throw ApiError.badRequest("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
+  }
+  if (!areaId) throw ApiError.badRequest("กรุณาเลือกพื้นที่ที่จะรับงาน");
+  const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
+  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
+  if (vinNumber) assertNumericVinNumber(vinNumber);
+  return plate;
+}
+
 async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleModel, promptPayId, driverType, studentId, winGroupName }) {
   const user = await prisma.user.findUnique({ where: { id: userId }, include: { driver: true } });
   if (!user) throw ApiError.notFound("ไม่พบบัญชีผู้ใช้");
@@ -299,15 +313,7 @@ async function becomeDriver(userId, { areaId, vinNumber, licensePlate, vehicleMo
     return { driver: sanitizeDriver(linked), token: issueToken(linked.id, "driver"), linked: true };
   }
 
-  const plate = typeof licensePlate === "string" ? licensePlate.trim() : "";
-  if (!plate || plate.length > 40) throw ApiError.badRequest("กรุณากรอกป้ายทะเบียนรถ");
-  if (promptPayId && !isValidPromptPayId(promptPayId)) {
-    throw ApiError.badRequest("พร้อมเพย์ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
-  }
-  if (!areaId) throw ApiError.badRequest("กรุณาเลือกพื้นที่ที่จะรับงาน");
-  const area = await prisma.area.findFirst({ where: { id: areaId, isActive: true }, select: { id: true } });
-  if (!area) throw ApiError.badRequest("ไม่พบพื้นที่ที่เลือก หรือพื้นที่นี้ปิดให้บริการแล้ว");
-  if (vinNumber) assertNumericVinNumber(vinNumber);
+  const plate = await validateApplication({ licensePlate, promptPayId, areaId, vinNumber });
   const typed = typeFields({ driverType, studentId, winGroupName, vinNumber });
 
   try {

@@ -130,6 +130,8 @@ export default function ConfirmBooking() {
   const destPoint = estimate?.destination ?? (destination.lat != null ? destination : null);
   const zone = area ? { ...areaCenter(area), radiusKm: area.flatRadiusKm } : null;
   const canBook = !submitting && !loadingEstimate && Boolean(pickupPoint) && !estimateError;
+  const areaName = estimate?.area?.displayName ? ` ${estimate.area.displayName}` : "";
+  const bookLabel = fare != null && !estimateError ? `เรียกวินเลย · ${fare} ฿` : "เรียกวินเลย";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
@@ -146,9 +148,9 @@ export default function ConfirmBooking() {
         {/* จุดรับถูกแทนด้วยจุดกลางพื้นที่ (ไม่มี GPS/อยู่ไกล) — เตือนให้เห็นชัด ไม่งั้นผู้ใช้เรียกวินไปโดยไม่รู้ตัว
             แล้วคนขับไปรอผิดที่ */}
         {pickupNote ? (
-          <p role="status" className="mt-2 flex items-start gap-2 rounded-xl bg-amber-100 px-3 py-2.5 text-sm font-medium text-amber-900">
+          <output className="mt-2 flex items-start gap-2 rounded-xl bg-amber-100 px-3 py-2.5 text-sm font-medium text-amber-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" /> {pickupNote}
-          </p>
+          </output>
         ) : (
           <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
             <Hand className="h-4 w-4 flex-none text-brand-600" />
@@ -183,16 +185,14 @@ export default function ConfirmBooking() {
               ค่าวิน
             </h2>
             <p className="tabular text-right text-slate-900" aria-live="polite">
-              {loadingEstimate ? (
-                <span className="inline-block h-12 w-24 animate-pulse rounded-lg bg-slate-100 align-bottom" />
-              ) : fare != null ? (
+              {loadingEstimate && <span className="inline-block h-12 w-24 animate-pulse rounded-lg bg-slate-100 align-bottom" />}
+              {!loadingEstimate && fare != null && (
                 <>
                   <span className="text-fare">{fare}</span>
                   <span className="ml-1 text-xl font-bold">฿</span>
                 </>
-              ) : (
-                <span className="text-2xl font-bold">-</span>
               )}
+              {!loadingEstimate && fare == null && <span className="text-2xl font-bold">-</span>}
             </p>
           </div>
           {estimateError ? (
@@ -211,7 +211,7 @@ export default function ConfirmBooking() {
                 />
                 {/* อัตราของพื้นที่ที่ให้บริการทริปนี้ (แต่ละพื้นที่ตั้งเองได้) */}
                 {isWithinCampus
-                  ? `อยู่ในเขตเหมาจ่าย${estimate?.area?.displayName ? ` ${estimate.area.displayName}` : ""} จ่ายราคาเดียว ${estimate?.area?.flatFare ?? "-"} บาท`
+                  ? `อยู่ในเขตเหมาจ่าย${areaName} จ่ายราคาเดียว ${estimate?.area?.flatFare ?? "-"} บาท`
                   : `ออกนอกเขตเหมาจ่าย คิดตามระยะทางถนนจริง ${estimate?.area?.ratePerKm ?? "-"} บาท/กม.`}
               </p>
             )
@@ -240,14 +240,19 @@ export default function ConfirmBooking() {
           >
             ตอนนี้อยู่โหมดคนขับ · สลับเป็นโหมดเรียกวิน
           </Button>
-        ) : needsVerify ? (
-          <Button onClick={() => navigate("/verify-identity", { state: { from: "/confirm-booking" } })}>
-            ยืนยันตัวตนก่อนเรียกครั้งแรก
-          </Button>
         ) : (
-        <Button onClick={handleConfirm} disabled={!canBook}>
-          {submitting ? "กำลังเรียกวิน..." : fare != null && !estimateError ? `เรียกวินเลย · ${fare} ฿` : "เรียกวินเลย"}
-        </Button>
+          <>
+            {needsVerify && (
+              <Button onClick={() => navigate("/verify-identity", { state: { from: "/confirm-booking" } })}>
+                ยืนยันตัวตนก่อนเรียกครั้งแรก
+              </Button>
+            )}
+            {!needsVerify && (
+              <Button onClick={handleConfirm} disabled={!canBook}>
+                {submitting ? "กำลังเรียกวิน..." : bookLabel}
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ export default function RideCompleted() {
   const initial = location.state?.request;
   const [paid, setPaid] = useState(initial?.paymentStatus === "PAID");
   const [slipEnabled, setSlipEnabled] = useState(false);
+  const [qrReady, setQrReady] = useState(false); // มี QR พร้อมเพย์จริง (คนขับตั้งพร้อมเพย์ไว้) — ถ้าไม่มี PaymentQr บอกให้จ่ายเงินสดอยู่แล้ว
 
   // คนขับอาจกดยืนยันรับเงิน (เช่นจ่ายสด) ขณะที่ผู้โดยสารยังอยู่หน้านี้ — เช็คสถานะเป็นระยะ
   useEffect(() => {
@@ -46,19 +47,24 @@ export default function RideCompleted() {
             <span className="flex h-9 w-9 -rotate-6 items-center justify-center rounded-full bg-brand-600 text-white shadow-sticker">
               <Check className="h-5 w-5" strokeWidth={3} />
             </span>
-            จ่ายเรียบร้อย ขอบคุณที่ใช้วิน!
+            <span>จ่ายเรียบร้อย ขอบคุณที่ใช้วิน!</span>
           </motion.p>
         ) : (
           <section aria-labelledby="pay-title" className="flex flex-col gap-3">
             <h2 id="pay-title" className="text-base font-bold text-slate-900">
               จ่ายค่าวิน
             </h2>
-            <PaymentQr requestId={request.id} onLoaded={(qr) => setSlipEnabled(Boolean(qr.slipVerification))} />
+            <PaymentQr requestId={request.id} onLoaded={(qr) => {
+                setQrReady(true);
+                setSlipEnabled(Boolean(qr.slipVerification));
+              }} />
             {slipEnabled && <SlipUploader requestId={request.id} onPaid={() => setPaid(true)} />}
-            <p className="flex items-center gap-2 text-sm text-slate-600">
-              <Banknote className="h-4 w-4 flex-none text-slate-500" />
-              {slipEnabled ? "จ่ายเงินสดก็ได้ คนขับจะกดยืนยันว่ารับเงินแล้ว" : "หรือจ่ายเงินสดให้คนขับโดยตรง"}
-            </p>
+            {qrReady && (
+              <p className="flex items-center gap-2 text-sm text-slate-600">
+                <Banknote className="h-4 w-4 flex-none text-slate-500" />
+                {slipEnabled ? "จ่ายเงินสดก็ได้ คนขับจะกดยืนยันว่ารับเงินแล้ว" : "หรือจ่ายเงินสดให้คนขับโดยตรง"}
+              </p>
+            )}
           </section>
         )}
 

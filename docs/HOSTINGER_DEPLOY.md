@@ -93,9 +93,47 @@ certbot --nginx -d kuvinn.tech -d api.kuvinn.tech -d admin.kuvinn.tech --redirec
 - ล็อกอินแอดมินได้แล้ว: ลบบรรทัด `SEED_ADMIN_PASSWORD` ออกจาก `~/app/.env` แล้ว `docker compose up -d` (ถ้าตั้งไว้ทุกครั้งที่ deploy = รีเซ็ตรหัสแอดมินเป็นค่านั้น)
 - จะ deploy ใหม่: merge เข้า `main` (หรือ Run workflow) — ย้อนเวอร์ชัน: ตั้ง `API_IMAGE`/`WEB_IMAGE`/`ADMIN_IMAGE` เป็น tag `sha-xxxxxxx` เดิมแล้ว `docker compose up -d`
 
+## สำรองข้อมูล (ทำก่อนมีข้อมูลผู้ใช้จริง)
+
+สิ่งที่ต้องสำรอง: ฐานข้อมูล (volume `pgdata`) และโฟลเดอร์อัปโหลด (volume `uploads` — มีรูปบัตร/ใบขับขี่คนขับและเซลฟี่ผู้โดยสาร)
+สคริปต์ [`deploy/backup.sh`](../deploy/backup.sh) ทำให้ในครั้งเดียว (ไม่หยุดระบบ ไม่ลบข้อมูล เก็บ 7 วันล่าสุด สิทธิ์ไฟล์ 600)
+
+copy ไปไว้ข้างๆ `docker-compose.yml` (ครั้งแรกครั้งเดียว ผ่านเครื่องคุณ):
+
+```powershell
+scp -i $env:USERPROFILE\.ssh\kuvin_vps deployackup.sh deploy@187.127.100.24:app/
+```
+
+ลองสำรองหนึ่งครั้งบน VPS แล้วตรวจไฟล์:
+
+```bash
+cd ~/app && sh backup.sh && ls -lh ~/backups
+```
+
+ตั้งให้สำรองทุกคืนตี 2:30 (`crontab -e` แล้วเพิ่มบรรทัดนี้):
+
+```bash
+30 2 * * * cd ~/app && sh backup.sh >> ~/backups/backup.log 2>&1
+```
+
+**กู้คืน** (ทดสอบบนเครื่องอื่นก่อนเสมอ — การกู้ฐานข้อมูลทับของเดิมต้องหยุด api ก่อน):
+
+```bash
+# ฐานข้อมูล: หยุด api → ลบข้อมูลเดิมในฐานนั้น → นำเข้า → เปิด api
+docker compose stop api
+gunzip -c ~/backups/db-<เวลา>.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+docker compose start api
+# ไฟล์อัปโหลด
+docker compose exec -T api tar xzf - -C /app/apps/api < ~/backups/uploads-<เวลา>.tar.gz
+```
+
+> สำรองในเครื่องเดียวกับข้อมูลไม่พอ (ดิสก์เสีย = หายทั้งคู่) ให้ดึงไฟล์ออกมาเก็บเครื่องอื่นเป็นระยะ เช่น
+> `scp -i $env:USERPROFILE\.ssh\kuvin_vps deploy@187.127.100.24:backups/db-<เวลา>.sql.gz .`
+> ไฟล์เหล่านี้มีข้อมูลส่วนบุคคล (PDPA) — ห้ามอัปขึ้น cloud สาธารณะหรือแชร์ต่อ ทางเลือกอีกทาง: สแนปช็อตรายวันของ Hostinger (มีค่าใช้จ่าย)
+
 ## ข้อควรระวัง
 - **ความปลอดภัย:** `.env` อยู่เฉพาะบน VPS (`chmod 600`) ไม่อยู่ใน git/image — อ่านเช็กลิสต์ใน [SECURITY.md](SECURITY.md) หัวข้อ "เช็กลิสต์ก่อนเปิดใช้งานจริง"
 - **OTP:** ยังเป็นโหมดทดสอบ (`OTP_MODE=test`) ให้รหัสเฉพาะเบอร์ใน `OTP_TEST_PHONES` เปลี่ยนเบอร์ได้โดยแก้ `.env` แล้ว `docker compose up -d`
-- **สำรองข้อมูล:** volume `uploads` (เอกสารบัตร/เซลฟี่) และ `pgdata` — ถ้าอยากสำรองอัตโนมัติ Hostinger มีสแนปช็อตรายวัน (มีค่าใช้จ่ายเพิ่ม)
+- **สำรองข้อมูล:** ดูหัวข้อ "สำรองข้อมูล" ด้านบน (สคริปต์ + cron + วิธีกู้คืน)
 - **ลิงก์แชร์ทริป/APK:** แอป Android ต้อง build ด้วย `VITE_API_URL=https://api.kuvinn.tech/api` และ `VITE_PUBLIC_APP_URL=https://kuvinn.tech`
 - **Railway:** `api` ตอนนี้รันด้วย user `node` — ถ้ายังใช้ Railway ต่อ ให้ตั้ง `RAILWAY_RUN_UID=0` ที่ service `api` ไม่งั้น volume `uploads` ที่ Railway mount เป็น root จะเขียนไฟล์ไม่ได้

@@ -307,11 +307,9 @@ function DetailDrawer({ kind, id, onClose, onChanged }) {
   const p = detail?.profile;
   const s = detail?.stats;
   const isDriver = kind === "drivers";
-  const docs = isDriver
-    ? DOC_FIELDS.filter(([key]) => p?.[key]).map(([key, label]) => ({ label, url: fileUrl(p[key]) }))
-    : p?.selfieUrl
-      ? [{ label: "เซลฟี่ยืนยันตัวตน", url: fileUrl(p.selfieUrl) }]
-      : [];
+  let docs = [];
+  if (isDriver) docs = DOC_FIELDS.filter(([key]) => p?.[key]).map(([key, label]) => ({ label, url: fileUrl(p[key]) }));
+  else if (p?.selfieUrl) docs = [{ label: "เซลฟี่ยืนยันตัวตน", url: fileUrl(p.selfieUrl) }];
 
   return (
     <Overlay onClose={onClose} className="flex justify-end" backdropClassName="bg-black/30">

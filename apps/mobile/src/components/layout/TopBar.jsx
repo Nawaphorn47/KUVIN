@@ -11,7 +11,7 @@ export default function TopBar({ title, onBack, transparent = false, dark = fals
     <div
       className={clsx(
         "flex h-14 flex-none items-center gap-3 px-4",
-        transparent ? "bg-transparent" : board ? "bg-brand-600" : dark ? "bg-slate-900" : "border-b border-slate-200 bg-white",
+        barBackground(transparent, board, dark),
         onColor && "text-white"
       )}
     >
@@ -32,4 +32,10 @@ export default function TopBar({ title, onBack, transparent = false, dark = fals
       {right}
     </div>
   );
+}
+function barBackground(transparent, board, dark) {
+  if (transparent) return "bg-transparent";
+  if (board) return "bg-brand-600";
+  if (dark) return "bg-slate-900";
+  return "border-b border-slate-200 bg-white";
 }

@@ -38,23 +38,40 @@ const includeParties = {
 //  - areaId: คิวแยกตามพื้นที่ — เสนองานให้เฉพาะคนขับที่สังกัดพื้นที่ของคำขอ
 // ---------------------------------------------------------------------------
 async function getNextDriverInQueue(tx, areaId, excludeDriverIds = []) {
-  const rows = await tx.$queryRaw`
-    SELECT d."id"
-    FROM "drivers" d
-    WHERE d."areaId" = ${areaId}
-      AND d."isOnline"
-      AND d."isAvailable"
-      AND d."verificationStatus" = 'APPROVED'
-      AND d."queueJoinedAt" IS NOT NULL
-      AND NOT (d."id" = ANY(${excludeDriverIds}::text[]))
-      AND NOT EXISTS (
-        SELECT 1 FROM "service_requests" r
-        WHERE r."status" = 'PENDING' AND r."offeredDriverId" = d."id"
-      )
-    ORDER BY d."queueJoinedAt" ASC, d."id" ASC
-    LIMIT 1
-    FOR UPDATE OF d SKIP LOCKED`;
-  return rows[0]?.id ?? null;
+  // ข้ามคนที่ตรวจแล้วว่ามีข้อเสนอค้างอยู่ (ดูด้านล่าง) แล้วหาคนถัดไป — จำกัดรอบกันวนไม่จบ
+  const skip = [...excludeDriverIds];
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const rows = await tx.$queryRaw`
+      SELECT d."id"
+      FROM "drivers" d
+      WHERE d."areaId" = ${areaId}
+        AND d."isOnline"
+        AND d."isAvailable"
+        AND d."verificationStatus" = 'APPROVED'
+        AND d."queueJoinedAt" IS NOT NULL
+        AND NOT (d."id" = ANY(${skip}::text[]))
+        AND NOT EXISTS (
+          SELECT 1 FROM "service_requests" r
+          WHERE r."status" = 'PENDING' AND r."offeredDriverId" = d."id"
+        )
+      ORDER BY d."queueJoinedAt" ASC, d."id" ASC
+      LIMIT 1
+      FOR UPDATE OF d SKIP LOCKED`;
+    const id = rows[0]?.id ?? null;
+    if (!id) return null;
+
+    // ตรวจซ้ำหลังได้ล็อกแถวคนขับแล้ว ด้วย statement ใหม่ (READ COMMITTED เห็นสิ่งที่ transaction อื่น commit ไปแล้ว)
+    // เหตุผล: NOT EXISTS ด้านบนอ่านจาก snapshot ตอนเริ่ม query ถ้า transaction อื่นเพิ่งเสนองานให้คนนี้และ commit
+    // (ปล่อยล็อก) ระหว่างที่เรากำลังจะล็อก เราจะได้ล็อกคนเดิมโดยไม่เห็นข้อเสนอนั้น → เสนองานซ้อนให้คนเดียวกัน
+    // (เคยล้มสุ่มในเทสต์ "8 คำขอพร้อมกัน / 3 คนขับ" ได้ 4 คำขอที่ถูกเสนอ) — ตอนนี้ล็อกอยู่ การเสนองานใหม่ของคนอื่นเข้ามาไม่ได้
+    const busy = await tx.$queryRaw`
+      SELECT 1 AS busy FROM "service_requests"
+      WHERE "status" = 'PENDING' AND "offeredDriverId" = ${id}
+      LIMIT 1`;
+    if (busy.length === 0) return id;
+    skip.push(id);
+  }
+  return null;
 }
 
 // เสนองานให้หัวคิวคนถัดไป (หรือยกเลิกคำขอถ้าไม่เหลือใครแล้ว) — ผู้เรียกต้องถือล็อกแถวคำขอนี้อยู่แล้ว

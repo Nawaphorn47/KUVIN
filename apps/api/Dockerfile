@@ -24,11 +24,9 @@ RUN npm ci --workspace=apps/api --include=dev
 
 COPY apps/api apps/api
 WORKDIR /app/apps/api
-RUN npx prisma generate
-
 # รันด้วย user "node" (ไม่ใช่ root) — โฟลเดอร์อัปโหลดต้องเป็นของ node เพื่อให้เขียนไฟล์ได้ (named volume ที่ mount ทับ
 # จะคัดลอกเจ้าของจาก image ในครั้งแรก) ถ้า platform mount volume เป็น root (เช่น Railway) ให้ตั้ง RAILWAY_RUN_UID=0
-RUN mkdir -p uploads/.private && chown -R node:node /app/apps/api/uploads
+RUN npx prisma generate && mkdir -p uploads/.private && chown -R node:node /app/apps/api/uploads
 USER node
 
 EXPOSE 4000

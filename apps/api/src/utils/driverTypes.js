@@ -26,7 +26,7 @@ const DRIVER_TYPES = {
   },
 };
 
-const isDriverType = (t) => Object.prototype.hasOwnProperty.call(DRIVER_TYPES, t);
+const isDriverType = (t) => Object.hasOwn(DRIVER_TYPES, t);
 const ALL_DOCS = Object.keys(DOC_LABELS);
 
 module.exports = { DRIVER_TYPES, DOC_LABELS, ALL_DOCS, isDriverType };

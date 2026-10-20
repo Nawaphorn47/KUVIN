@@ -99,7 +99,7 @@ export default function Profile() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-base font-bold">
-                {switching ? "กำลังสลับ..." : user.driverMode ? "สลับไปโหมดคนขับ" : "อยากขับวินด้วย?"}
+                {switching ? "กำลังสลับ..." : (user.driverMode && "สลับไปโหมดคนขับ") || "อยากขับวินด้วย?"}
               </span>
               <span className="block text-sm text-slate-300">
                 {user.driverMode ? "บัญชีเดียวกัน สลับกลับได้ตลอด" : "ใครก็สมัครได้ ใช้บัญชีนี้เลย ไม่ต้องสมัครใหม่"}

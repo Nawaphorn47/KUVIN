@@ -178,7 +178,7 @@ export default function Home() {
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
         {areaError && (
           <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
-            โหลดพื้นที่ให้บริการไม่สำเร็จ
+            <span>โหลดพื้นที่ให้บริการไม่สำเร็จ</span>
             <button type="button" onClick={reloadAreas} className="font-bold underline underline-offset-2">
               ลองใหม่
             </button>
@@ -216,13 +216,15 @@ export default function Home() {
           <h2 id="stops-title" className="mb-2 text-sm font-semibold text-slate-600">
             แตะเลขเพื่อเลือกปลายทาง
           </h2>
-          {landmarks === null ? (
+          {landmarks === null && (
             <Loader2 className="mx-auto my-4 h-5 w-5 animate-spin text-brand-600" aria-label="กำลังโหลดสถานที่" />
-          ) : stops.length === 0 ? (
+          )}
+          {landmarks !== null && stops.length === 0 && (
             <p className="rounded-xl bg-white px-4 py-4 text-sm text-slate-600 ring-1 ring-slate-200">
               ยังไม่มีปลายทางยอดนิยมในพื้นที่นี้ ค้นหาจากช่องด้านบนได้เลย
             </p>
-          ) : (
+          )}
+          {landmarks !== null && stops.length > 0 && (
             <ul className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
               {stops.map((s) => {
                 const isSel = s.id === selected?.id;

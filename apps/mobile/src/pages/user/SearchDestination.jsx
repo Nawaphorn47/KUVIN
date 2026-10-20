@@ -163,7 +163,7 @@ export default function SearchDestination() {
 
         {loadError && (
           <div className="mt-4 flex items-center justify-between rounded-xl bg-here-soft px-4 py-3 text-sm text-here">
-            โหลดรายชื่อสถานที่ไม่สำเร็จ
+            <span>โหลดรายชื่อสถานที่ไม่สำเร็จ</span>
             <button type="button" onClick={load} className="font-bold underline underline-offset-2">
               ลองใหม่
             </button>

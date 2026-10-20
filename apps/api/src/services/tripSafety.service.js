@@ -86,7 +86,7 @@ async function publicShareView(token) {
 async function createReport(requestId, actor, { category, detail }, io) {
   const request = await loadOwnTrip(requestId, actor);
   const categories = REPORT_CATEGORIES[actor.role];
-  if (!categories || !Object.prototype.hasOwnProperty.call(categories, category)) {
+  if (!categories || !Object.hasOwn(categories, category)) {
     throw ApiError.badRequest("กรุณาเลือกหัวข้อปัญหา");
   }
   if (!request.driverId) throw ApiError.conflict("ทริปนี้ยังไม่มีคนขับ แจ้งปัญหาไม่ได้");

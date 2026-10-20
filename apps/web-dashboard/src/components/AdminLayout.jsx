@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import {
   Bike,
@@ -13,11 +14,16 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useAdminSession } from "../lib/adminSession";
+import { applyBrand, DEFAULT_BRAND } from "../theme/brand";
 
 // โครงหน้าแอดมิน: แถบเมนูซ้าย + ตัวเลือกพื้นที่ (super) / ชื่อพื้นที่ (แอดมินพื้นที่)
 export default function AdminLayout() {
   const navigate = useNavigate();
   const { admin, isSuper, areas, areaId, area, setAreaId, logout, ready } = useAdminSession();
+
+  // สีของแดชบอร์ดตามพื้นที่ที่กำลังดู (ดูทุกพื้นที่ = สีเริ่มต้น)
+  const brandColor = area?.brandColor ?? DEFAULT_BRAND;
+  useEffect(() => applyBrand(brandColor), [brandColor]);
 
   if (!ready) {
     return (

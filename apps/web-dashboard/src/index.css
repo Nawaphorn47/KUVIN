@@ -2,7 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ค่าเริ่มต้นของสีแบรนด์ (เขียว มก.) ให้เฟรมแรกมีสีถูกก่อนโหลดพื้นที่เสร็จ — src/theme/brand.js เขียนทับตามพื้นที่ */
+:root {
+  --brand-50: 240 246 246;
+  --brand-100: 222 235 235;
+  --brand-200: 189 215 215;
+  --brand-300: 143 188 187;
+  --brand-400: 92 157 156;
+  --brand-500: 41 126 125;
+  --brand-600: 0 102 100;
+  --brand-700: 0 86 84;
+  --brand-800: 0 69 68;
+  --brand-900: 0 53 52;
+  --brand-950: 0 37 36;
+}
+
 body {
   @apply bg-stone-100 text-stone-900 antialiased;
-  font-family: "Prompt", system-ui, sans-serif;
+  font-family: "Anuphan", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  caret-color: rgb(var(--brand-600));
+}
+
+::selection {
+  background: rgb(var(--brand-200));
+  color: theme("colors.stone.900");
+}
+
+:focus-visible {
+  outline: 3px solid rgb(var(--brand-500));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ตัวเลขในตารางเรียงตรงคอลัมน์ */
+table {
+  font-variant-numeric: tabular-nums;
 }

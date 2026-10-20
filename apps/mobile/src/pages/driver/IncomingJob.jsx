@@ -91,7 +91,8 @@ export default function IncomingJob() {
           </p>
         </div>
         {/* แถบเวลา: หมดไปทางซ้าย ช่วงท้ายเปลี่ยนเป็นสีเหลือง (ไม่ใช้แดง — แดงสงวนไว้ให้ตำแหน่งตัวเองกับ SOS) */}
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label="เวลาที่เหลือในการตอบรับ">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+          <progress className="sr-only" max={100} value={Math.round(progress * 100)} aria-label="เวลาที่เหลือในการตอบรับ" />
           <motion.div
             className={urgent ? "h-2 rounded-full bg-amber-300" : "h-2 rounded-full bg-white"}
             animate={{ width: `${progress * 100}%` }}

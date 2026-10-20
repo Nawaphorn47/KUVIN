@@ -21,13 +21,7 @@ export default function VerificationPending() {
           <li key={label} className="flex items-center gap-3 border-b border-slate-200 px-4 py-3.5 last:border-b-0">
             <span
               aria-hidden="true"
-              className={
-                state === "done"
-                  ? "h-4 w-4 rounded-full bg-brand-600"
-                  : state === "now"
-                    ? "h-4 w-4 rounded-full border-[3px] border-brand-600 bg-white"
-                    : "h-4 w-4 rounded-full border-2 border-slate-300 bg-white"
-              }
+              className={DOT_CLASS[state] ?? DOT_CLASS.next}
             />
             <span className={state === "next" ? "text-[15px] text-slate-500" : "text-[15px] font-bold text-slate-900"}>{label}</span>
             {state === "now" && <span className="ml-auto text-sm font-semibold text-brand-700">กำลังตรวจ</span>}
@@ -38,3 +32,8 @@ export default function VerificationPending() {
     </StatusScreen>
   );
 }
+const DOT_CLASS = {
+  done: "h-4 w-4 rounded-full bg-brand-600",
+  now: "h-4 w-4 rounded-full border-[3px] border-brand-600 bg-white",
+  next: "h-4 w-4 rounded-full border-2 border-slate-300 bg-white",
+};

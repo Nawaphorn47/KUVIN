@@ -38,9 +38,9 @@ export default function ShareTripButton({ request, className }) {
         {state === "busy" ? "กำลังสร้างลิงก์..." : "แชร์ทริปให้คนที่ไว้ใจ"}
       </button>
       {message && (
-        <p role="status" className={clsx("mt-1.5 text-sm", state === "error" ? "font-medium text-here" : "text-slate-600")}>
+        <output className={clsx("mt-1.5 block text-sm", state === "error" ? "font-medium text-here" : "text-slate-600")}>
           {message}
-        </p>
+        </output>
       )}
     </div>
   );

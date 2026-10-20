@@ -1,4 +1,4 @@
-const fs = require("fs");
+const fs = require("node:fs");
 const ApiError = require("./ApiError");
 
 // ตรวจ "เนื้อไฟล์" ว่าเป็นรูปจริง (magic bytes) ไม่เชื่อ mimetype ที่ client ส่งมาอย่างเดียว — กันอัปโหลด HTML/สคริปต์

@@ -229,7 +229,7 @@ export default function BecomeDriver() {
         </main>
         <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
           <Button type="submit" disabled={loading || !ready}>
-            {loading ? "กำลังสมัคร..." : driverType ? "ต่อไป แนบเอกสาร" : "เลือกประเภทก่อน"}
+            {loading ? "กำลังสมัคร..." : (driverType && "ต่อไป แนบเอกสาร") || "เลือกประเภทก่อน"}
           </Button>
         </div>
       </form>

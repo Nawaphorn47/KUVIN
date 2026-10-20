@@ -42,10 +42,11 @@ export default function TripChat() {
     if (!value || sending) return;
     setSending(true);
     setError("");
+    setText(""); // ล้างช่องพิมพ์ทันที ไม่รอเซิร์ฟเวอร์ตอบ (ส่งไม่สำเร็จค่อยคืนข้อความ)
     try {
       await send(value);
-      setText("");
     } catch (err) {
+      setText(value);
       setError(err.response?.data?.message || "ส่งไม่สำเร็จ ลองอีกครั้ง");
     } finally {
       setSending(false);

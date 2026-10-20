@@ -23,10 +23,10 @@ const VERIFY_BADGE = {
   REJECTED: { tone: "danger", label: "ต้องแก้" },
 };
 
-function Row({ icon: Icon, label, onClick, children }) {
+function Row({ icon: Icon, label, onClick, disabled = false, children }) {
   return (
     <li className="border-b border-slate-200 last:border-b-0">
-      <button type="button" onClick={onClick} className="flex min-h-[3.5rem] w-full items-center gap-3 px-4 py-3 text-left active:bg-slate-50">
+      <button type="button" onClick={onClick} disabled={disabled} className="flex min-h-[3.5rem] w-full items-center gap-3 px-4 py-3 text-left active:bg-slate-50 disabled:opacity-60">
         <Icon className="h-5 w-5 flex-none text-slate-500" aria-hidden="true" />
         <span className="flex-1 text-[15px] font-semibold text-slate-900">{label}</span>
         {children}
@@ -148,6 +148,7 @@ export default function DriverProfile() {
             <Row
               icon={ShieldCheck}
               label="ยืนยันตัวตนคนขับ"
+              disabled={!driver.verificationStatus} // โปรไฟล์ยังโหลดไม่เสร็จ — กดตอนนี้จะพาไปหน้าผิด
               onClick={() =>
                 navigate(
                   VERIFY_ROUTE[driver.verificationStatus] ?? "/driver/verify/step-1",

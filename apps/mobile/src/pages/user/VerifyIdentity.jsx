@@ -40,7 +40,7 @@ export default function VerifyIdentity() {
   const fileRef = useRef(null);
 
   const loaded = Boolean(user.phone);
-  const step = !user.phoneVerified ? 1 : !user.hasSelfie && !phoneOnly ? 2 : 3;
+  const step = currentStep(user, phoneOnly);
 
   // ครบแล้ว (หรือเข้ามาซ้ำหลังทำเสร็จ) — กลับไปทำต่อ
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function VerifyIdentity() {
 
         <ol className="mt-5 flex gap-4" aria-label="ขั้นตอน">
           {steps.map((label, i) => {
-            const state = i + 1 < step ? "done" : i + 1 === step ? "now" : "next";
+            const state = railState(i + 1, step);
             return (
               <li key={label} aria-current={state === "now" ? "step" : undefined} className="flex items-center gap-2">
                 <StepMark n={i + 1} state={state} />
@@ -168,4 +168,13 @@ export default function VerifyIdentity() {
       </main>
     </div>
   );
+}
+function currentStep(user, phoneOnly) {
+  if (!user.phoneVerified) return 1;
+  return !user.hasSelfie && !phoneOnly ? 2 : 3;
+}
+
+function railState(n, step) {
+  if (n < step) return "done";
+  return n === step ? "now" : "next";
 }

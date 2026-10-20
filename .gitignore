@@ -29,3 +29,6 @@ google-services.json
 
 # สรุปงานส่วนตัว ไม่ขึ้น repo
 สรุป.txt
+
+# ผล code coverage (สร้างใหม่ได้ด้วย npm run test:coverage)
+coverage/

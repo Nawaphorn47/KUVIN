@@ -81,6 +81,7 @@ export default function Chatbot() {
   const FAQ = knowledge.faq;
   const [messages, setMessages] = useState(() => [
     {
+      id: nextMessageId(),
       from: "bot",
       text: "สวัสดีครับ ผมคือผู้ช่วยตอบคำถามของ KU VIN เลือกหัวข้อด้านล่าง หรือพิมพ์คำถามได้เลยครับ",
       time: now(),
@@ -95,7 +96,7 @@ export default function Chatbot() {
 
   function send(text) {
     if (!text.trim()) return;
-    setMessages((m) => [...m, { from: "user", text, time: now() }, { from: "bot", text: answerFor(knowledge, text), time: now() }]);
+    setMessages((m) => [...m, { id: nextMessageId(), from: "user", text, time: now() }, { id: nextMessageId(), from: "bot", text: answerFor(knowledge, text), time: now() }]);
     setDraft("");
   }
 
@@ -107,10 +108,10 @@ export default function Chatbot() {
           ตอบจากกติกาของระบบอัตโนมัติ ไม่มีเจ้าหน้าที่อ่านข้อความในหน้านี้
         </p>
         <ol className="flex flex-col gap-3">
-          {messages.map((m, i) => {
+          {messages.map((m) => {
             const mine = m.from === "user";
             return (
-              <li key={i} className={clsx("flex flex-col", mine ? "items-end" : "items-start")}>
+              <li key={m.id} className={clsx("flex flex-col", mine ? "items-end" : "items-start")}>
                 <div className={clsx("flex max-w-[85%] items-end gap-2", mine && "flex-row-reverse")}>
                   {!mine && (
                     <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-600 text-white">
@@ -177,4 +178,9 @@ export default function Chatbot() {
       </div>
     </div>
   );
+}
+let messageSeq = 0;
+function nextMessageId() {
+  messageSeq += 1;
+  return messageSeq;
 }

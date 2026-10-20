@@ -38,5 +38,5 @@ export const DRIVER_TYPES = {
 export const TYPE_ORDER = ["STUDENT", "PUBLIC", "PRO"];
 
 export function docInfo(type, key) {
-  return { ...DOCS[key], ...(DRIVER_TYPES[type]?.docOverrides?.[key] ?? {}) };
+  return { ...DOCS[key], ...DRIVER_TYPES[type]?.docOverrides?.[key] };
 }

@@ -93,13 +93,13 @@ export default function ForgotPassword() {
             <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-slate-900">ตั้งรหัสผ่านใหม่</h1>
             <p className="mt-1 text-[15px] text-slate-600">{info}</p>
             {devCode && (
-              <div role="status" className="mt-4 flex items-center gap-3 rounded-xl bg-amber-100 px-3 py-2.5 text-amber-950">
+              <output className="mt-4 flex items-center gap-3 rounded-xl bg-amber-100 px-3 py-2.5 text-amber-950">
                 <FlaskConical className="h-5 w-5 flex-none" aria-hidden="true" />
                 <p className="text-sm">
                   <span className="font-bold">โหมดทดสอบ</span> ยังไม่ได้ตั้งค่าอีเมล รหัสคือ{" "}
                   <span className="tabular font-bold tracking-widest">{devCode}</span>
                 </p>
-              </div>
+              </output>
             )}
             <form className="mt-5 flex flex-col gap-4" onSubmit={resetPassword}>
               <div>

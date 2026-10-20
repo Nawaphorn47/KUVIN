@@ -1,4 +1,4 @@
-const fs = require("fs");
+const fs = require("node:fs");
 const ApiError = require("../utils/ApiError");
 const privateUpload = require("../middlewares/privateUpload");
 const { fileFromToken } = require("../utils/privateFiles");
