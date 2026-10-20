@@ -29,6 +29,21 @@ npm run android:dev -- --run   # build แล้วติดตั้งลง�
   API ที่เป็น `https://` (ยังไม่มีสคริปต์ release — รอเลือก hosting ก่อน)
 - `appId` คือ `com.kuvin.app` (ใน `capacitor.config.ts`) — ต้องตรงกับที่ลงทะเบียนใน Firebase และเปลี่ยนไม่ได้หลังขึ้น Play Store
 
+### APK สำหรับแจกจริง (ชี้ไป https://api.kuvinn.tech)
+
+```bash
+npm run android:release        # → android/app/build/outputs/apk/release/app-release.apk
+```
+
+- ฝัง API เป็น `https://api.kuvinn.tech/api` (เปลี่ยนด้วย `KUVIN_API_URL=https://.../api` — ต้องเป็น https) ไม่มีปุ่ม "เข้าสู่ระบบด่วน" ไม่เปิด cleartext
+- ต้องมี Android Studio (สคริปต์ใช้ JDK 21 ที่มากับมัน) และ Android SDK
+- เซ็นชื่อแอป: ตั้ง `KUVIN_KEYSTORE`, `KUVIN_KEYSTORE_PASSWORD`, `KUVIN_KEY_ALIAS`, `KUVIN_KEY_PASSWORD` เพื่อเซ็นด้วยคีย์ของคุณ (เก็บไฟล์คีย์ไว้ให้ดี ห้าม commit — ต้องใช้คีย์เดิมทุกเวอร์ชัน)
+  ไม่ตั้ง = เซ็นด้วยคีย์ debug ของเครื่อง ลงมือถือได้และแจกทดสอบได้ แต่ขึ้น Play Store ไม่ได้
+- ประกาศสิทธิ์ตำแหน่งและกล้องไว้แล้วใน `AndroidManifest.xml` (จุด "คุณอยู่ที่นี่" และเซลฟี่ต้องใช้)
+- แอปนี้ซ่อนปุ่ม Google (origin ของ WebView คือ `https://localhost` ซึ่ง Google ไม่รับสำหรับ Web client) — ใช้เบอร์โทร/อีเมลแทน
+- ลงมือถือ: ส่งไฟล์ .apk ไปที่เครื่อง แล้วเปิดไฟล์ (อนุญาต "ติดตั้งจากแหล่งที่ไม่รู้จัก") หรือ `adb install -r app-release.apk`
+- iPhone: ไม่มีแอป ใช้เปิด https://kuvinn.tech ใน Safari แล้ว "เพิ่มลงในหน้าจอโฮม"
+
 ### Push notification (Firebase)
 
 backend ส่ง push ได้อยู่แล้ว (`apps/api/src/services/fcm.service.js`) ฝั่งแอปลงทะเบียน device token ให้เองหลัง login

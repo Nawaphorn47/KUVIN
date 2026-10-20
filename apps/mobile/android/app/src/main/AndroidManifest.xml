@@ -38,4 +38,11 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ตำแหน่ง: จุดแดง "คุณอยู่ที่นี่", จุดรับของผู้โดยสาร และการส่งตำแหน่งของคนขับ (WebView ใช้ navigator.geolocation ต้องประกาศสิทธิ์นี้) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- กล้อง: ถ่ายเซลฟี่ยืนยันตัวตนและรูปเอกสารคนขับ -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>
