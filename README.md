@@ -1,133 +1,84 @@
-# KU VIN
+# KUVIN
 
-แพลตฟอร์มเรียกวินมอเตอร์ไซค์ที่ใช้ได้หลายพื้นที่ — เริ่มจากมหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน เป็นพื้นที่แรก
-และเปิดพื้นที่ใหม่ (เช่น ขายแฟรนไชส์ให้วินที่อื่น) ได้จากหน้าแอดมิน โดยแต่ละพื้นที่ตั้งค่าโดยสาร ขอบเขต เบอร์ฉุกเฉิน
-ชื่อและโลโก้ของตัวเอง (ปัญหาพิเศษ 02739498)
+แอปเรียกวินมอเตอร์ไซค์ภายในมหาวิทยาลัยเกษตรศาสตร์ (KU) — ผู้โดยสารเห็นราคาก่อนเรียก ติดตามวินบนแผนที่สด ส่วนคนขับได้งานตามลำดับคิว (FIFO)
+ออกแบบให้รองรับหลายวิทยาเขต ตอนนี้เปิดใช้จริงที่ **วิทยาเขตกำแพงแสน (กพส.)** เพิ่มวิทยาเขตอื่นได้จากหน้าแอดมินโดยไม่ต้องแก้โค้ด
+(ปัญหาพิเศษ 02739498)
 
-> **ใช้งานจริง:** https://web-app-production-6f95.up.railway.app (เว็บแอป) ·
-> https://admin-production-2219.up.railway.app (แอดมิน) — push ขึ้น `main` แล้ว CI (GitHub Actions) ทดสอบ → ผ่านแล้ว
-> Railway deploy ให้เอง ดูรายละเอียดที่ [`docs/CI_CD.md`](docs/CI_CD.md)
-
-## โครงสร้างโปรเจกต์
-
-```
-kuvin/
-├── apps/
-│   ├── api/             # Backend: Node.js + Express + Prisma + PostgreSQL/PostGIS
-│   ├── mobile/          # React + Vite + Tailwind — ผู้ใช้บริการ + ผู้ขับขี่ (สลับโหมดในแอปเดียว, mobile-first)
-│   └── web-dashboard/   # React + Vite + Tailwind — Web Dashboard สำหรับผู้ดูแลระบบ
-├── ui/
-│   └── mobile/          # Wireframe / mockup อ้างอิงหน้าจอ (HTML)
-├── docker/
-│   └── docker-compose.yml
-├── docs/
-└── Proposal-....pdf
-```
-
-## เทคโนโลยีหลัก
-
-| ส่วนประกอบ | เทคโนโลยี |
+| | |
 |---|---|
-| Mobile | React + Vite + Tailwind CSS (mobile-first web app) + Capacitor (แอป Android)¹ |
-| Web Dashboard | React + Vite + Tailwind CSS |
-| Backend | Node.js + Express + Prisma |
-| Database | PostgreSQL (image PostGIS — ยังไม่ได้ใช้ฟังก์ชัน PostGIS) |
-| Real-time | Socket.io |
-| Push Notification | Firebase Cloud Messaging (แอป Android) |
-| Email | Brevo (HTTPS API) — ส่งรหัสรีเซ็ตรหัสผ่าน |
-| Maps / Routing | Leaflet + OpenStreetMap + OSRM (ตอนนี้ใช้ demo server สาธารณะ) |
-| Deploy | Docker + Railway, CI ด้วย GitHub Actions |
+| เว็บแอป (ผู้โดยสาร/คนขับ) | https://kuvinn.tech |
+| แดชบอร์ดแอดมิน | https://admin.kuvinn.tech |
+| API | https://api.kuvinn.tech |
+| แอป Android | [โหลด APK](https://github.com/Nawaphorn47/KUVIN/releases) (รุ่นล่าสุดในหน้า Releases) |
+| iPhone | เปิดเว็บแอปใน Safari → แชร์ → "เพิ่มลงในหน้าจอโฮม" |
 
-## สถานะปัจจุบัน (อัปเดต 6 ต.ค. 2569)
+## โครงสร้าง
 
-ระบบใช้งานจริงบน Railway แล้ว — เว็บแอป https://web-app-production-6f95.up.railway.app ·
-แอดมิน https://admin-production-2219.up.railway.app · API https://kuvin-production.up.railway.app
-(รายละเอียดการ deploy และตัวแปรทั้งหมดดู [`docs/CI_CD.md`](docs/CI_CD.md))
+```
+apps/api            Node.js + Express + Prisma + PostgreSQL + Socket.IO
+apps/mobile         React + Vite + Tailwind + Leaflet (+ Capacitor สำหรับแอป Android)
+apps/web-dashboard  React + Vite + Tailwind — แดชบอร์ดแอดมิน
+e2e/                Playwright — ทดสอบปลายทางถึงปลายทางผ่านเบราว์เซอร์จริง
+deploy/             Nginx, สคริปต์สร้าง .env, สคริปต์สำรองข้อมูล
+docs/               คู่มือ รายงานผลทดสอบ โลโก้ (docs/brand)
+```
 
-### ใช้งานได้แล้ว
-- **หลายพื้นที่ (multi-area platform):** คนขับ คิว ทริป สถานที่ และ SOS แยกตามพื้นที่ — ผู้โดยสารใช้บัญชีเดียวได้ทุกพื้นที่
-  (แอปเลือกพื้นที่ให้จาก GPS และสลับเองได้) ส่วนคนขับสังกัดพื้นที่เดียว ระบบเลือกพื้นที่ของทริปจากจุดรับ
-  (นอกรัศมีให้บริการทุกพื้นที่ = เรียกวินไม่ได้) — แต่ละพื้นที่ตั้งค่าเหมาจ่ายในเขต/บาทต่อกม./ขั้นต่ำ, จุดกลาง +
-  รัศมีเขตเหมาจ่าย + รัศมีให้บริการ, เบอร์ฉุกเฉิน, ชื่อและโลโก้ ได้เอง (มก. กำแพงแสน: 20 บาทในเขต 2 กม.)
-- **Super admin / แอดมินพื้นที่:** super admin เห็นทุกพื้นที่ (เลือกดูทีละพื้นที่ได้) สร้างพื้นที่ใหม่และบัญชีแอดมิน
-  ให้แต่ละพื้นที่ — แอดมินพื้นที่เห็นและจัดการได้เฉพาะพื้นที่ตัวเอง (backend บังคับที่ `middlewares/adminScope.js`)
-- **การเงินของคนขับ:** กราฟรายรับ–รายจ่ายรายวัน/สัปดาห์/เดือน, กำไรสุทธิ, จดต้นทุน (เติมน้ำมัน เปลี่ยนยาง
-  น้ำมันเครื่อง เช็กระยะ ซ่อมรถ ฯลฯ), ค่าน้ำมันประมาณจากระยะทางทริป × อัตราสิ้นเปลือง และคำนวณ กม./ลิตร จริง
-  จากเลขไมล์ตอนเติมเต็มถัง
-- **บัญชี 3 role:** ผู้โดยสาร (สมัคร/ล็อกอินด้วยอีเมลไหนก็ได้ ไม่สนตัวพิมพ์เล็ก/ใหญ่), คนขับ (เบอร์โทร + ส่งเอกสาร
-  ยืนยันตัวตน 5 ใบ ให้แอดมินอนุมัติ), แอดมิน — **ลืมรหัสผ่าน** (ผู้โดยสาร) ส่งรหัส 6 หลักทางอีเมลผ่าน Brevo
-- **เรียกวินครบวงจร:** เลือกปลายทาง/ปักหมุด → ดูราคาก่อนยืนยัน (ตามค่าของพื้นที่ เช่น มก. กำแพงแสน ในเขต 20 บาท,
-  นอกเขต 10 บาท/กม. ตามระยะถนนจริง ขั้นต่ำ 20) → เสนองานให้คนขับ**ตามคิวทีละคน** (15 วินาที/คน) → ติดตามคนขับสดบนแผนที่ → จบทริป →
-  ชำระเงินสดหรือพร้อมเพย์ + ตรวจสลิปอัตโนมัติ (EasySlip) → ให้คะแนนทั้งสองฝ่าย
-- **Realtime:** Socket.io ต้อง auth ด้วย JWT; หน้าผู้โดยสาร/คนขับต่อกลับและดึงสถานะใหม่เองเมื่อการเชื่อมต่อหลุด
-  (เช่น server restart ตอน deploy) และ poll สำรองทุก 5 วินาที
-- **Push notification:** FCM ใช้งานจริงแล้วในแอป Android (ทดสอบบน emulator ส่งถึงเครื่องจริง) — เวอร์ชันเว็บไม่มี push
-- **แอป Android:** Capacitor (`apps/mobile/android`) build APK ทดสอบด้วย `npm run android:dev` — ยังไม่มี build สำหรับแจก
-- **SOS:** แจ้งเหตุพร้อมพิกัดให้แอดมินของพื้นที่นั้นแบบ realtime + เบอร์ฉุกเฉินของพื้นที่ (มก. กำแพงแสน: รปภ.
-  034-351-151) และเบอร์ระดับประเทศ (ตำรวจ 191, EMS 1669)
-- **แอดมิน:** สถิติวันนี้, อนุมัติ/ปฏิเสธคนขับ, รายการทริป + แก้ข้อพิพาทการชำระเงิน, SOS realtime, จัดการสถานที่
-  บนแผนที่ (รวมติ๊ก "ยอดนิยม" ที่ขึ้นหน้าแรกผู้โดยสาร), จัดการผู้ใช้/คนขับ + ระงับบัญชี
-- **ข้อมูลทุกหน้าเป็นของจริง** — ลบ `mockData.js` ออกแล้วทั้งสองแอป; Chatbot เป็นผู้ช่วยตอบคำถามที่พบบ่อยตามกติกาจริง
-  ของระบบ (ไม่มีเจ้าหน้าที่อ่านข้อความ)
-- **ความปลอดภัยที่แก้ไปแล้ว:** Socket.io ไม่ตรวจ JWT, `GET /drivers/:id` เปิดเผยตำแหน่ง/เอกสารคนขับ, ลืมรหัสผ่าน
-  คืน reset token ใน response (ยึดบัญชีคนอื่นได้), รหัสผ่านบัญชีเดโมหลุดใน bundle production, seed production สร้าง
-  แอดมินรหัส `admin1234` — ดูรายละเอียดใน `apps/api/README.md`
-- **ทดสอบอัตโนมัติ:** 5 ชุด (queue 17, auth 16, suspension 12, payment 28, platform 18) รันใน CI ทุก push
+## ฟังก์ชัน
 
-### ยังไม่ทำ / รอ
-- **เตรียม UAT ตาม proposal บทที่ 3.4:** สคริปต์ภารกิจ, แบบสอบถาม SUS, ความพึงพอใจผู้ใช้/คนขับ, วัด response time
-- **หน้ารายงานสรุปสำหรับแอดมิน** (สถิติรายสัปดาห์/เดือน)
-- **พิกัดอาคารที่ยังเป็นค่าประมาณ** — แก้ได้ที่หน้าแอดมิน "จัดการสถานที่" (หมุดสีเหลือง)
-- **แอป Android สำหรับแจก:** release build ที่ sign แล้ว, ไอคอน/หน้าเปิดแอป/ไอคอนแจ้งเตือน, GPS ตอนปิดจอของคนขับ,
-  กดแจ้งเตือนแล้วเปิดหน้าที่เกี่ยวข้อง
-- **ยังไม่มีในระบบ:** ล็อกอินด้วย Google, สถานที่โปรด, คนขับแก้ไขโปรไฟล์เอง, คนขับลืมรหัสผ่าน, นโยบายความเป็นส่วนตัว (PDPA)
-- **ตาม proposal แต่รอได้:** ตรวจขอบเขตพื้นที่ด้วย PostGIS polygon (ตอนนี้ใช้รัศมีจากจุดกลางของแต่ละพื้นที่), รัน OSRM เอง (ตอนนี้ใช้
-  demo server สาธารณะ), tile แผนที่สำหรับใช้งานจริง
-- **Hardening:** helmet, logout ที่ยกเลิก token ได้, pagination บน list endpoint, automated test ฝั่ง frontend
+- **บัญชีเดียวสลับโหมด** ผู้โดยสาร ↔ คนขับ: เข้าสู่ระบบด้วย OTP เบอร์โทร, Google หรืออีเมล+รหัสผ่าน
+  ผู้โดยสารยืนยันเบอร์และถ่ายเซลฟี่ก่อนเรียกครั้งแรก ใครก็สมัครเป็นคนขับได้ (นิสิต / บุคคลทั่วไป / วินมอเตอร์ไซค์ แนบเอกสารตามประเภท ให้แอดมินอนุมัติ)
+- **เรียกวิน:** เลือกปลายทาง/ปักหมุด → ราคาล่วงหน้า (เหมาจ่ายในเขต, นอกเขตคิดตามระยะถนน) → เสนองานให้คนขับทีละคน 15 วินาที → ติดตามแบบเรียลไทม์
+  → ชำระเงินสดหรือพร้อมเพย์ (ตรวจสลิปอัตโนมัติเมื่อเปิดใช้) → ให้คะแนนสองฝ่าย
+- **ความปลอดภัยของผู้ใช้:** แชตในทริป (ซ่อนเบอร์โทรเมื่อจบทริป), แชร์ลิงก์ติดตามทริป, แจ้งปัญหาหลังทริป, ปุ่ม SOS พร้อมพิกัด, เอกสารคนขับเป็นไฟล์ส่วนตัว
+- **คนขับ:** คิวรับงาน, การเงิน (รายรับ–รายจ่าย–กำไร), ประวัติ
+- **แอดมิน:** คิวงานเรียงตามความเร่งด่วน (SOS → แจ้งปัญหา → อนุมัติคนขับ → ข้อพิพาท → ทริปทั้งหมด), จัดการผู้ใช้/คนขับ/สถานที่, ตั้งค่าแต่ละวิทยาเขต
+  (ค่าโดยสาร ขอบเขต เบอร์ฉุกเฉิน ชื่อ โลโก้ สีแบรนด์), บัญชีผู้ดูแล 2 ระดับ (สูงสุด / ประจำวิทยาเขต)
 
-## เริ่มต้นใช้งาน (Dev)
+## รันในเครื่อง
+
+ต้องมี Docker และ Node.js 20+
 
 ```bash
-# ติดตั้ง dependencies ทุก workspace
-npm install
-
-# รัน backend
-npm run dev:api
-
-# รัน web dashboard
-npm run dev:web
-
-# รัน mobile
-npm run dev:mobile
+cp .env.example .env            # แล้วตั้งรหัสผ่านแอดมินคนแรก (SEED_ADMIN_PASSWORD ≥ 12 ตัว)
+docker compose up --build -d    # db + api (3301) + เว็บแอป (3302) + แอดมิน (3303)
 ```
 
-ดูรายละเอียดการตั้งค่าแต่ละส่วนใน README ของแต่ละ `apps/*`
+พัฒนาแต่ละส่วนแยก (ต้องมีฐานข้อมูลรันอยู่): `npm install` ที่ root แล้ว `npm run dev` ใน `apps/api`, `apps/mobile` หรือ `apps/web-dashboard`
 
-### ทดสอบบนอุปกรณ์จริง 2 เครื่อง (ผ่าน LAN/Wi-Fi) — เผื่อตอนนำเสนออาจารย์
+## ทดสอบ
 
-ให้อีกเครื่อง (เช่นมือถือ) ทำหน้าที่ผู้โดยสารหรือคนขับ ควบคู่ไปกับเครื่อง dev ที่รันเซิร์ฟเวอร์อยู่ ได้ดังนี้:
+| ชั้น | คำสั่ง | ผล (20 ต.ค. 2569) |
+|---|---|---|
+| API 9 ชุด | `cd apps/api && npm run test:coverage` | 132 กรณีผ่าน, coverage ของ API 80.65% |
+| E2E (Playwright) | `cd e2e && npm install && npx playwright install chromium && npm test` | 27 กรณีผ่าน |
+| คุณภาพโค้ด | SonarQube ([docs/SONARQUBE.md](docs/SONARQUBE.md)) | Quality Gate ผ่าน |
+| ทดสอบมือบนเครื่องจริง | [docs/TEST_PLAN.md](docs/TEST_PLAN.md) เช็กลิสต์ M-01 ถึง M-16 | ยังไม่ได้ทดสอบ |
 
-1. **ทั้งสองเครื่องต้องต่อ Wi-Fi วงเดียวกัน**
-2. รัน `npm run dev:api` และ `npm run dev:mobile` ตามปกติในเครื่อง dev — mobile dev server (Vite) ตั้งค่า
-   `host: true` ไว้แล้ว (`apps/mobile/vite.config.js`) จะขึ้น URL แบบ `Network: http://<IP เครื่องนี้>:5173/`
-   ในเทอร์มินัลให้เห็นเลย ใช้เลข IP ตัวนั้นแหละ (หา manual ได้ด้วย `ipconfig` มองหา adapter ที่ต่อ Wi-Fi/LAN
-   จริงอยู่ เช่น `192.168.0.196`)
-3. เปิด `http://<IP เครื่องนี้>:5173` จากอีกเครื่องในเบราว์เซอร์ — โค้ดฝั่ง frontend (`lib/api.js`,
-   `lib/socket.js`) ตั้งไว้ให้ยิง API/socket ไปที่ hostname เดียวกับที่เปิดหน้าเว็บอยู่โดยอัตโนมัติ (ไม่ hardcode
-   `localhost`) ไม่ต้องตั้งค่าอะไรเพิ่ม — ล็อกอินคนละบัญชีในแต่ละเครื่องแล้วทดสอบคิว/booking แบบ real-time ข้ามเครื่องได้เลย
-4. **ถ้าเข้าจากอีกเครื่องไม่ได้ (ค้าง/timeout)** — ส่วนใหญ่เป็นเพราะ Windows Defender Firewall บล็อกพอร์ต 5173
-   (mobile) และ 4000 (api) อยู่ — ถ้ามี popup "อนุญาต Node.js ผ่าน Firewall" เด้งตอนรัน `npm run dev` ให้กด
-   Allow ทั้ง Private และ Public ถ้าไม่เด้งเองต้องเปิดเอง: Windows Defender Firewall → Advanced Settings →
-   Inbound Rules → New Rule → Port → TCP → พอร์ต `5173,4000` → Allow the connection
+CI (GitHub Actions) รัน build, ชุดทดสอบ API และ e2e ทุกครั้งที่ push — รายงานผลทดสอบพร้อมรูปอยู่ที่ [docs/test-report](docs/test-report)
+**e2e สร้างข้อมูลทดสอบจริงลงฐานข้อมูล ห้ามชี้ไปที่ kuvinn.tech**
 
-¹ เดิม proposal ระบุ React Native (Expo) แต่ wireframe ทุกหน้าถูกส่งออกจาก Figma มาเป็น HTML/Tailwind (มือถือแบบ responsive web)
-จึงพัฒนา `apps/mobile` เป็น React + Tailwind ให้ตรงกับ wireframe แล้วห่อด้วย Capacitor เป็นแอป Android (ใช้โค้ดชุดเดียวกัน
-ทั้งเว็บและแอป — ผู้ใช้ iPhone เปิดผ่านเบราว์เซอร์ได้) ต้องอธิบายการเปลี่ยนแปลงนี้ในรายงาน — ดูรายละเอียดใน `apps/mobile/README.md`
+## ติดตั้งใช้งานจริง
 
+VPS Hostinger + Docker Compose + Nginx (HTTPS จาก Let's Encrypt) — push เข้า `main` → CI ผ่าน → สร้าง image ส่งขึ้น GHCR → SSH เข้า VPS ดึงของใหม่ → ตรวจ `/health`
+ขั้นตอนทั้งหมด: [docs/HOSTINGER_DEPLOY.md](docs/HOSTINGER_DEPLOY.md) (รวมการสำรองข้อมูลและกู้คืน) · [docs/CI_CD.md](docs/CI_CD.md)
 
-Role	Login	Password
-User (ผู้ใช้บริการ)	อีเมล somjai@ku.th	user1234
-Driver เบอร์วิน 1	เบอร์โทร 0800000002	driver1234
-Driver เบอร์วิน 2	เบอร์โทร 0800000003	driver1234
-Driver เบอร์วิน 3	เบอร์โทร 0800000004	driver1234
-Admin (super admin)	อีเมล admin@ku.th	admin1234
+## แอป Android
+
+```bash
+cd apps/mobile
+npm run android:release     # APK ชี้ไป https://api.kuvinn.tech (รายละเอียด/การเซ็นชื่อ: apps/mobile/README.md)
+```
+
+ถ้า Gradle ฟ้อง `Unsupported class file major version` ให้ตั้ง `JAVA_HOME` เป็น JDK 17 หรือ 21 (เช่น `jbr` ใน Android Studio) แล้วรัน `gradlew assembleRelease` ใน `apps/mobile/android`
+
+## ข้อจำกัดตอนนี้ (ตรงไปตรงมา)
+
+- **OTP ยังเป็นโหมดทดสอบ:** แอปแสดงรหัสให้ ไม่ได้ส่ง SMS จริง (ต้องซื้อบริการ SMS) เบอร์ที่ใช้ทดสอบกำหนดที่ `OTP_TEST_PHONES` ([docs/SECURITY.md](docs/SECURITY.md))
+- **Push notification:** โค้ดพร้อม แต่ต้องตั้งค่า Firebase บนเซิร์ฟเวอร์ถึงจะแจ้งเตือนเด้งบนมือถือ ([docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md))
+- **Google login** ใช้ได้บนเว็บเท่านั้น ([docs/GOOGLE_LOGIN.md](docs/GOOGLE_LOGIN.md)) · **iPhone** ไม่มีแอปใน App Store (ใช้เว็บแอปติดตั้งลงหน้าจอโฮม)
+- ยังไม่มีผลทดสอบการใช้งานจากผู้ใช้จริง (UAT/SUS) และยังไม่ได้ทดสอบกล้อง/GPS บนมือถือจริงครบทุกรุ่น
+- ฟีเจอร์ที่ตัดออกไว้ต่อยอด: KU ALL Login, ตรวจบัตรประชาชน (eKYC), บทบาทหัวหน้าวิน, เป้าหมายรายได้คนขับ
+
+## เอกสารอื่น
+
+[PRODUCT.md](PRODUCT.md) · [DESIGN.md](DESIGN.md) (ระบบดีไซน์) · [docs/SECURITY.md](docs/SECURITY.md) · [docs/SONARQUBE.md](docs/SONARQUBE.md) · [docs/TEST_PLAN.md](docs/TEST_PLAN.md) · โลโก้: [docs/brand](docs/brand)
