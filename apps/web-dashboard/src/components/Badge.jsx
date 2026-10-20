@@ -8,15 +8,14 @@ const tones = {
   neutral: "bg-stone-200 text-stone-700",
 };
 
-export default function Badge({ tone = "success", className, children }) {
+const sizes = {
+  md: "px-3 py-1 text-sm",
+  sm: "px-2 py-0.5 text-xs",
+};
+
+export default function Badge({ tone = "success", size = "md", className, children }) {
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium",
-        tones[tone],
-        className
-      )}
-    >
+    <span className={clsx("inline-flex items-center rounded-full font-medium", sizes[size], tones[tone], className)}>
       {children}
     </span>
   );

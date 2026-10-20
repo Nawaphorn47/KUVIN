@@ -102,6 +102,7 @@ test.describe.serial("05 สมัครขับวิน + แอดมิน�
     await call("POST", "/drivers/me/verify", { token: created.token, body: docs });
 
     const { context, page } = await adminLogin(browser);
+    await page.getByRole("tab", { name: /รออนุมัติคนขับ/ }).click(); // คิวงานเลือกแท็บที่เร่งด่วนที่สุดให้เอง จึงกดไปที่คิวคนขับก่อน
     await shot(page, "admin-dashboard");
     await expect(page.getByText("รออนุมัติคนขับ")).toBeVisible();
     const row = page.locator("div", { hasText: "ตรวจเอกสาร ทดสอบ" }).filter({ has: page.getByRole("button", { name: "ตรวจสอบ" }) }).last();
@@ -135,6 +136,7 @@ test.describe.serial("05 สมัครขับวิน + แอดมิน�
     await call("POST", "/drivers/me/verify", { token: created.token, body: docs });
 
     const admin = await adminLogin(browser);
+    await admin.page.getByRole("tab", { name: /รออนุมัติคนขับ/ }).click();
     const row = admin.page.locator("div", { hasText: "ปฏิเสธ ทดสอบ" }).filter({ has: admin.page.getByRole("button", { name: "ตรวจสอบ" }) }).last();
     await row.getByRole("button", { name: "ตรวจสอบ" }).click();
     await admin.page.getByRole("button", { name: "ปฏิเสธ" }).click();

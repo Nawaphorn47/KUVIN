@@ -1,21 +1,23 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
-  UserCheck,
   AlertCircle,
-  Siren,
-  Phone,
-  MapPin,
-  Clock,
-  X,
   Check,
-  Loader2,
-  RefreshCw,
+  ChevronDown,
+  Clock,
   Flag,
+  Loader2,
+  MapPin,
+  Phone,
+  RefreshCw,
+  Search,
+  Siren,
+  UserCheck,
+  X,
 } from "lucide-react";
+import clsx from "clsx";
 import Button from "../components/Button";
 import Badge from "../components/Badge";
 import Overlay from "../components/Overlay";
-import Card from "../components/Card";
 import { PageHeader } from "../components/AdminLayout";
 import { api, fileUrl } from "../services/api";
 import { socket, connectWithAuth } from "../lib/socket";
@@ -29,6 +31,28 @@ const STATUS_LABEL = {
   CANCELLED: "ยกเลิก",
 };
 
+// เอกสารตามประเภทคนขับ — ตรงกับ apps/api/src/utils/driverTypes.js
+const DRIVER_TYPE_LABEL = { STUDENT: "นิสิต", PUBLIC: "บุคคลทั่วไป", PRO: "วินมอเตอร์ไซค์" };
+const DOC_FIELDS = [
+  ["photoUrl", "รูปถ่ายหน้าตรง"],
+  ["idCardPhotoUrl", "บัตรประชาชน"],
+  ["studentCardPhotoUrl", "บัตรนิสิต"],
+  ["driverLicensePhotoUrl", "ใบขับขี่"],
+  ["vestPhotoUrl", "เสื้อวิน"],
+  ["vehiclePhotoUrl", "รถเต็มคัน"],
+  ["platePhotoUrl", "ป้ายทะเบียน"],
+];
+
+// ลำดับความเร่งด่วนของคิวงาน: เหตุฉุกเฉิน → แจ้งปัญหา → คนขับรออนุมัติ → ข้อพิพาท → ดูรายการทั้งหมด
+const QUEUE_ORDER = ["sos", "reports", "drivers", "disputes", "trips"];
+const QUEUE_LABEL = {
+  sos: "เหตุฉุกเฉิน",
+  reports: "แจ้งปัญหาหลังทริป",
+  drivers: "รออนุมัติคนขับ",
+  disputes: "ข้อพิพาทการจ่ายเงิน",
+  trips: "รายการเดินทาง",
+};
+
 export default function AdminDashboard() {
   const { isSuper, areaId, area } = useAdminSession();
   const showArea = isSuper && !areaId; // super ดูทุกพื้นที่ → โชว์คอลัมน์พื้นที่
@@ -38,14 +62,17 @@ export default function AdminDashboard() {
   const [sosAlerts, setSosAlerts] = useState(null);
   const [reports, setReports] = useState(null);
   const [reviewDriver, setReviewDriver] = useState(null);
+  const [tab, setTab] = useState(null); // null = ให้ระบบเลือกคิวที่เร่งด่วนที่สุดให้
+  const [updatedAt, setUpdatedAt] = useState(null);
   const [error, setError] = useState("");
 
   const loadAll = useCallback(() => {
     setError("");
     const fail = (err) => setError(err.response?.data?.message || "โหลดข้อมูลบางส่วนไม่สำเร็จ");
+    const done = () => setUpdatedAt(new Date());
     api.get("/admin/stats").then(({ data }) => setStats(data)).catch(fail);
     api.get("/admin/drivers/pending").then(({ data }) => setPendingDrivers(data)).catch(fail);
-    api.get("/admin/trips").then(({ data }) => setTrips(data)).catch(fail);
+    api.get("/admin/trips").then(({ data }) => setTrips(data)).then(done).catch(fail);
     api.get("/admin/sos").then(({ data }) => setSosAlerts(data)).catch(fail);
     api.get("/admin/reports", { params: { status: "OPEN" } }).then(({ data }) => setReports(data)).catch(fail);
   }, []);
@@ -74,6 +101,7 @@ export default function AdminDashboard() {
       socket.off("report:new", handleNewReport);
     };
   }, [areaId]);
+
   async function approveDriver(id) {
     await api.post(`/admin/drivers/${id}/approve`);
     setPendingDrivers((prev) => prev.filter((d) => d.id !== id));
@@ -103,7 +131,18 @@ export default function AdminDashboard() {
     setReports((prev) => prev.filter((r) => r.id !== id));
   }
 
-  const openSosCount = (sosAlerts ?? []).filter((a) => a.status === "OPEN").length;
+  const openSos = useMemo(() => (sosAlerts ?? []).filter((a) => a.status === "OPEN"), [sosAlerts]);
+  const disputed = useMemo(() => (trips ?? []).filter((t) => t.paymentStatus === "DISPUTED"), [trips]);
+
+  const counts = {
+    sos: openSos.length,
+    reports: reports?.length ?? 0,
+    drivers: pendingDrivers?.length ?? 0,
+    disputes: disputed.length,
+  };
+  const loaded = sosAlerts && reports && pendingDrivers && trips;
+  const urgent = QUEUE_ORDER.find((k) => counts[k] > 0) ?? "trips";
+  const active = tab ?? (loaded ? urgent : null);
 
   return (
     <div>
@@ -111,134 +150,45 @@ export default function AdminDashboard() {
         title="ภาพรวม"
         subtitle={area ? `พื้นที่ ${area.displayName}` : isSuper ? "ทุกพื้นที่ในแพลตฟอร์ม" : undefined}
         actions={
-          <button onClick={loadAll} className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-emerald-800">
-            <RefreshCw className="h-4 w-4" /> รีเฟรช
-          </button>
+          <>
+            {updatedAt && (
+              <span className="text-sm text-stone-600">อัปเดต {updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.</span>
+            )}
+            <Button variant="outline" size="sm" onClick={loadAll}>
+              <RefreshCw className="h-4 w-4" /> รีเฟรช
+            </Button>
+          </>
         }
       />
-      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-8 py-8">
-        {error && <p className="text-red-600">{error}</p>}
-
-        <StatsGrid stats={stats} openSosCount={openSosCount} />
-
-        {openSosCount > 0 && (
-          <SosSection alerts={sosAlerts} onResolve={resolveSos} />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-8 py-6">
+        {error && (
+          <p role="alert" className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {error}
+          </p>
         )}
 
-        {reports?.length > 0 && <ReportSection reports={reports} onResolve={resolveReport} />}
+        <StatStrip stats={stats} />
 
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-3xl text-emerald-900">
-              <UserCheck className="h-6 w-6" /> รออนุมัติคนขับ
-            </h2>
-            <span className="rounded-full bg-emerald-200 px-3 py-1 text-base text-emerald-950">
-              {pendingDrivers?.length ?? 0} รายการ
-            </span>
-          </div>
-
-          {!pendingDrivers && <LoadingRow />}
-          {pendingDrivers?.length === 0 && <p className="text-stone-400">ไม่มีคนขับรออนุมัติตอนนี้</p>}
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {pendingDrivers?.map((d) => (
-              <div
-                key={d.id}
-                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="flex h-16 w-16 flex-none items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-900 ring-2 ring-emerald-900">
-                    {d.fullName[0]}
-                  </span>
-                  <div>
-                    <p className="text-2xl text-stone-900">{d.fullName}</p>
-                    <p className="text-lg text-stone-500">เบอร์วิน {d.vinNumber}</p>
-                    {showArea && d.area && <p className="text-sm text-emerald-700">{d.area.displayName}</p>}
-                  </div>
-                </div>
-                <Button className="flex-none" onClick={() => setReviewDriver(d)}>
-                  <UserCheck className="h-4 w-4" /> ตรวจสอบ
-                </Button>
-              </div>
+        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white" aria-label="คิวงานที่ต้องจัดการ">
+          <div role="tablist" aria-label="คิวงาน" className="flex gap-x-1 overflow-x-auto whitespace-nowrap border-b border-stone-200 bg-stone-50 px-3">
+            {QUEUE_ORDER.map((key) => (
+              <QueueTab key={key} id={key} active={active === key} count={counts[key]} onClick={() => setTab(key)} />
             ))}
           </div>
-        </section>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-3xl text-emerald-900">รายการเดินทางทั้งหมด</h2>
-
-          {!trips && <LoadingRow />}
-
-          {trips && (
-            <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
-              <table className="w-full min-w-[1100px] text-left">
-                <thead className="bg-stone-200 text-base text-stone-900">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">วันที่/เวลา</th>
-                    {showArea && <th className="px-6 py-4 font-medium">พื้นที่</th>}
-                    <th className="px-6 py-4 font-medium">คนขับ</th>
-                    <th className="px-6 py-4 font-medium">เส้นทาง</th>
-                    <th className="px-6 py-4 text-right font-medium">ค่าโดยสาร</th>
-                    <th className="px-6 py-4 font-medium">สถานะ</th>
-                    <th className="px-6 py-4 font-medium">การชำระเงิน</th>
-                    <th className="px-6 py-4 font-medium" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-200">
-                  {trips.map((t) => (
-                    <tr key={t.id} className={t.paymentStatus === "DISPUTED" ? "bg-rose-50" : ""}>
-                      <td className="px-6 py-5 text-lg text-stone-900">{formatDateTime(t.requestedAt)}</td>
-                      {showArea && <td className="px-6 py-5 text-base text-stone-600">{t.area?.displayName ?? "-"}</td>}
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-xs text-green-950">
-                            {t.driver?.fullName?.[0] ?? "-"}
-                          </span>
-                          <span className="text-lg text-stone-900">{t.driver?.fullName ?? "ยังไม่มีคนขับรับ"}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-lg text-stone-900">
-                        {t.pickupAddress ?? "-"} → {t.destinationAddress ?? "-"}
-                      </td>
-                      <td className="px-6 py-5 text-right text-lg text-stone-900">฿{(t.fare ?? 0).toFixed(2)}</td>
-                      <td className="px-6 py-5">
-                        {t.paymentStatus === "DISPUTED" ? (
-                          <div className="flex flex-col items-start gap-1">
-                            <span className="text-lg text-red-700">{STATUS_LABEL[t.status] ?? t.status}</span>
-                            <span className="flex items-center gap-1 rounded-sm bg-red-700 px-2 py-0.5 text-[10px] uppercase text-white">
-                              <AlertCircle className="h-2.5 w-2.5" /> ข้อพิพาท
-                            </span>
-                          </div>
-                        ) : (
-                          <Badge tone={t.status === "CANCELLED" ? "danger" : "success"}>
-                            {STATUS_LABEL[t.status] ?? t.status}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-5">
-                        <PaymentCell trip={t} />
-                      </td>
-                      <td className="px-6 py-5">
-                        {t.paymentStatus === "DISPUTED" && (
-                          <button
-                            onClick={() => resolveDispute(t.id)}
-                            className="text-sm font-medium text-emerald-700 hover:underline"
-                          >
-                            แก้ไขแล้ว
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div role="tabpanel" aria-label={QUEUE_LABEL[active] ?? "กำลังโหลด"}>
+            {!active && <LoadingRow />}
+            {active === "sos" && <SosPanel alerts={openSos} onResolve={resolveSos} />}
+            {active === "reports" && <ReportsPanel reports={reports} onResolve={resolveReport} />}
+            {active === "drivers" && <DriversPanel drivers={pendingDrivers} showArea={showArea} onReview={setReviewDriver} />}
+            {active === "disputes" && <DisputesPanel trips={disputed} showArea={showArea} onResolve={resolveDispute} />}
+            {active === "trips" && <TripsPanel trips={trips} showArea={showArea} onResolveDispute={resolveDispute} />}
+          </div>
         </section>
       </div>
 
       {reviewDriver && (
-        <DriverReviewModal
+        <DriverReviewDrawer
           driver={reviewDriver}
           onClose={() => setReviewDriver(null)}
           onApprove={approveDriver}
@@ -249,184 +199,455 @@ export default function AdminDashboard() {
   );
 }
 
-function StatsGrid({ stats, openSosCount }) {
-  const tiles = [
+// ตัวเลขสรุปวันนี้ — แถบเดียว ไม่ใช่การ์ดหลายใบ (ตัวเลขที่ต้องลงมือทำอยู่ที่ป้ายนับของแต่ละคิวงานด้านล่าง)
+function StatStrip({ stats }) {
+  const items = [
     { label: "ทริปวันนี้", value: stats?.tripsToday },
     { label: "รายได้วันนี้", value: stats != null ? `฿${stats.revenueToday}` : undefined },
     { label: "คนขับออนไลน์", value: stats?.onlineDrivers },
-    { label: "คนขับอนุมัติแล้ว", value: stats?.approvedDrivers },
-    { label: "รออนุมัติ", value: stats?.pendingDrivers },
-    { label: "ข้อพิพาทค้าง", value: stats?.disputedPayments, danger: stats?.disputedPayments > 0 },
+    { label: "คนขับที่อนุมัติแล้ว", value: stats?.approvedDrivers },
   ];
   return (
-    <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-      {tiles.map((t) => (
-        <Card key={t.label} className="p-5">
-          <p className="text-sm text-stone-500">{t.label}</p>
-          <p className={`mt-1 text-3xl font-bold ${t.danger ? "text-red-600" : "text-emerald-900"}`}>
-            {t.value ?? <Loader2 className="h-6 w-6 animate-spin text-stone-300" />}
-          </p>
-        </Card>
+    <dl className="grid grid-cols-2 divide-stone-200 overflow-hidden rounded-xl border border-stone-200 bg-white lg:grid-cols-4 lg:divide-x">
+      {items.map((it) => (
+        <div key={it.label} className="px-5 py-3.5">
+          <dt className="text-sm text-stone-600">{it.label}</dt>
+          <dd className="mt-0.5 text-2xl font-semibold tabular-nums text-stone-900">
+            {it.value ?? <span className="inline-block h-7 w-12 animate-pulse rounded bg-stone-200 align-middle" />}
+          </dd>
+        </div>
       ))}
-      {openSosCount > 0 && (
-        <Card className="col-span-2 flex items-center gap-3 border-red-300 bg-red-50 p-5 md:col-span-3 lg:col-span-6">
-          <Siren className="h-6 w-6 flex-none animate-pulse text-red-600" />
-          <p className="text-lg font-bold text-red-700">มีเหตุฉุกเฉินที่ยังไม่ปิดเคส {openSosCount} รายการ — ดูด้านล่าง</p>
-        </Card>
-      )}
-    </section>
+    </dl>
   );
 }
 
-// แจ้งปัญหาหลังทริปที่ยังไม่ปิด — เคสด่วน (ขับอันตราย/คุกคาม/ไม่ปลอดภัย) ขึ้นก่อน
-function ReportSection({ reports, onResolve }) {
-  const sorted = [...reports].sort((a, b) => Number(b.urgent) - Number(a.urgent));
+function QueueTab({ id, active, count, onClick }) {
+  const isSos = id === "sos";
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-3xl text-amber-800">
-          <Flag className="h-6 w-6" /> แจ้งปัญหาหลังทริป
-        </h2>
-        <span className="rounded-full bg-amber-100 px-3 py-1 text-base text-amber-950">{reports.length} รายการ</span>
-      </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {sorted.map((r) => (
-          <ReportCard key={r.id} report={r} onResolve={onResolve} />
-        ))}
-      </div>
-    </section>
+    <button
+      type="button"
+      role="tab"
+      id={`tab-${id}`}
+      aria-selected={active}
+      onClick={onClick}
+      className={clsx(
+        "-mb-px flex flex-none items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition-colors duration-150",
+        active ? "border-emerald-700 text-emerald-900" : "border-transparent text-stone-600 hover:text-stone-900"
+      )}
+    >
+      {isSos && count > 0 && <Siren className="h-4 w-4 text-red-600" aria-hidden="true" />}
+      {QUEUE_LABEL[id]}
+      {id !== "trips" && (
+        <span
+          className={clsx(
+            "min-w-[1.5rem] rounded-full px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums",
+            count === 0 && "bg-stone-200 text-stone-600",
+            count > 0 && isSos && "bg-red-700 text-white",
+            count > 0 && !isSos && "bg-emerald-800 text-white"
+          )}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
-function ReportCard({ report: r, onResolve }) {
+function EmptyState({ title, hint }) {
+  return (
+    <div className="px-6 py-12 text-center">
+      <p className="text-base font-semibold text-stone-800">{title}</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">{hint}</p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- เหตุฉุกเฉิน
+function SosPanel({ alerts, onResolve }) {
+  if (alerts.length === 0) {
+    return <EmptyState title="ไม่มีเหตุฉุกเฉินที่ยังไม่ปิดเคส" hint="เมื่อผู้โดยสารหรือคนขับกด SOS เหตุจะขึ้นที่นี่ทันทีพร้อมตำแหน่ง และแท็บนี้จะมีป้ายสีแดง" />;
+  }
+  return (
+    <ul className="divide-y divide-stone-200">
+      {alerts.map((a) => (
+        <li key={a.id} className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-red-100 text-red-700">
+            <Siren className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-[14rem] flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold text-stone-900">{a.actorName ?? "ไม่ทราบชื่อ"}</p>
+              <Badge size="sm" tone={a.actorType === "USER" ? "info" : "warning"}>
+                {a.actorType === "USER" ? "ผู้โดยสาร" : "คนขับ"}
+              </Badge>
+            </div>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-600">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {formatDateTime(a.createdAt)}
+              </span>
+              {a.actorPhone && (
+                <a href={`tel:${a.actorPhone}`} className="flex items-center gap-1 font-medium text-emerald-800 hover:underline">
+                  <Phone className="h-3.5 w-3.5" aria-hidden="true" /> {a.actorPhone}
+                </a>
+              )}
+              {a.lat != null && a.lng != null && (
+                <a
+                  href={`https://www.google.com/maps?q=${a.lat},${a.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 font-medium text-emerald-800 hover:underline"
+                >
+                  <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> ดูตำแหน่งบนแผนที่
+                </a>
+              )}
+            </p>
+            {a.contactedEmergencyNumber && <p className="mt-1 text-sm text-stone-600">ผู้แจ้งกดโทร {a.contactedEmergencyNumber} ไปแล้ว</p>}
+            {a.note && <p className="mt-2 rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-700">{a.note}</p>}
+          </div>
+          <Button variant="danger" size="sm" onClick={() => onResolve(a.id)}>
+            <Check className="h-4 w-4" /> ปิดเคส
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------------------------------------------------------------- แจ้งปัญหาหลังทริป
+// เคสด่วน (ขับอันตราย/คุกคาม/ไม่ปลอดภัย) ขึ้นก่อน — กดแถวเพื่อดูรายละเอียดและบันทึกการจัดการ (เปิดทีละเคสไม่ต้องสลับหน้า)
+function ReportsPanel({ reports, onResolve }) {
+  const [openId, setOpenId] = useState(null);
+  const sorted = useMemo(() => [...reports].sort((a, b) => Number(b.urgent) - Number(a.urgent)), [reports]);
+  if (sorted.length === 0) {
+    return <EmptyState title="ไม่มีเรื่องแจ้งปัญหาที่ค้างอยู่" hint="เมื่อผู้ใช้กด “แจ้งปัญหา” หลังจบทริป เรื่องจะขึ้นที่นี่ เคสที่เกี่ยวกับความปลอดภัยจะอยู่บนสุด" />;
+  }
+  return (
+    <ul className="divide-y divide-stone-200">
+      {sorted.map((r) => (
+        <ReportRow key={r.id} report={r} open={openId === r.id} onToggle={() => setOpenId(openId === r.id ? null : r.id)} onResolve={onResolve} />
+      ))}
+    </ul>
+  );
+}
+
+function ReportRow({ report: r, open, onToggle, onResolve }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const reporter = r.reporterRole === "user" ? r.trip?.user : r.trip?.driver;
   const other = r.reporterRole === "user" ? r.trip?.driver : r.trip?.user;
   return (
-    <Card className={`flex flex-col gap-3 p-5 ${r.urgent ? "border-red-300" : "border-amber-200"}`}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {r.urgent && <Badge tone="danger">ด่วน</Badge>}
-          <Badge tone={r.reporterRole === "user" ? "info" : "warning"}>
-            {r.reporterRole === "user" ? "ผู้โดยสารแจ้ง" : "คนขับแจ้ง"}
-          </Badge>
-        </div>
-        <span className="flex items-center gap-1 text-sm text-stone-400">
-          <Clock className="h-3.5 w-3.5" /> {formatDateTime(r.createdAt)}
-        </span>
-      </div>
-      <p className="text-2xl font-bold text-stone-900">{r.categoryLabel}</p>
-      {r.detail && <p className="whitespace-pre-wrap rounded-lg bg-stone-50 p-2 text-sm text-stone-700">{r.detail}</p>}
-      <dl className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <dt className="text-stone-400">ผู้แจ้ง</dt>
-          <dd className="text-stone-900">
-            {reporter?.fullName ?? "-"} {reporter?.phone && <a href={`tel:${reporter.phone}`} className="text-emerald-800">{reporter.phone}</a>}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-stone-400">{r.reporterRole === "user" ? "คนขับ" : "ผู้โดยสาร"}</dt>
-          <dd className="text-stone-900">
-            {other?.fullName ?? "-"}
-            {r.reporterRole === "user" && r.trip?.driver && ` · เบอร์วิน ${r.trip.driver.vinNumber} · ${r.trip.driver.licensePlate}`}
-          </dd>
-        </div>
-        <div className="col-span-2">
-          <dt className="text-stone-400">ทริป</dt>
-          <dd className="text-stone-900">
-            {r.trip?.pickupAddress ?? "-"} → {r.trip?.destinationAddress ?? "-"} · {formatDateTime(r.trip?.requestedAt)}
-          </dd>
-        </div>
-      </dl>
-      <label className="flex flex-col gap-1 text-sm text-stone-500">
-        <span>บันทึกการจัดการ (ไม่บังคับ)</span>
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={500}
-          placeholder="เช่น ตักเตือนคนขับแล้ว / ระงับบัญชี"
-          className="rounded-lg border border-stone-200 px-3 py-2 text-stone-900"
-        />
-      </label>
-      <Button
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            await onResolve(r.id, note);
-          } finally {
-            setBusy(false);
-          }
-        }}
+    <li>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-4 px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
       >
-        {busy ? "กำลังปิดเคส..." : "ปิดเคสนี้"}
-      </Button>
-    </Card>
+        <Flag className={clsx("h-5 w-5 flex-none", r.urgent ? "text-red-600" : "text-amber-600")} aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-semibold text-stone-900">{r.categoryLabel}</span>
+            {r.urgent && <Badge size="sm" tone="danger">ด่วน</Badge>}
+            <Badge size="sm" tone={r.reporterRole === "user" ? "info" : "warning"}>
+              {r.reporterRole === "user" ? "ผู้โดยสารแจ้ง" : "คนขับแจ้ง"}
+            </Badge>
+          </span>
+          <span className="mt-0.5 block truncate text-sm text-stone-600">
+            {reporter?.fullName ?? "-"} → {other?.fullName ?? "-"} · {r.trip?.pickupAddress ?? "-"} → {r.trip?.destinationAddress ?? "-"}
+          </span>
+        </span>
+        <span className="flex flex-none items-center gap-1 text-sm text-stone-600">
+          <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {formatDateTime(r.createdAt)}
+        </span>
+        <ChevronDown className={clsx("h-4 w-4 flex-none text-stone-500 transition-transform duration-150", open && "rotate-180")} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="grid gap-5 border-t border-stone-100 bg-stone-50 px-6 py-5 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            {r.detail && <p className="whitespace-pre-wrap rounded-lg bg-white px-3 py-2.5 text-sm text-stone-800 ring-1 ring-stone-200">{r.detail}</p>}
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div>
+                <dt className="text-stone-600">ผู้แจ้ง</dt>
+                <dd className="font-medium text-stone-900">
+                  {reporter?.fullName ?? "-"}{" "}
+                  {reporter?.phone && (
+                    <a href={`tel:${reporter.phone}`} className="text-emerald-800 hover:underline">
+                      {reporter.phone}
+                    </a>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-stone-600">{r.reporterRole === "user" ? "คนขับ" : "ผู้โดยสาร"}</dt>
+                <dd className="font-medium text-stone-900">
+                  {other?.fullName ?? "-"}
+                  {r.reporterRole === "user" && r.trip?.driver && ` · เบอร์วิน ${r.trip.driver.vinNumber} · ${r.trip.driver.licensePlate}`}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-stone-600">ทริป</dt>
+                <dd className="font-medium text-stone-900">
+                  {r.trip?.pickupAddress ?? "-"} → {r.trip?.destinationAddress ?? "-"} · {formatDateTime(r.trip?.requestedAt)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-stone-700">
+              บันทึกการจัดการ (ไม่บังคับ)
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="เช่น ตักเตือนคนขับแล้ว / ระงับบัญชี"
+                className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-normal text-stone-900 placeholder:text-stone-500"
+              />
+            </label>
+            <Button
+              className="self-start"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await onResolve(r.id, note);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {busy ? "กำลังปิดเคส..." : "ปิดเคสนี้"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
 
-function SosSection({ alerts, onResolve }) {
-  const open = (alerts ?? []).filter((a) => a.status === "OPEN");
+// ---------------------------------------------------------------- คนขับรออนุมัติ
+// แต่ละแถวเป็น div ล้วน (ไม่ใช้ table) เพื่อให้ปุ่ม "ตรวจสอบ" ผูกกับแถวของคนขับคนนั้นคนเดียว
+function DriversPanel({ drivers, showArea, onReview }) {
+  const [type, setType] = useState("ALL");
+  const byType = (t) => drivers.filter((d) => d.driverType === t).length;
+  const shown = type === "ALL" ? drivers : drivers.filter((d) => d.driverType === type);
+
+  if (drivers.length === 0) {
+    return <EmptyState title="ไม่มีคนขับรออนุมัติ" hint="เมื่อมีผู้ใช้สมัครขับและส่งเอกสารครบ จะขึ้นที่นี่ให้ตรวจเอกสารและอนุมัติหรือปฏิเสธพร้อมเหตุผล" />;
+  }
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-3xl text-red-700">
-        <Siren className="h-6 w-6" /> แจ้งเหตุฉุกเฉิน (SOS)
-      </h2>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {open.map((a) => (
-          <Card key={a.id} className="flex flex-col gap-3 border-red-300 p-5">
-            <div className="flex items-center justify-between">
-              <Badge tone={a.actorType === "USER" ? "info" : "warning"}>
-                {a.actorType === "USER" ? "ผู้โดยสาร" : "คนขับ"}
-              </Badge>
-              <span className="flex items-center gap-1 text-sm text-stone-400">
-                <Clock className="h-3.5 w-3.5" /> {formatDateTime(a.createdAt)}
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-stone-900">{a.actorName ?? "ไม่ทราบชื่อ"}</p>
-            {a.actorPhone && (
-              <a href={`tel:${a.actorPhone}`} className="flex items-center gap-1.5 text-lg text-emerald-800">
-                <Phone className="h-4 w-4" /> {a.actorPhone}
-              </a>
+    <div>
+      <div className="flex flex-wrap items-center gap-2 border-b border-stone-200 px-6 py-3" role="group" aria-label="กรองตามประเภทคนขับ">
+        {[["ALL", "ทั้งหมด", drivers.length], ...Object.entries(DRIVER_TYPE_LABEL).map(([k, v]) => [k, v, byType(k)])].map(([key, label, n]) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={type === key}
+            onClick={() => setType(key)}
+            className={clsx(
+              "rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150",
+              type === key ? "bg-emerald-800 text-white" : "bg-stone-100 text-stone-700 hover:bg-stone-200"
             )}
-            {a.lat != null && a.lng != null && (
-              <a
-                href={`https://www.google.com/maps?q=${a.lat},${a.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 text-sm text-emerald-700 hover:underline"
-              >
-                <MapPin className="h-4 w-4" /> ดูตำแหน่งบนแผนที่
-              </a>
-            )}
-            {a.contactedEmergencyNumber && (
-              <p className="text-sm text-stone-500">ผู้แจ้งกดโทร {a.contactedEmergencyNumber} ไปแล้ว</p>
-            )}
-            {a.note && <p className="rounded-lg bg-stone-50 p-2 text-sm text-stone-600">{a.note}</p>}
-            <Button variant="danger" onClick={() => onResolve(a.id)}>
-              ปิดเคสนี้
-            </Button>
-          </Card>
+          >
+            {label} <span className="tabular-nums opacity-80">{n}</span>
+          </button>
         ))}
       </div>
-    </section>
+
+      <div
+        className={clsx(
+          "hidden gap-4 border-b border-stone-200 bg-stone-50 px-6 py-2.5 text-sm font-medium text-stone-600 lg:grid",
+          showArea ? "lg:grid-cols-[2fr_1.4fr_1.4fr_1fr_8rem]" : "lg:grid-cols-[2fr_1.4fr_1.4fr_8rem]"
+        )}
+      >
+        <span>ผู้สมัคร</span>
+        <span>ประเภท</span>
+        <span>รถ</span>
+        {showArea && <span>พื้นที่</span>}
+        <span className="text-right">เอกสาร</span>
+      </div>
+
+      {shown.length === 0 && <p className="px-6 py-8 text-center text-sm text-stone-600">ไม่มีผู้สมัครประเภทนี้</p>}
+      {shown.map((d) => (
+        <div
+          key={d.id}
+          className={clsx(
+            "grid items-center gap-x-4 gap-y-2 border-b border-stone-200 px-6 py-3.5 last:border-b-0",
+            showArea ? "lg:grid-cols-[2fr_1.4fr_1.4fr_1fr_8rem]" : "lg:grid-cols-[2fr_1.4fr_1.4fr_8rem]"
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-emerald-100 text-base font-semibold text-emerald-900" aria-hidden="true">
+              {d.fullName[0]}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold text-stone-900">{d.fullName}</p>
+              <p className="text-sm text-stone-600">{d.phone}</p>
+            </div>
+          </div>
+          <div className="text-sm text-stone-700">
+            <Badge size="sm" tone="neutral">
+              {DRIVER_TYPE_LABEL[d.driverType] ?? "-"}
+            </Badge>
+            {(d.winGroupName || d.studentId) && <p className="mt-1 text-stone-600">{d.winGroupName ?? `รหัส ${d.studentId}`}</p>}
+          </div>
+          <div className="text-sm text-stone-700">
+            <p>{d.licensePlate}</p>
+            <p className="text-stone-600">เบอร์วิน {d.vinNumber}</p>
+          </div>
+          {showArea && <p className="text-sm text-stone-700">{d.area?.displayName ?? "-"}</p>}
+          <div className="lg:text-right">
+            <Button size="sm" onClick={() => onReview(d)}>
+              <UserCheck className="h-4 w-4" /> ตรวจสอบ
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
-// เอกสารตามประเภทคนขับ — ตรงกับ apps/api/src/utils/driverTypes.js
-const DRIVER_TYPE_LABEL = { STUDENT: "นิสิต", PUBLIC: "บุคคลทั่วไป", PRO: "วินมอเตอร์ไซค์" };
-const DOC_FIELDS = [
-  ["photoUrl", "รูปถ่ายหน้าตรง"],
-  ["idCardPhotoUrl", "บัตรประชาชน"],
-  ["studentCardPhotoUrl", "บัตรนิสิต"],
-  ["driverLicensePhotoUrl", "ใบขับขี่"],
-  ["vestPhotoUrl", "เสื้อวิน"],
-  ["vehiclePhotoUrl", "รถเต็มคัน"],
-  ["platePhotoUrl", "ป้ายทะเบียน"],
-];
+// ---------------------------------------------------------------- ข้อพิพาทการจ่ายเงิน
+function DisputesPanel({ trips, showArea, onResolve }) {
+  if (trips.length === 0) {
+    return <EmptyState title="ไม่มีข้อพิพาทการจ่ายเงินค้างอยู่" hint="เมื่อคนขับแจ้งว่ายังไม่ได้รับเงิน ทริปนั้นจะขึ้นที่นี่ ตรวจสลิปและประวัติแล้วกด “แก้ไขแล้ว” เพื่อปิด" />;
+  }
+  return (
+    <ul className="divide-y divide-stone-200">
+      {trips.map((t) => (
+        <li key={t.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-4">
+          <div className="min-w-[16rem] flex-1">
+            <p className="text-[15px] font-semibold text-stone-900">
+              {t.pickupAddress ?? "-"} → {t.destinationAddress ?? "-"}
+            </p>
+            <p className="mt-0.5 text-sm text-stone-600">
+              {formatDateTime(t.requestedAt)} · คนขับ {t.driver?.fullName ?? "-"}
+              {showArea && t.area?.displayName ? ` · ${t.area.displayName}` : ""}
+            </p>
+            {t.disputeNote && <p className="mt-2 rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-700">{t.disputeNote}</p>}
+          </div>
+          <span className="text-lg font-semibold tabular-nums text-stone-900">฿{(t.fare ?? 0).toFixed(2)}</span>
+          <PaymentCell trip={t} />
+          <Button variant="outline" size="sm" onClick={() => onResolve(t.id)}>
+            <Check className="h-4 w-4" /> แก้ไขแล้ว
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
+// ---------------------------------------------------------------- รายการเดินทาง
+const PAGE_LIMIT = 100;
+
+function TripsPanel({ trips, showArea, onResolveDispute }) {
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const term = q.trim().toLowerCase();
+  const filtered = trips.filter((t) => {
+    if (status && t.status !== status) return false;
+    if (!term) return true;
+    return [t.driver?.fullName, t.pickupAddress, t.destinationAddress, t.area?.displayName].some((v) => v?.toLowerCase().includes(term));
+  });
+  const shown = filtered.slice(0, PAGE_LIMIT);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3 border-b border-stone-200 px-6 py-3">
+        <label className="flex min-w-[16rem] flex-1 items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-1.5">
+          <Search className="h-4 w-4 text-stone-500" aria-hidden="true" />
+          <span className="sr-only">ค้นหาทริป</span>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="ค้นหาชื่อคนขับ จุดรับ หรือปลายทาง"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-500"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-stone-700">
+          สถานะ
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm">
+            <option value="">ทั้งหมด</option>
+            {Object.entries(STATUS_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[960px] text-left text-sm">
+          <thead className="bg-stone-50 text-stone-600">
+            <tr>
+              <th className="px-6 py-2.5 font-medium">วันที่/เวลา</th>
+              {showArea && <th className="px-4 py-2.5 font-medium">พื้นที่</th>}
+              <th className="px-4 py-2.5 font-medium">คนขับ</th>
+              <th className="px-4 py-2.5 font-medium">เส้นทาง</th>
+              <th className="px-4 py-2.5 text-right font-medium">ค่าโดยสาร</th>
+              <th className="px-4 py-2.5 font-medium">สถานะ</th>
+              <th className="px-4 py-2.5 font-medium">การชำระเงิน</th>
+              <th className="px-6 py-2.5" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-200">
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-6 py-10 text-center text-stone-600">
+                  ไม่พบทริปที่ตรงกับที่ค้นหา
+                </td>
+              </tr>
+            )}
+            {shown.map((t) => (
+              <tr key={t.id} className={t.paymentStatus === "DISPUTED" ? "bg-red-50" : "hover:bg-stone-50"}>
+                <td className="whitespace-nowrap px-6 py-3 text-stone-900">{formatDateTime(t.requestedAt)}</td>
+                {showArea && <td className="px-4 py-3 text-stone-700">{t.area?.displayName ?? "-"}</td>}
+                <td className="px-4 py-3 text-stone-900">{t.driver?.fullName ?? <span className="text-stone-600">ยังไม่มีคนขับรับ</span>}</td>
+                <td className="px-4 py-3 text-stone-900">
+                  {t.pickupAddress ?? "-"} → {t.destinationAddress ?? "-"}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-stone-900">฿{(t.fare ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3">
+                  {t.paymentStatus === "DISPUTED" ? (
+                    <span className="flex flex-col items-start gap-1">
+                      <span className="text-stone-900">{STATUS_LABEL[t.status] ?? t.status}</span>
+                      <Badge size="sm" tone="danger">
+                        <AlertCircle className="mr-1 h-3 w-3" aria-hidden="true" /> ข้อพิพาท
+                      </Badge>
+                    </span>
+                  ) : (
+                    <Badge size="sm" tone={t.status === "CANCELLED" ? "neutral" : "success"}>
+                      {STATUS_LABEL[t.status] ?? t.status}
+                    </Badge>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <PaymentCell trip={t} />
+                </td>
+                <td className="px-6 py-3 text-right">
+                  {t.paymentStatus === "DISPUTED" && (
+                    <Button variant="outline" size="sm" onClick={() => onResolveDispute(t.id)}>
+                      แก้ไขแล้ว
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {filtered.length > PAGE_LIMIT && (
+        <p className="border-t border-stone-200 px-6 py-3 text-sm text-stone-600">แสดง {PAGE_LIMIT} จาก {filtered.length} รายการ ใช้ช่องค้นหาหรือสถานะเพื่อกรองให้แคบลง</p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- ตรวจเอกสารคนขับ
+// แผงด้านข้าง (ไม่ใช่ popup กลางจอ) เห็นรายการหลังแผงตลอด ปุ่มอนุมัติ/ปฏิเสธติดล่างให้กดได้โดยไม่ต้องเลื่อนหาเมื่อเอกสารเยอะ
+function DriverReviewDrawer({ driver, onClose, onApprove, onReject }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -456,78 +677,65 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
   }
 
   return (
-    <Overlay onClose={onClose} className="flex items-center justify-center p-4" backdropClassName="bg-black/50">
-      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-5 overflow-y-auto rounded-2xl bg-white p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl text-emerald-900">ตรวจสอบเอกสารคนขับ</h3>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-stone-100">
+    <Overlay onClose={onClose} className="flex justify-end" backdropClassName="bg-black/30">
+      <aside role="dialog" aria-modal="true" aria-labelledby="review-title" className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-stone-200 px-6 py-4">
+          <div>
+            <h2 id="review-title" className="text-xl font-semibold text-stone-900">
+              ตรวจสอบเอกสารคนขับ
+            </h2>
+            <p className="text-sm text-stone-600">{driver.fullName}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="ปิด" className="rounded-lg p-1.5 text-stone-600 hover:bg-stone-100">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-base">
-          <div>
-            <p className="text-stone-400">ชื่อ-นามสกุล</p>
-            <p className="text-stone-900">{driver.fullName}</p>
-          </div>
-          <div>
-            <p className="text-stone-400">เบอร์โทรศัพท์</p>
-            <p className="text-stone-900">{driver.phone}</p>
-          </div>
-          <div>
-            <p className="text-stone-400">ประเภท</p>
-            <p className="text-stone-900">
-              {DRIVER_TYPE_LABEL[driver.driverType] ?? "-"}
-              {driver.winGroupName && ` · ${driver.winGroupName}`}
-              {driver.studentId && ` · รหัส ${driver.studentId}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-stone-400">เบอร์วิน</p>
-            <p className="text-stone-900">{driver.vinNumber}</p>
-          </div>
-          <div>
-            <p className="text-stone-400">รถ / ทะเบียน</p>
-            <p className="text-stone-900">
-              {driver.vehicleModel ?? "-"} / {driver.licensePlate}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {docs.map((doc) => (
-            <div key={doc.label} className="flex flex-col gap-1">
-              <p className="text-sm text-stone-500">{doc.label}</p>
-              {doc.url ? (
-                <a href={doc.url} target="_blank" rel="noreferrer">
-                  <img src={doc.url} alt={doc.label} className="h-32 w-full rounded-lg border border-stone-200 object-cover" />
-                </a>
-              ) : (
-                <div className="flex h-32 w-full items-center justify-center rounded-lg bg-stone-100 text-xs text-stone-400">
-                  ไม่มีรูป
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {showReject && (
-          <div className="flex flex-col gap-2">
-            <label htmlFor="reject-reason" className="text-sm text-stone-600">เหตุผลที่ปฏิเสธ (จำเป็น)</label>
-            <textarea
-              id="reject-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={2}
-              placeholder="เช่น รูปบัตรประชาชนไม่ชัดเจน"
-              className="rounded-lg border border-stone-300 p-3 text-sm outline-none focus:border-emerald-600"
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <Info label="เบอร์โทรศัพท์" value={driver.phone} />
+            <Info
+              label="ประเภท"
+              value={`${DRIVER_TYPE_LABEL[driver.driverType] ?? "-"}${driver.winGroupName ? ` · ${driver.winGroupName}` : ""}${driver.studentId ? ` · รหัส ${driver.studentId}` : ""}`}
             />
-          </div>
-        )}
+            <Info label="เบอร์วิน" value={driver.vinNumber} />
+            <Info label="รถ / ทะเบียน" value={`${driver.vehicleModel ?? "-"} / ${driver.licensePlate}`} />
+          </dl>
 
-        <div className="flex gap-3">
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-stone-800">เอกสาร ({docs.length}) · กดรูปเพื่อดูขนาดเต็ม</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {docs.map((doc) => (
+                <figure key={doc.label} className="flex flex-col gap-1">
+                  <a href={doc.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                    <img src={doc.url} alt={doc.label} className="h-40 w-full object-contain" />
+                  </a>
+                  <figcaption className="text-sm text-stone-700">{doc.label}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+
+          {showReject && (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="reject-reason" className="text-sm font-medium text-stone-800">
+                เหตุผลที่ปฏิเสธ (จำเป็น — คนขับจะเห็นข้อความนี้ในแอป)
+              </label>
+              <textarea
+                id="reject-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                placeholder="เช่น รูปบัตรประชาชนไม่ชัดเจน"
+                className="rounded-lg border border-stone-300 p-3 text-sm placeholder:text-stone-500"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 border-t border-stone-200 bg-white px-6 py-4">
           {!showReject ? (
-            <Button variant="danger" onClick={() => setShowReject(true)} disabled={busy}>
+            <Button variant="outline" onClick={() => setShowReject(true)} disabled={busy} className="text-red-700">
               <X className="h-4 w-4" /> ปฏิเสธ
             </Button>
           ) : (
@@ -535,12 +743,21 @@ function DriverReviewModal({ driver, onClose, onApprove, onReject }) {
               <X className="h-4 w-4" /> ยืนยันปฏิเสธ
             </Button>
           )}
-          <Button onClick={handleApprove} disabled={busy}>
-            <Check className="h-4 w-4" /> อนุมัติ
+          <Button onClick={handleApprove} disabled={busy} className="flex-1">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} อนุมัติ
           </Button>
         </div>
-      </div>
+      </aside>
     </Overlay>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div>
+      <dt className="text-stone-600">{label}</dt>
+      <dd className="font-medium text-stone-900">{value}</dd>
+    </div>
   );
 }
 
@@ -548,38 +765,38 @@ const PAID_BY_LABEL = { SLIP: "ตรวจสลิปแล้ว", DRIVER: "�
 
 // สถานะการชำระเงินของทริป: จ่ายแล้วด้วยวิธีไหน / รอชำระ (พร้อมเหตุผลที่สลิปล่าสุดไม่ผ่านถ้ามี — ช่วยตัดสินข้อพิพาท)
 function PaymentCell({ trip }) {
-  if (trip.status !== "COMPLETED") return <span className="text-stone-400">-</span>;
+  if (trip.status !== "COMPLETED") return <span className="text-stone-500">-</span>;
 
   if (trip.paymentStatus === "PAID") {
     return (
       <div className="flex flex-col items-start gap-1">
-        <Badge tone="success">จ่ายแล้ว</Badge>
-        <span className="text-xs text-stone-500">
+        <Badge size="sm" tone="success">
+          จ่ายแล้ว
+        </Badge>
+        <span className="text-xs text-stone-600">
           {PAID_BY_LABEL[trip.paymentConfirmedBy] ?? "ไม่ระบุ"}
           {trip.paymentMethod === "PROMPTPAY" ? " · พร้อมเพย์" : ""}
         </span>
-        {trip.paymentRef && <span className="text-[11px] text-stone-400">อ้างอิง {trip.paymentRef}</span>}
+        {trip.paymentRef && <span className="text-xs text-stone-500">อ้างอิง {trip.paymentRef}</span>}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <Badge tone={trip.paymentStatus === "DISPUTED" ? "danger" : "warning"}>
+      <Badge size="sm" tone={trip.paymentStatus === "DISPUTED" ? "danger" : "warning"}>
         {trip.paymentStatus === "DISPUTED" ? "ข้อพิพาท" : "รอชำระ"}
       </Badge>
-      {trip.paymentSlipAttempts > 0 && (
-        <span className="text-xs text-stone-500">ส่งสลิป {trip.paymentSlipAttempts} ครั้ง ไม่ผ่าน</span>
-      )}
-      {trip.paymentSlipError && <span className="max-w-[16rem] text-[11px] text-red-600">{trip.paymentSlipError}</span>}
+      {trip.paymentSlipAttempts > 0 && <span className="text-xs text-stone-600">ส่งสลิป {trip.paymentSlipAttempts} ครั้ง ไม่ผ่าน</span>}
+      {trip.paymentSlipError && <span className="max-w-[16rem] text-xs text-red-700">{trip.paymentSlipError}</span>}
     </div>
   );
 }
 
 function LoadingRow() {
   return (
-    <div className="flex items-center gap-2 py-6 text-stone-400">
-      <Loader2 className="h-5 w-5 animate-spin" /> กำลังโหลด...
+    <div className="flex items-center gap-2 px-6 py-10 text-stone-600">
+      <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> กำลังโหลด...
     </div>
   );
 }
