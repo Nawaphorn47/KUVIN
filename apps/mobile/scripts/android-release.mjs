@@ -21,7 +21,12 @@ if (!apiUrl.startsWith("https://")) {
 
 function run(cmd, args, env = {}, cwd = root) {
   console.log(`\n> ${cmd} ${args.join(" ")}`);
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: isWindows, env: { ...process.env, ...env } });
+  const merged = { ...process.env, ...env };
+  if (isWindows && env.PATH) {
+    // Windows เก็บชื่อตัวแปรแบบไม่สนตัวพิมพ์ แต่ object ของ Node แยก Path/PATH เป็นสองคีย์ — ลบตัวเดิมออกให้เหลือคีย์เดียวที่เราตั้ง
+    for (const k of Object.keys(merged)) if (k.toLowerCase() === "path" && k !== "PATH") delete merged[k];
+  }
+  const result = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: isWindows, env: merged });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
@@ -49,5 +54,7 @@ if (!process.env.ANDROID_HOME && isWindows && process.env.LOCALAPPDATA) {
 const androidDir = join(root, "android");
 const gradlew = join(androidDir, isWindows ? "gradlew.bat" : "gradlew");
 run(isWindows ? `"${gradlew}"` : gradlew, ["--stop"], gradleEnv, androidDir); // ปิด daemon เก่าที่อาจเปิดด้วย JDK คนละตัว
-run(isWindows ? `"${gradlew}"` : gradlew, ["assembleRelease"], gradleEnv, androidDir);
+// -Dorg.gradle.java.home บังคับ JVM ของ daemon ตรงๆ (ตัวแปร PATH/JAVA_HOME อย่างเดียวไม่พอบน Windows ถ้ามี JDK ใหม่เกินอยู่ใน PATH)
+const jvmArg = gradleEnv.JAVA_HOME ? [`"-Dorg.gradle.java.home=${gradleEnv.JAVA_HOME}"`] : [];
+run(isWindows ? `"${gradlew}"` : gradlew, ["assembleRelease", ...jvmArg], gradleEnv, androidDir);
 console.log(`\nAPK: ${join(androidDir, "app", "build", "outputs", "apk", "release", "app-release.apk")}`);

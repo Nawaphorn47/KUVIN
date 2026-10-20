@@ -30,7 +30,7 @@ test.describe("01 ระบบขึ้นครบ", () => {
 
   test("TC-01-04 เว็บแอปเปิดได้ → Splash → หน้าต้อนรับ → หน้าเข้าสู่ระบบ", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "KU VIN" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "KUVIN" })).toBeVisible();
     await shot(page, "splash");
     await expect(page.getByRole("heading", { name: /เรียกวิน แตะเลขเดียวก็ไป/ })).toBeVisible({ timeout: 10_000 });
     await shot(page, "onboarding");

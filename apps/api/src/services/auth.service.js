@@ -127,7 +127,7 @@ async function requestPasswordReset(rawEmail) {
     try {
       await mail.sendMail({
         to: user.email,
-        subject: `KU VIN — รหัสรีเซ็ตรหัสผ่าน ${code}`,
+        subject: `KUVIN — รหัสรีเซ็ตรหัสผ่าน ${code}`,
         text:
           `รหัสยืนยันสำหรับตั้งรหัสผ่านใหม่ของคุณคือ ${code}\n\n` +
           "รหัสนี้หมดอายุใน 15 นาที หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้ตามปกติ",

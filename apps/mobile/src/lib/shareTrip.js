@@ -14,7 +14,7 @@ export async function shareTrip(request) {
   const text = `กำลังนั่งวินไป ${request.destinationAddress ?? "ปลายทาง"} ดูตำแหน่งสดได้ที่ลิงก์นี้`;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "ติดตามทริป KU VIN", text, url });
+      await navigator.share({ title: "ติดตามทริป KUVIN", text, url });
       return "shared";
     } catch (err) {
       if (err?.name === "AbortError") return "cancelled";

@@ -59,7 +59,7 @@ export default function Settings() {
         </section>
 
         <p className="mt-8 text-center text-sm leading-relaxed text-slate-600">
-          KU VIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์
+          KUVIN — แพลตฟอร์มเรียกวินมอเตอร์ไซค์
           {area && <span className="block">พื้นที่ให้บริการ: {area.name}</span>}
           <span className="block">โครงงานปัญหาพิเศษ สาขาวิชาเทคโนโลยีสารสนเทศ มก. กำแพงแสน</span>
         </p>

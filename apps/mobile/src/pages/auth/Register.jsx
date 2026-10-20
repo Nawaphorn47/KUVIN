@@ -4,6 +4,7 @@ import { Bike, Check, ChevronLeft, IdCard, Lock, Mail, Phone, User } from "lucid
 import clsx from "clsx";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Logo from "../../components/ui/Logo";
 import { api } from "../../lib/api";
 import { setToken } from "../../lib/auth";
 import { useApp } from "../../context/AppContext";
@@ -65,12 +66,10 @@ export default function Register() {
           <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="mt-3 flex items-center gap-3">
-          <span className="flex h-11 w-11 flex-none -rotate-6 items-center justify-center rounded-full border-[3px] border-white bg-brand-700 shadow-sticker">
-            <Bike className="h-5 w-5" aria-hidden="true" />
-          </span>
+          <Logo dark className="h-12 w-12 flex-none" />
           <div>
             <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight">สมัครด้วยอีเมล</h1>
-            <p className="text-sm text-brand-100">{area?.displayName ?? "KU VIN"} · บัญชีเดียว ทั้งเรียกวินและขับวิน</p>
+            <p className="text-sm text-brand-100">{area?.displayName ?? "KUVIN"} · บัญชีเดียว ทั้งเรียกวินและขับวิน</p>
           </div>
         </div>
       </header>
@@ -161,7 +160,7 @@ export default function Register() {
             >
               {agreed && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
-            <span className="text-sm text-slate-700">ฉันยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัวของ KU VIN</span>
+            <span className="text-sm text-slate-700">ฉันยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัวของ KUVIN</span>
           </label>
 
           <p className="mt-4 flex items-start gap-2 text-sm text-slate-600">
