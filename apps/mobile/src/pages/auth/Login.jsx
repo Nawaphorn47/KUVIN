@@ -4,6 +4,7 @@ import { Bike, ChevronLeft, Lock, Mail, Phone, User, Zap } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import OtpForm from "../../components/shared/OtpForm";
+import { Capacitor } from "@capacitor/core";
 import GoogleButton from "../../components/shared/GoogleButton";
 import { api } from "../../lib/api";
 import { setToken, peekSessionNotice, clearSessionNotice } from "../../lib/auth";
@@ -178,7 +179,8 @@ export default function Login() {
               {!googleTicket && (
                 <>
                   <Divider>หรือ</Divider>
-                  {config?.googleClientId && <GoogleButton clientId={config.googleClientId} onCredential={googleCredential} />}
+                  {/* ในแอป Android (Capacitor) origin คือ https://localhost ซึ่ง Google ไม่รับสำหรับ Web client — ซ่อนปุ่ม ใช้เบอร์โทร/อีเมลแทน */}
+              {config?.googleClientId && !Capacitor.isNativePlatform() && <GoogleButton clientId={config.googleClientId} onCredential={googleCredential} />}
                   <Button variant="secondary" onClick={() => go("email")}>
                     <Mail className="h-4 w-4" /> ใช้อีเมลและรหัสผ่าน
                   </Button>
