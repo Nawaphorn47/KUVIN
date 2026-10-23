@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8">
+<style>
+:root{--ink:#2A3332;--ln:#7C8A87;--bx:#E6ECEB;--hi:#176B5E}
+*{box-sizing:border-box}
+body{margin:0;width:1700px;background:#F4F6F6;font-family:"Leelawadee UI","Tahoma",sans-serif;color:var(--ink);padding:26px}
+h1{margin:0 0 4px;font-size:26px}.sub{margin:0 0 18px;color:#46605B;font-size:16px}
+.row{display:flex;gap:22px;align-items:flex-start;width:fit-content;padding:14px 18px;margin-bottom:20px;background:#F4F6F6}
+.fr{flex:none;text-align:center}
+.fr .t{font-size:15px;font-weight:700;margin:0 0 8px}
+.ph{width:250px;height:520px;border:2px solid var(--ln);border-radius:26px;background:#fff;padding:12px;position:relative;overflow:hidden}
+.ph.w{width:520px;height:340px;border-radius:12px}
+.b{border:1.5px solid var(--ln);background:var(--bx);border-radius:8px;display:grid;place-items:center;font-size:12.5px;color:var(--ink);padding:4px}
+.map{background:repeating-linear-gradient(45deg,#E6ECEB,#E6ECEB 8px,#DCE5E3 8px,#DCE5E3 16px)}
+.pin{width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--hi);position:absolute}
+.btn{background:var(--hi);color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;text-align:center}
+.ln{height:7px;background:#C7D1CF;border-radius:4px;margin:6px 0}
+.s{font-size:11.5px;color:#46605B;text-align:left}
+.bar{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:8px}
+.bar div{flex:1}
+.hdr{height:30px;margin-bottom:8px}
+.tabs{display:flex;gap:6px;margin:8px 0}.tabs .b{flex:1}
+.card{border:1.5px solid var(--ln);border-radius:8px;padding:8px;margin:6px 0;text-align:left;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+</style>
+<div class="row" id="a">
+ <div class="fr"><p class="t">1 เข้าสู่ระบบ</p><div class="ph">
+  <div class="b hdr">โลโก้ KUVIN</div>
+  <div class="ln" style="width:70%;height:12px;margin-top:22px"></div><div class="ln" style="width:50%"></div>
+  <div class="b" style="height:38px;margin-top:22px;justify-items:start;padding-left:10px">เบอร์โทรศัพท์</div>
+  <div class="btn" style="margin-top:12px">ขอรหัส OTP</div>
+  <div class="s" style="text-align:center;margin:16px 0">หรือ</div>
+  <div class="b" style="height:38px">เข้าสู่ระบบด้วยอีเมล</div>
+  <div class="b" style="height:38px;margin-top:8px">เข้าสู่ระบบด้วย Google</div>
+ </div></div>
+ <div class="fr"><p class="t">2 หน้าแรก (เลือกปลายทาง)</p><div class="ph">
+  <div class="b" style="height:36px;justify-items:start;padding-left:10px">🔍 ค้นหาปลายทาง หรือปักหมุดบนแผนที่</div>
+  <div class="b map" style="height:250px;margin-top:8px;position:relative"><span class="pin" style="left:80px;top:90px"></span><span class="pin" style="left:150px;top:150px;background:#D62B2B"></span>แผนที่</div>
+  <div class="s" style="margin:10px 0 4px">สถานที่ยอดนิยม</div>
+  <div class="grid"><div class="b">คณะ</div><div class="b">หอพัก</div><div class="b">โรงอาหาร</div><div class="b">ประตู</div></div>
+  <div class="bar"><div class="b">หน้าแรก</div><div class="b">ประวัติ</div><div class="b">โปรไฟล์</div></div>
+ </div></div>
+ <div class="fr"><p class="t">3 ยืนยันค่าโดยสาร</p><div class="ph">
+  <div class="b map" style="height:230px">แผนที่เส้นทาง</div>
+  <div class="card" style="margin-top:10px">จุดรับ: ตำแหน่งปัจจุบัน<br>จุดหมาย: ปลายทางที่เลือก</div>
+  <div class="card">ระยะทาง ... กม. · ค่าโดยสาร ... บาท</div>
+  <div class="btn" style="margin-top:10px">เรียกวินมอเตอร์ไซค์</div>
+ </div></div>
+ </div>
+<div class="row" id="b">
+ <div class="fr"><p class="t">4 ติดตามคนขับ</p><div class="ph">
+  <div class="b map" style="height:250px">แผนที่ตำแหน่งคนขับ</div>
+  <div class="card" style="margin-top:10px"><div style="display:flex;gap:8px;align-items:center"><div class="b" style="width:44px;height:44px;border-radius:50%">รูป</div><div>ชื่อคนขับ · วิน ...<br>ทะเบียนรถ ...</div></div></div>
+  <div style="display:flex;gap:8px"><div class="b" style="flex:1;height:36px">แชต</div><div class="b" style="flex:1;height:36px">แชร์ลิงก์</div></div>
+  <div class="b" style="height:36px;margin-top:8px;background:#F7D9D9;border-color:#D62B2B">SOS</div>
+ </div></div>
+ <div class="fr"><p class="t">5 คนขับ: งานใหม่</p><div class="ph">
+  <div class="b" style="height:36px">ออนไลน์ ● อยู่ในคิวลำดับที่ ...</div>
+  <div class="b" style="height:70px;margin-top:14px;font-size:26px;font-weight:700">15</div>
+  <div class="card">จุดรับ ...<br>จุดส่ง ...<br>ระยะทาง ... กม. · ... บาท</div>
+  <div class="b map" style="height:120px">แผนที่</div>
+  <div style="display:flex;gap:8px;margin-top:10px"><div class="b" style="flex:1;height:44px">ปฏิเสธ</div><div class="btn" style="flex:1">รับงาน</div></div>
+ </div></div>
+ <div class="fr"><p class="t">6 คนขับ: การเงิน</p><div class="ph" style="height:340px">
+  <div class="tabs"><div class="b">วัน</div><div class="b">สัปดาห์</div><div class="b">เดือน</div></div>
+  <div class="b" style="height:60px;font-size:20px;font-weight:700">รายได้สุทธิ ... บาท</div>
+  <div class="card">รายรับ ... · รายจ่าย ...</div><div class="card">รายการเติมน้ำมัน ... </div>
+  <div class="btn" style="margin-top:8px">เพิ่มรายจ่าย</div>
+ </div></div>
+</div>
+<div class="row" id="c">
+ <div class="fr"><p class="t">7 ผู้ดูแล: แดชบอร์ด (Web)</p><div class="ph w">
+  <div style="display:flex;gap:8px;height:100%">
+   <div class="b" style="width:110px;align-content:start;gap:8px;padding-top:12px">เมนู<br><br>ภาพรวม<br>ผู้ใช้/คนขับ<br>สถานที่<br>ตั้งค่า</div>
+   <div style="flex:1;text-align:left">
+    <div class="grid" style="grid-template-columns:repeat(4,1fr)"><div class="b" style="height:44px">SOS</div><div class="b">ผู้ขับขี่ออนไลน์</div><div class="b">ทริป</div><div class="b">รายงาน</div></div>
+    <div class="tabs" style="margin-top:10px"><div class="b">SOS</div><div class="b">รายงาน</div><div class="b">รออนุมัติ</div><div class="b">ข้อพิพาท</div><div class="b">ทริป</div></div>
+    <div class="card">แถวรายการงาน · ผู้ขับขี่ · สถานะ · ปุ่มตรวจสอบ</div><div class="card">แถวรายการงาน · ผู้ขับขี่ · สถานะ · ปุ่มตรวจสอบ</div><div class="card">แถวรายการงาน · ผู้ขับขี่ · สถานะ · ปุ่มตรวจสอบ</div>
+   </div>
+  </div>
+ </div></div>
+ <div class="fr"><p class="t">8 ผู้ดูแล: ตรวจเอกสารคนขับ</p><div class="ph w" style="width:430px">
+  <div style="display:flex;gap:8px;height:100%">
+   <div style="flex:1"><div class="b" style="height:92px">รูปหน้าตรง</div><div class="b" style="height:92px;margin-top:8px">บัตรประชาชน</div><div class="b" style="height:92px;margin-top:8px">ใบขับขี่</div></div>
+   <div style="flex:1;text-align:left"><div class="card">ชื่อ · เบอร์ · ทะเบียน · วิทยาเขต</div><div class="b" style="height:92px">รูปรถ / ป้ายทะเบียน</div><div style="display:flex;gap:8px;margin-top:20px"><div class="b" style="flex:1;height:40px">ปฏิเสธ</div><div class="btn" style="flex:1">อนุมัติ</div></div></div>
+  </div>
+ </div></div>
+</div>
+</html>

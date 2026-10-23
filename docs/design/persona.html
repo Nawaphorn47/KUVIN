@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8">
+<style>
+:root{--teal:#176B5E;--ink:#17302C;--mut:#46605B;--bg:#F3F7F6;--red:#D62B2B}
+*{box-sizing:border-box}
+body{margin:0;width:1000px;background:#fff;font-family:"Leelawadee UI","Tahoma",sans-serif;color:var(--ink)}
+.wrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:18px}
+.card{background:var(--bg);border-radius:22px;overflow:hidden;border:1px solid #D5E3E0}
+.head{display:flex;gap:22px;align-items:center;padding:20px 20px;color:#fff}
+.p1 .head{background:#176B5E}.p2 .head{background:#2B4C7E}
+.av{width:80px;height:80px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:42px;flex:none}
+.head h2{margin:0;font-size:30px}.head p{margin:4px 0 0;font-size:16px;opacity:1}
+.tags{display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px 0}
+.tags span{background:#fff;border:1px solid #C9DAD6;border-radius:99px;padding:4px 11px;font-size:14px}
+.sec{padding:12px 20px 0}
+.sec h3{margin:0 0 6px;font-size:18px;color:var(--teal);letter-spacing:.2px}
+.p2 .sec h3{color:#2B4C7E}
+.sec ul{margin:0;padding-left:22px;font-size:17px;line-height:1.5}
+.ans{margin:18px 0 0;padding:14px 20px 18px;background:#fff;border-top:1px solid #D5E3E0}
+.ans h3{margin:0 0 6px;font-size:18px;color:var(--red)}
+.ans ul{margin:0;padding-left:22px;font-size:17px;line-height:1.5}
+.note{padding:0 28px 22px;font-size:15px;color:var(--mut);text-align:center}
+</style>
+<div class="wrap">
+ <div class="card p1">
+  <div class="head"><div class="av">🎓</div><div><h2>มิ้นท์</h2><p>นิสิตชั้นปีที่ 2 · อายุ 20 ปี<br>อาศัยในหอพักใกล้มหาวิทยาลัย</p></div></div>
+  <div class="tags"><span>ผู้ใช้บริการ</span><span>สมาร์ตโฟนใช้ทั้งวัน</span><span>เคยใช้แอปเรียกรถ</span></div>
+  <div class="sec"><h3>เป้าหมาย</h3><ul><li>ไปเรียนให้ทันคาบ โดยไม่ต้องไปรอที่จุดวิน</li><li>รู้ค่าโดยสารก่อนขึ้นรถ ไม่ต้องต่อรองราคา</li><li>กลับหอตอนค่ำแล้วรู้สึกปลอดภัย</li></ul></div>
+  <div class="sec"><h3>ปัญหาที่เจอในปัจจุบัน</h3><ul><li>ต้องเดินไปรอที่จุดวิน คิวยาวช่วงเร่งด่วน</li><li>ไม่รู้ราคาจนกว่าจะขึ้นรถ</li><li>ไม่มีใครรู้ว่านั่งรถคันไหนอยู่ ตอนกลับหอกลางคืน</li></ul></div>
+  <div class="ans"><h3>สิ่งที่ KUVIN ตอบโจทย์</h3><ul><li>เรียกวินจากที่ไหนก็ได้ เห็นค่าโดยสารก่อนกดยืนยัน</li><li>เห็นข้อมูลคนขับและตำแหน่งสดบนแผนที่</li><li>ปุ่ม SOS และลิงก์แชร์การเดินทางให้คนที่บ้าน</li></ul></div>
+ </div>
+ <div class="card p2">
+  <div class="head"><div class="av">🏍️</div><div><h2>ลุงสมชาย</h2><p>ผู้ขับขี่วินมอเตอร์ไซค์ · อายุ 52 ปี<br>ขับวินในมหาวิทยาลัยมากกว่า 10 ปี</p></div></div>
+  <div class="tags"><span>ผู้ขับขี่</span><span>สมาร์ตโฟนรุ่นพื้นฐาน</span><span>สายตาเริ่มไม่ดี</span></div>
+  <div class="sec"><h3>เป้าหมาย</h3><ul><li>ได้งานต่อเนื่องและสม่ำเสมอ ไม่ต้องแย่งลูกค้า</li><li>รู้จุดรับและจุดส่งชัดเจนก่อนออกรถ</li><li>รู้รายได้และค่าน้ำมันของแต่ละวัน</li></ul></div>
+  <div class="sec"><h3>ปัญหาที่เจอในปัจจุบัน</h3><ul><li>งานกระจุกที่คนที่อยู่หน้าคิว ลูกค้าบางคนไม่ได้ขึ้นรถตามลำดับ</li><li>จดรายรับรายจ่ายด้วยมือ ตกหล่นง่าย</li><li>ตัวอักษรและปุ่มเล็กอ่านยาก ไม่ชอบขั้นตอนเยอะ</li></ul></div>
+  <div class="ans"><h3>สิ่งที่ KUVIN ตอบโจทย์</h3><ul><li>ระบบเสนองานตามลำดับคิว เป็นธรรมกับทุกคน</li><li>หน้าจอตัวอักษรใหญ่ ปุ่มกดง่าย ขั้นตอนสั้น</li><li>หน้าการเงินสรุปรายได้และบันทึกรายจ่ายรายวัน</li></ul></div>
+ </div>
+</div>
+<div class="note">Persona เป็นตัวแทนสมมติที่ผู้จัดทำกำหนดขึ้นจากลักษณะของกลุ่มผู้ใช้เป้าหมาย ไม่ใช่บุคคลจริง</div>
+</html>
